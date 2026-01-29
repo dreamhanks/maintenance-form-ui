@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.form-text {
+  font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN",
+               "Yu Gothic", Meiryo, sans-serif;
+  font-weight: 400;
+}
