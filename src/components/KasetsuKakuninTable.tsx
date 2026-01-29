@@ -17,6 +17,21 @@ const UnderlineInput = ({ w = "w-20" }: { w?: string }) => (
     />
 );
 
+// Accept: PDF, images, Excel (xls/xlsx)
+// const ACCEPT_FILES = "application/pdf,image/*,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.pdf,.xls,.xlsx";
+
+function getFileKind(file: File): "PDF" | "IMG" | "EXCEL" | "FILE" {
+  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))
+    return "PDF";
+  if (file.type.startsWith("image/")) return "IMG";
+  if (
+    file.name.toLowerCase().endsWith(".xlsx") ||
+    file.name.toLowerCase().endsWith(".xls")
+  )
+    return "EXCEL";
+  return "FILE";
+}
+
 type RProps = {
   name: string;
   value: string;
@@ -67,6 +82,13 @@ export function KasetsuKakuninTable() {
     fileInputRef.current?.click();
   };
 
+  const openFilePreview = (file: File) => {
+    const url = URL.createObjectURL(file);
+    // PDF/images usually preview; Excel usually downloads/opens externally.
+    window.open(url, "_blank", "noopener,noreferrer");
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
   const handleRadioChange = (value: string) => {
     setAshibaSetchiNeed(value);
 
@@ -82,10 +104,12 @@ export function KasetsuKakuninTable() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
+    const f = e.target.files?.[0] ?? null;
     if (!f) return;
     setPartialFile(f);
   };
+
+  const kind = partialFile ? getFileKind(partialFile) : null;
 
   return (
     <div className="overflow-x-auto form-text">
@@ -367,9 +391,20 @@ export function KasetsuKakuninTable() {
                   className="hidden"
                   onChange={handleFileChange}
                 />
-                {/* Show file under the radio */}
+                {/* Show file under the radio (clickable) */}
                 {ashibaSetchiNeed === "2" && partialFile && (
-                  <div className="mt-1 ml-6 text-xs text-gray-700">📎 {partialFile.name}</div>
+                  <div className="mt-1 ml-6 text-xs text-gray-700 whitespace-nowrap">
+                    <span className="mr-1 font-semibold">[{kind}]</span>
+                    📎{" "}
+                    <button
+                      type="button"
+                      className="underline text-blue-700 hover:text-blue-900"
+                      onClick={() => openFilePreview(partialFile)}
+                      title="開く"
+                    >
+                      {partialFile.name}
+                    </button>
+                  </div>
                 )}
               </div>
             </td>

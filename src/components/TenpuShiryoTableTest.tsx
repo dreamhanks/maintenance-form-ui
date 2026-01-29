@@ -15,26 +15,10 @@ const pad = "px-3 py-2";
 const labelColW = "w-[140px]";
 const rightColW = "w-[70px]";
 
-// Accept: PDF, images, Excel (xls/xlsx)
-const ACCEPT_FILES =
-  "application/pdf,image/*,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.pdf,.xls,.xlsx";
-
-function getFileKind(file: File): "PDF" | "IMG" | "EXCEL" | "FILE" {
-  if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))
-    return "PDF";
-  if (file.type.startsWith("image/")) return "IMG";
-  if (
-    file.name.toLowerCase().endsWith(".xlsx") ||
-    file.name.toLowerCase().endsWith(".xls")
-  )
-    return "EXCEL";
-  return "FILE";
-}
-
 /**
  * File-checkbox:
  * - click checkbox => open file picker
- * - select file => show clickable file name under checkbox
+ * - select file => show file name under checkbox
  * - uncheck => clear file
  */
 function FileCB({
@@ -56,22 +40,12 @@ function FileCB({
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-    if(id) {
+  if(id) {
     console.log('');
   }
 
   const openPicker = () => {
     inputRef.current?.click();
-  };
-
-  const openFilePreview = (f: File) => {
-    const url = URL.createObjectURL(f);
-
-    // PDF/images usually preview in new tab. Excel usually downloads / opens in Office.
-    window.open(url, "_blank", "noopener,noreferrer");
-
-    // Cleanup (avoid memory leak)
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,11 +66,10 @@ function FileCB({
     const f = e.target.files?.[0] ?? null;
     onFileSelected(f);
 
-    // If user cancels file dialog and you want to auto-uncheck, uncomment:
+    // If user cancels file dialog, keep checkbox checked (your choice).
+    // If you want cancel => uncheck, uncomment below:
     // if (!f) onToggle(false);
   };
-
-  const kind = file ? getFileKind(file) : null;
 
   return (
     <div className="inline-block mr-6 align-top">
@@ -106,6 +79,8 @@ function FileCB({
           className="h-4 w-4"
           checked={checked}
           onChange={handleCheckboxChange}
+          // If user clicks already-checked checkbox (no change), nothing happens.
+          // That's okay; they can uncheck/recheck to re-upload.
         />
         <span className="text-sm">
           {label}{" "}
@@ -118,23 +93,13 @@ function FileCB({
         ref={inputRef}
         type="file"
         className="hidden"
-        accept={ACCEPT_FILES}
         onChange={handleFileChange}
       />
 
-      {/* show file under the checkbox (clickable) */}
+      {/* show file under the checkbox */}
       {checked && file && (
         <div className="ml-6 mt-1 text-xs text-gray-700 whitespace-nowrap">
-          <span className="mr-1 font-semibold">[{kind}]</span>
-          📎{" "}
-          <button
-            type="button"
-            className="underline text-blue-700 hover:text-blue-900"
-            onClick={() => openFilePreview(file)}
-            title="開く"
-          >
-            {file.name}
-          </button>
+          📎 {file.name}
         </div>
       )}
     </div>
@@ -259,18 +224,22 @@ function AttachmentTable({
   headerClass: string;
   includeEstimateRow?: boolean;
 }) {
+  /**
+   * We store checked state + file per checkbox.
+   * Keys are unique per table instance (title) and item name.
+   */
   const prefix = useMemo(() => (title === "事前確認時" ? "pre" : "est"), [title]);
 
   type ItemKey =
-    | "site_plan"
-    | "floor_plan"
-    | "elevation"
-    | "site_other"
-    | "photo_4faces"
-    | "photo_parts"
-    | "photo_other"
-    | "pre_estimate"
-    | "schedule";
+    | "site_plan" // 配置図
+    | "floor_plan" // 平面図
+    | "elevation" // 立面図
+    | "site_other" // 図面 その他(checkbox)
+    | "photo_4faces" // 建物外観４面
+    | "photo_parts" // 工事部位
+    | "photo_other" // 現場写真 その他(checkbox)
+    | "pre_estimate" // 事見積書
+    | "schedule"; // 工程表
 
   const makeId = (k: ItemKey) => `${prefix}_${k}`;
 
@@ -300,7 +269,9 @@ function AttachmentTable({
             ◆{title}添付資料
           </th>
           <th className={`${inner} ${cell} ${pad} ${headerClass}`}></th>
-          <th className={`${inner} ${cell} ${pad} ${headerClass} text-center w-24`}>
+          <th
+            className={`${inner} ${cell} ${pad} ${headerClass} text-center w-24`}
+          >
             大ハ管理職
             <br />
             確認
@@ -341,6 +312,7 @@ function AttachmentTable({
               onFileSelected={(f) => setFile(makeId("elevation"), f)}
             />
 
+            {/* その他： checkbox + text input (text stays as your original) */}
             <span className="inline-flex items-start gap-2 whitespace-nowrap">
               <FileCB
                 id={makeId("site_other")}
@@ -462,8 +434,14 @@ function DesignManagerBox() {
 export function TenpuShiryoTable() {
   return (
     <div className="w-full form-text">
-      <AttachmentTable title="事前確認時" headerClass={headL} includeEstimateRow={false} />
+      {/* ====== 事前確認時 添付資料 ====== */}
+      <AttachmentTable
+        title="事前確認時"
+        headerClass={headL}
+        includeEstimateRow={false}
+      />
 
+      {/* ====== 中央フロー（矢印・設計管理職・承認テーブル） ====== */}
       <div className="relative mt-4 mb-6">
         <div className="flex items-start justify-between">
           <div className="pl-6 pt-3">
@@ -487,8 +465,14 @@ export function TenpuShiryoTable() {
         </div>
       </div>
 
-      <AttachmentTable title="見積確認時" headerClass={headD} includeEstimateRow={true} />
+      {/* ====== 見積確認時 添付資料 ====== */}
+      <AttachmentTable
+        title="見積確認時"
+        headerClass={headD}
+        includeEstimateRow={true}
+      />
 
+      {/* ====== 右下：契約前 見積確認時 承認テーブル ====== */}
       <div className="mt-6 flex justify-end pr-10">
         <ApprovalTable title="契約前 見積確認時" />
       </div>
