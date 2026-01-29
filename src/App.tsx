@@ -3,7 +3,8 @@ import { ToastContainer, toast } from "react-toastify";
 import { PropertyOverviewBlock } from "./components/PropertyOverviewBlock";
 import { KasetsuKakuninTable } from "./components/KasetsuKakuninTable";
 import { TodokedeChosaKakuninTable } from "./components/TodokedeChosaKakuninTable";
-import { TenpuShiryoSection } from "./components/TenpuShiryoSection";
+// import { TenpuShiryoSection } from "./components/TenpuShiryoSection";
+import { TenpuShiryoTable } from "./components/TenpuShiryoTable";
 
 import "react-toastify/dist/ReactToastify.css";
 
@@ -45,7 +46,8 @@ function App() {
         </div>
 
         <div className=" bg-white">
-          <TenpuShiryoSection />
+          <TenpuShiryoTable />
+          {/* <TenpuShiryoSection /> */}
         </div>
 
         <div className="flex items-center justify-center mt-20 mb-14">

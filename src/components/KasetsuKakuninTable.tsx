@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import { TextArea } from "./PaperTable";
 
 const thL = "border border-black bg-sky-100 text-sm px-2 py-2 text-left font-semibold";
@@ -16,24 +17,77 @@ const UnderlineInput = ({ w = "w-20" }: { w?: string }) => (
     />
 );
 
-export function KasetsuKakuninTable() {
-  
-    const R = ({
-    name,
-    value,
-    label,
-    }: {
-    name: string;
-    value: string;
-    label: React.ReactNode;
-    }) => (
-    <label className="inline-flex items-center gap-2 mr-6">
-        <input type="radio" name={name} value={value} className="h-4 w-4" />
-        <span>{label}</span>
-    </label>
-    );
+type RProps = {
+  name: string;
+  value: string;
+  label: React.ReactNode;
+  checked: boolean;
+  onChange: (value: string) => void;
+  onClick?: () => void;
+};
 
-    return (
+const RadioFile = ({ name, value, label, checked, onChange, onClick  }: RProps) => (
+  <label className="inline-flex items-center gap-2 mr-6">
+    <input
+      type="radio"
+      name={name}
+      value={value}
+      checked={checked}
+      onChange={() => onChange(value)}
+      onClick={onClick}
+      className="h-4 w-4"
+    />
+    <span>{label}</span>
+  </label>
+);
+
+const R = ({
+  name,
+  value,
+  label,
+  }: {
+  name: string;
+  value: string;
+  label: React.ReactNode;
+  }) => (
+  <label className="inline-flex items-center gap-2 mr-6">
+      <input type="radio" name={name} value={value} className="h-4 w-4" />
+      <span>{label}</span>
+  </label>
+);
+
+
+export function KasetsuKakuninTable() {
+  const [ashibaSetchiNeed, setAshibaSetchiNeed] = useState<string>(""); // "1" or "2"
+  const [partialFile, setPartialFile] = useState<File | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRadioChange = (value: string) => {
+    setAshibaSetchiNeed(value);
+
+    if (value === "2") {
+      // Open file picker immediately after selecting the radio
+      // (setTimeout avoids occasional timing issues in some browsers)
+      setTimeout(() => openFileDialog(), 0);
+    } else {
+      // Optional: clear file when switching away
+      setPartialFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setPartialFile(f);
+  };
+
+  return (
     <div className="overflow-x-auto form-text">
         <p className="text-base mb-2">
             以下、工事・メンテナンスセンターにて記入（該当項目にチェックし、詳細記入願います）
@@ -272,15 +326,54 @@ export function KasetsuKakuninTable() {
                 足場
             </td>
             <td className={`${tdTop} ${sepT}`}>足場設置</td>
-            <td className={`${tdTop} ${sepT}`}>
+            {/* <td className={`${tdTop} ${sepT}`}>
                 <div>
-                <R name="ashiba_setchi_need" value="1" label="全周" />
+                  <R name="ashiba_setchi_need" value="1" label="全周" />
+                  </div>
+                  <div className="mt-1">
+                  <R name="ashiba_setchi_need" value="2" label="一部設置（図示）" />
+                  <span>→</span>
                 </div>
-                <div className="mt-1">
-                <R name="ashiba_setchi_need" value="2" label="一部設置（図示）" />
+            </td> */}
+
+            <td className={`${tdTop} ${sepT}`}>
+              <div>
+                <RadioFile
+                  name="ashiba_setchi_need"
+                  value="1"
+                  label="全周"
+                  checked={ashibaSetchiNeed === "1"}
+                  onChange={handleRadioChange}
+                />
+              </div>
+
+              <div className="mt-1">
+                <RadioFile
+                  name="ashiba_setchi_need"
+                  value="2"
+                  label="一部設置（図示）"
+                  checked={ashibaSetchiNeed === "2"}
+                  onChange={handleRadioChange}
+                  onClick={() => {
+                    if (ashibaSetchiNeed === "2") openFileDialog();
+                  }}
+                />
                 <span>→</span>
-                </div>
+
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                {/* Show file under the radio */}
+                {ashibaSetchiNeed === "2" && partialFile && (
+                  <div className="mt-1 ml-6 text-xs text-gray-700">📎 {partialFile.name}</div>
+                )}
+              </div>
             </td>
+
             <td className={`${tdTop} ${sepT} ${sepL}`}>
                 <R name="ashiba_setchi_ans" value="1" label="全周" />
                 <R value="2"
@@ -541,5 +634,5 @@ export function KasetsuKakuninTable() {
         </tbody>
         </table>
     </div>
-    );
+  );
 }
