@@ -1,70 +1,45 @@
-import { ToastContainer, toast } from "react-toastify";
-
-import { PropertyOverviewBlock } from "./components/PropertyOverviewBlock";
-import { KasetsuKakuninTable } from "./components/KasetsuKakuninTable";
-import { TodokedeChosaKakuninTable } from "./components/TodokedeChosaKakuninTable";
-// import { TenpuShiryoSection } from "./components/TenpuShiryoSection";
-import { TenpuShiryoTable } from "./components/TenpuShiryoTable";
-
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-function App() {
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthContext";
+import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { ForceChangePasswordRoute } from "./auth/ForceChangePasswordRoute";
 
-  const handleRegister = () => {
-    // show notification
-    toast.success("登録が完了しました 🎉", {
-      position: "top-center",
-      autoClose: 2000,
-    });
+import LoginPage from "./pages/LoginPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
+import FormPage from "./pages/FormPage";
 
-    // reload page after notification
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
-  };
-
+export default function App() {
   return (
-    <div className="min-h-screen bg-gray-100 py-10">
-      <div className="mx-auto max-w-7xl bg-white p-6 shadow border">
-        <p className="text-3xl font-semibold text-center mb-14">
-          営繕工事 事前確認依頼書 兼 見積確認依頼書
-        </p>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
 
-        <div className="mb-14">
-          <div className="text-base mb-2">
-            下記営繕工事について、工事内容・仮設工事の検証を依頼致します。
-          </div>
-          <PropertyOverviewBlock />
-        </div>
+          {/* must be logged in */}
+          <Route
+            path="/change-password"
+            element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <div className="mb-14">
-          <KasetsuKakuninTable />
-        </div>
-        
-        <div className="mb-14">
-          <TodokedeChosaKakuninTable />
-        </div>
+          {/* must be logged in AND mustChangePassword = false */}
+          <Route
+            path="/"
+            element={
+              <ForceChangePasswordRoute>
+                <FormPage />
+              </ForceChangePasswordRoute>
+            }
+          />
+        </Routes>
 
-        <div className=" bg-white">
-          <TenpuShiryoTable />
-          {/* <TenpuShiryoSection /> */}
-        </div>
-
-        <div className="flex items-center justify-center mt-20 mb-14">
-          <button
-            type="button"
-            onClick={handleRegister}
-            className="px-6 py-2 border border-black bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            登録
-          </button>
-        </div>
-        
-      </div>
-      {/* Notification container */}
-      <ToastContainer />
-    </div>
+        <ToastContainer />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;

@@ -1,3 +1,5 @@
+import React from "react";
+
 type CellProps = {
   className?: string;
   children?: React.ReactNode;
@@ -5,7 +7,7 @@ type CellProps = {
 
 export function Th({ className = "", children }: CellProps) {
   return (
-    <div className={`bg-gray-200 font-bold text-sm px-3 py-2 border border-black ${className}`}>
+    <div className={`bg-gray-200 font-medium text-sm px-3 py-2 border border-black ${className}`}>
       {children}
     </div>
   );
@@ -20,7 +22,7 @@ export function Td({ className = "", children }: CellProps) {
 }
 
 export function Label({ children }: { children: React.ReactNode }) {
-  return <span className="text-xs font-semibold">{children}</span>;
+  return <span className="text-xs font-medium">{children}</span>;
 }
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -44,19 +46,38 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 export function CheckboxLine({
   left,
   right,
+  leftChecked,
+  rightChecked,
+  onLeftChange,
+  onRightChange,
 }: {
   left: string;
   right?: string;
+  leftChecked: boolean;
+  rightChecked?: boolean;
+  onLeftChange: (v: boolean) => void;
+  onRightChange?: (v: boolean) => void;
 }) {
   return (
     <div className="flex items-center gap-6 text-sm">
       <label className="flex items-center gap-2">
-        <input type="checkbox" className="h-4 w-4" />
+        <input
+          type="checkbox"
+          className="h-4 w-4"
+          checked={leftChecked}
+          onChange={(e) => onLeftChange(e.target.checked)}
+        />
         {left}
       </label>
+
       {right ? (
         <label className="flex items-center gap-2">
-          <input type="checkbox" className="h-4 w-4" />
+          <input
+            type="checkbox"
+            className="h-4 w-4"
+            checked={!!rightChecked}
+            onChange={(e) => onRightChange?.(e.target.checked)}
+          />
           {right}
         </label>
       ) : null}
