@@ -77,7 +77,7 @@ export function PropertyOverviewBlock({
 
           <div className="grid grid-cols-[120px_1fr_120px_1fr]">
             <Th className="border-r border-black bg-white">
-              <Label>物件コード</Label>
+              <Label>物件CD</Label>
             </Th>
             <Td>
               <TextInput
@@ -103,7 +103,7 @@ export function PropertyOverviewBlock({
 
           <div className="grid grid-cols-[120px_1fr_120px_1fr]">
             <Th className="border-r border-black bg-white">
-              <Label>完成年月</Label>
+              <Label>完成年月日</Label>
             </Th>
             <Td>
               <TextInput
@@ -115,7 +115,7 @@ export function PropertyOverviewBlock({
             </Td>
 
             <Th className="border-r border-black bg-white">
-              <Label>営業所名</Label>
+              <Label>商品名称</Label>
             </Th>
             <Td>
               <TextInput

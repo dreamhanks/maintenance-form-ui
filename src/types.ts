@@ -1,0 +1,110 @@
+export type ProposalRow = {
+  id: string;
+  ownerName: string;
+  buildingName: string;
+  salesOffice: string;
+  status: string;
+
+  daipaTanto: string;
+  daipaTantoDate: string;
+
+  daipaKacho: string;
+  daipaKachoDate: string;
+
+  maintenanceManager1: string;
+  maintenanceManager1Date: string;
+
+  designManager1: string;
+  designManager1Date: string;
+
+  kanriTanto: string;
+  kanriTantoDate: string;
+
+  kanriKacho: string;
+  kanriKachoDate: string;
+
+  maintenanceManager2: string;
+  maintenanceManager2Date: string;
+
+  designManager2: string;
+  designManager2Date: string;
+
+  gyomukaConfirmUser: string;
+  confirmDate: string;
+};
+
+export type SalesOfficeOption = {
+  label: string;
+  value: string;
+};
+
+export type ProposalSearchParams = {
+  salesOffice: string;
+  keyword?: string;
+  status?: string;
+};
+
+
+export type JuchuStatus = "未契約" | "契約" | "失注" | "保留";
+
+export type JuchuRow = {
+  id: string; // 物件CD
+  ownerName: string; // お施主様名
+  buildingName: string; // 建物名称
+  salesOffice: string; // 営業所
+  status: JuchuStatus; // ステータス
+  daipaTanto: string; // 大パ担当
+};
+
+export type JuchuSearchParams = {
+  salesOffice: string;
+  keyword?: string;
+  status?: string;
+};
+
+
+export type ContractConfirmRequest = {
+  ids: string[];
+  contractDate: string; // yyyy-MM-dd
+};
+
+
+export type ShichuRow = {
+  id: string; // 物件CD
+  ownerName: string; // お施主様名
+  buildingName: string; // 建物名称
+  salesOffice: string; // 営業所
+  lostDate: string; // 失注日
+};
+
+export type ShichuSearchParams = {
+  salesOffice: string;
+  keyword?: string;
+};
+
+
+export type KeiyakuRow = {
+  id: string;
+  ownerName: string;
+  buildingName: string;
+  salesOffice: string;
+  contractDate: string;
+};
+
+export type KeiyakuSearchParams = {
+  salesOffice: string;
+  keyword?: string;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+

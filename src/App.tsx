@@ -8,7 +8,14 @@ import { ForceChangePasswordRoute } from "./auth/ForceChangePasswordRoute";
 
 import LoginPage from "./pages/LoginPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
-import FormPage from "./pages/FormPage";
+// import FormPage from "./pages/FormPage";
+import ProposalListPage from "./pages/ProposalListPage";
+import JuchuHanteiListPage from "./pages/JuchuHanteiListPage";
+import ShichuListPage from "./pages/ShichuListPage";
+import KeiyakuListPage from "./pages/KeiyakuListPage";
+import MitsumoriIraishoPage from "./pages/MitsumoriIraishoPage";
+// import ConstructionRequestAllInOnePage from "./pages/ConstructionRequestAllInOnePage";
+import EizenRequestAllInOnePage from "./pages/EizenRequestAllInOnePage";
 
 export default function App() {
   return (
@@ -32,7 +39,53 @@ export default function App() {
             path="/"
             element={
               <ForceChangePasswordRoute>
-                <FormPage />
+                <ProposalListPage />
+              </ForceChangePasswordRoute>
+            }
+          />
+
+          <Route
+            path="/juchu"
+            element={
+              <ForceChangePasswordRoute>
+                <JuchuHanteiListPage />
+              </ForceChangePasswordRoute>
+            }
+          />
+
+          <Route
+            path="/shichu"
+            element={
+              <ForceChangePasswordRoute>
+                <ShichuListPage />
+              </ForceChangePasswordRoute>
+            }
+          />
+
+          <Route
+            path="/keiyaku"
+            element={
+              <ForceChangePasswordRoute>
+                <KeiyakuListPage />
+              </ForceChangePasswordRoute>
+            }
+          />
+
+          <Route
+            path="/form"
+            element={
+              <ForceChangePasswordRoute>
+                {/* <FormPage /> */}
+                <EizenRequestAllInOnePage />
+              </ForceChangePasswordRoute>
+            }
+          />
+
+          <Route
+            path="/mitsumori"
+            element={
+              <ForceChangePasswordRoute>
+                <MitsumoriIraishoPage />
               </ForceChangePasswordRoute>
             }
           />
