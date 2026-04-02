@@ -20,9 +20,9 @@ type Props = {
 export default function TemporaryCheckSection(props: Props) {
   const categoryCheckboxMap: Record<number, { checked: boolean; onChange: (v: boolean) => void }> = {
     0: { checked: props.sectionKasetsu, onChange: props.setSectionKasetsu },
-    6: { checked: props.sectionAshiba, onChange: props.setSectionAshiba },
-    13: { checked: props.sectionBouhan, onChange: props.setSectionBouhan },
-    14: { checked: props.sectionYosan, onChange: props.setSectionYosan },
+    7: { checked: props.sectionAshiba, onChange: props.setSectionAshiba },
+    15: { checked: props.sectionBouhan, onChange: props.setSectionBouhan },
+    16: { checked: props.sectionYosan, onChange: props.setSectionYosan },
   };
 
   return (

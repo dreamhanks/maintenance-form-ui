@@ -18,8 +18,8 @@ type Props = {
 export default function TemporaryConfirmSection(props: Props) {
   const categoryCheckboxMap: Record<number, { checked: boolean; onChange: (v: boolean) => void }> = {
     0: { checked: props.grpTodokede, onChange: props.setGrpTodokede },
-    5: { checked: props.grpChosa, onChange: props.setGrpChosa },
-    7: { checked: props.grpKakunin, onChange: props.setGrpKakunin },
+    6: { checked: props.grpChosa, onChange: props.setGrpChosa },
+    8: { checked: props.grpKakunin, onChange: props.setGrpKakunin },
   };
 
   return (

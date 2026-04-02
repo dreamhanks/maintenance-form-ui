@@ -10,6 +10,14 @@ export type CheckRow = {
   checks: Record<string, boolean>;
   amount?: string;
   unit?: string;
+  otherText?: string;
   remark: string;
   managerConfirm: boolean;
+  variant?: "betsuto" | "checksInConfirm" | "fullInput" | "twoLine" | "twoLineReverse" | "noRadioTwoLine";
+  line2Check?: string;
+  line2Checked?: boolean;
+  splitAt?: number;
+  radioColKeys?: string[];
+  amountFirst?: boolean;
+  remarkExtra?: { label: string; value: string }[];
 };
