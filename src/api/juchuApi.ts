@@ -1,32 +1,36 @@
-import { juchuDummyData } from "../data/dummyData";
+import { judgmentApi } from "../form/api";
 import { JuchuRow, JuchuSearchParams } from "../types";
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export async function fetchJuchuRows(
   params: JuchuSearchParams
 ): Promise<JuchuRow[]> {
-  await wait(250);
-
-  const keyword = (params.keyword ?? "").trim().toLowerCase();
   const status = params.status ?? "すべて";
+  const keyword = (params.keyword ?? "").trim().toLowerCase();
 
-  return juchuDummyData.filter((row) => {
-    const matchOffice = params.salesOffice
-      ? row.salesOffice === params.salesOffice
-      : true;
+  // Fetch 未契約 and 保留 rows for the 受注判定 list
+  const [mikeiyaku, horyu] = await Promise.all([
+    judgmentApi.list({ salesOffice: params.salesOffice, judgment: "未契約" }),
+    judgmentApi.list({ salesOffice: params.salesOffice, judgment: "保留" }),
+  ]);
 
+  const all: JuchuRow[] = [...mikeiyaku, ...horyu].map((row: any) => ({
+    id: row.id ?? row.propertyCode ?? "",
+    ownerName: row.ownerName ?? row.customerName ?? "",
+    buildingName: row.buildingName ?? "",
+    salesOffice: row.salesOffice ?? "",
+    status: row.status ?? row.judgment ?? "未契約",
+    daipaTanto: row.daipaTanto ?? "",
+  }));
+
+  return all.filter((row) => {
     const matchKeyword =
-      keyword.length === 0
-        ? true
-        : row.id.toLowerCase().includes(keyword) ||
-          row.ownerName.toLowerCase().includes(keyword) ||
-          row.buildingName.toLowerCase().includes(keyword);
+      keyword.length === 0 ||
+      row.id.toLowerCase().includes(keyword) ||
+      row.ownerName.toLowerCase().includes(keyword) ||
+      row.buildingName.toLowerCase().includes(keyword);
 
-    const matchStatus = status === "すべて" ? true : row.status === status;
+    const matchStatus = status === "すべて" || row.status === status;
 
-    return matchOffice && matchKeyword && matchStatus;
+    return matchKeyword && matchStatus;
   });
 }

@@ -1,3 +1,4 @@
+import React from "react";
 import { OrderResult } from "./EizenFormTypes";
 import { inputClass, sectionWrap, textareaClass } from "./EizenFormStyles";
 import { LabelCell, ValueCell } from "./EizenCommon";
@@ -26,7 +27,61 @@ type Props = {
   setLostOrder: (v: boolean) => void;
   finalReason: string;
   setFinalReason: (v: string) => void;
+
+  attachments: Record<string, { filename: string; uploading: boolean }>;
+  fileInputRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
+  onFileCheckChange: (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => void;
+  onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
+  getAttachmentUrl: (fieldKey: string) => string | null;
 };
+
+function FileLink({ fieldKey, attachments, getAttachmentUrl }: {
+  fieldKey: string;
+  attachments: Record<string, { filename: string; uploading: boolean }>;
+  getAttachmentUrl: (fieldKey: string) => string | null;
+}) {
+  const att = attachments[fieldKey];
+  if (!att) return null;
+  if (att.uploading) return <div className="text-xs text-slate-400 mt-1">アップロード中...</div>;
+  const url = getAttachmentUrl(fieldKey);
+  return (
+    <a
+      href={url ?? "#"}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-xs text-blue-600 cursor-pointer mt-1 block"
+      onClick={(e) => {
+        console.log("[FileLink click]", { fieldKey, url });
+        if (!url) {
+          e.preventDefault();
+          console.warn("[FileLink] URL is null — file not yet uploaded to server");
+        }
+      }}
+    >
+      {att.filename}
+    </a>
+  );
+}
+
+function HiddenFileInput({ fieldKey, fileInputRefs, onFileSelected, setChecked }: {
+  fieldKey: string;
+  fileInputRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
+  onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
+  setChecked: (v: boolean) => void;
+}) {
+  return (
+    <input
+      type="file"
+      accept="application/pdf"
+      className="hidden"
+      ref={(el) => { fileInputRefs.current[fieldKey] = el; }}
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        if (file) onFileSelected(fieldKey, file, setChecked);
+      }}
+    />
+  );
+}
 
 export default function EstimateFinalSection(props: Props) {
   return (
@@ -46,13 +101,17 @@ export default function EstimateFinalSection(props: Props) {
         <div className="col-span-3 grid grid-cols-12">
           <Link to="/mitsumori" className="col-span-8 border border-slate-400 px-3 py-2 underline">業者見積依頼書出力</Link>
           <ValueCell className="col-span-4 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.estimateOutput} onChange={(e) => props.setEstimateOutput(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+            <input type="checkbox" checked={props.estimateOutput} onChange={(e) => props.onFileCheckChange("vendor_estimate_request", e.target.checked, props.setEstimateOutput)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
             <div>出力</div>
+            <HiddenFileInput fieldKey="vendor_estimate_request" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateOutput} />
+            <FileLink fieldKey="vendor_estimate_request" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <div className="col-span-8 border border-slate-400 px-3 py-2">見積書の添付</div>
           <ValueCell className="col-span-4 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.estimateAttach} onChange={(e) => props.setEstimateAttach(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+            <input type="checkbox" checked={props.estimateAttach} onChange={(e) => props.onFileCheckChange("estimate_attached", e.target.checked, props.setEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
             <div>見積書</div>
+            <HiddenFileInput fieldKey="estimate_attached" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateAttach} />
+            <FileLink fieldKey="estimate_attached" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <ValueCell className="col-span-12 border border-slate-400">
             <input value={props.estimateRemark} onChange={(e) => props.setEstimateRemark(e.target.value)} className={inputClass} placeholder="備考" />

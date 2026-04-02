@@ -1,7 +1,12 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import { CheckRow, NeedFlag, OrderResult, YesNo } from "../components/eizen/EizenFormTypes";
+import { formApi, attachmentApi } from "../form/api";
+import { buildMultipartFormData } from "../form/payload_multipart";
+import { FullForm, initialForm } from "../form/formTypes";
 import { inputClass } from "../components/eizen/EizenFormStyles";
+import JaDatePicker from "../components/JaDatePicker";
 import BasicInfoSection from "../components/eizen/BasicInfoSection";
 import AttachmentSection from "../components/eizen/AttachmentSection";
 import TemporaryCheckSection from "../components/eizen/TemporaryCheckSection";
@@ -415,6 +420,88 @@ const makeRowsPage2 = (): CheckRow[] => [
 
 export default function EizenRequestAllInOnePage() {
  const nav = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const editId = id ? Number(id) : null;
+  const [submitting, setSubmitting] = useState(false);
+
+  // Attachment state: fieldKey → { filename, uploading }
+  const [attachments, setAttachments] = useState<Record<string, { filename: string; uploading: boolean }>>({});
+  // Pending files for unsaved forms (no editId yet)
+  const pendingFilesRef = useRef<Record<string, File>>({});
+  // Hidden file input refs per fieldKey
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Load existing attachments on edit
+  useEffect(() => {
+    if (!editId) return;
+    attachmentApi.list(editId).then((list) => {
+      const map: Record<string, { filename: string; uploading: boolean }> = {};
+      for (const att of list) {
+        map[att.fieldKey] = { filename: att.originalName ?? att.fieldKey, uploading: false };
+      }
+      setAttachments(map);
+    }).catch(() => {});
+  }, [editId]);
+
+  const handleFileCheckChange = (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => {
+    if (checked) {
+      // Open file picker
+      const input = fileInputRefs.current[fieldKey];
+      if (input) {
+        input.value = "";
+        input.click();
+      }
+    } else {
+      // Uncheck → delete file
+      setChecked(false);
+      if (editId && attachments[fieldKey]) {
+        attachmentApi.delete(editId, fieldKey).catch(() => {});
+      }
+      delete pendingFilesRef.current[fieldKey];
+      setAttachments((prev) => {
+        const next = { ...prev };
+        delete next[fieldKey];
+        return next;
+      });
+    }
+  };
+
+  const handleFileSelected = (fieldKey: string, file: File, setChecked: (v: boolean) => void) => {
+    setChecked(true);
+    if (editId) {
+      setAttachments((prev) => ({ ...prev, [fieldKey]: { filename: file.name, uploading: true } }));
+      attachmentApi.upload(editId, fieldKey, file)
+        .then(() => {
+          setAttachments((prev) => ({ ...prev, [fieldKey]: { filename: file.name, uploading: false } }));
+        })
+        .catch(() => {
+          toast.error("ファイルアップロードに失敗しました");
+          setChecked(false);
+          setAttachments((prev) => {
+            const next = { ...prev };
+            delete next[fieldKey];
+            return next;
+          });
+        });
+    } else {
+      // Store locally until form is created
+      pendingFilesRef.current[fieldKey] = file;
+      setAttachments((prev) => ({ ...prev, [fieldKey]: { filename: file.name, uploading: false } }));
+    }
+  };
+
+  const getAttachmentUrl = (fieldKey: string): string | null => {
+    if (editId) {
+      return attachmentApi.openUrl(editId, fieldKey);
+    }
+    // For unsaved forms, create a blob URL from the pending file
+    const pending = pendingFilesRef.current[fieldKey];
+    if (pending) {
+      return URL.createObjectURL(pending);
+    }
+    return null;
+  };
+
   const [documentNo, setDocumentNo] = useState("");
   const [issueDate, setIssueDate] = useState("");
 
@@ -466,6 +553,14 @@ export default function EizenRequestAllInOnePage() {
   const [siteInstruction1, setSiteInstruction1] = useState("");
   const [siteInstruction2, setSiteInstruction2] = useState("");
 
+  const [sectionKasetsu, setSectionKasetsu] = useState(false);
+  const [sectionAshiba, setSectionAshiba] = useState(false);
+  const [sectionBouhan, setSectionBouhan] = useState(false);
+  const [sectionYosan, setSectionYosan] = useState(false);
+  const [grpTodokede, setGrpTodokede] = useState(false);
+  const [grpChosa, setGrpChosa] = useState(false);
+  const [grpKakunin, setGrpKakunin] = useState(false);
+
   const [requiredDrawing, setRequiredDrawing] = useState(false);
   const [requiredOther, setRequiredOther] = useState(false);
   const [requiredOtherText, setRequiredOtherText] = useState("");
@@ -504,6 +599,81 @@ export default function EizenRequestAllInOnePage() {
   const [approval6, setApproval6] = useState("");
   const [approval7, setApproval7] = useState("");
 
+  const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const form: FullForm = {
+        ...initialForm,
+        property: {
+          furigana,
+          customerName,
+          building: {
+            address,
+            propertyCode: propertyCd,
+            buildingName,
+            completionYm: completionDate,
+            branchName: productName,
+            renovationHistory: repairHistory,
+          },
+          renovationContent: workDetail,
+          requests: {
+            owner: { has: ownerFlag === "あり" ? "1" : ownerFlag === "なし" ? "0" : "", note: ownerText },
+            resident: { has: residentFlag === "あり" ? "1" : residentFlag === "なし" ? "0" : "", note: residentText },
+            neighbors: { has: neighborFlag === "あり" ? "1" : neighborFlag === "なし" ? "0" : "", note: neighborText },
+          },
+          vendor: {
+            plannedVendorName,
+            confirmed: { mode: fixedVendorName ? "1" : "", name: fixedVendorName },
+          },
+          schedule: {
+            proposal: { y: proposalDate.slice(0, 4), m: proposalDate.slice(5, 7), d: proposalDate.slice(8, 10) },
+            contract: { y: contractDate.slice(0, 4), m: contractDate.slice(5, 7), d: contractDate.slice(8, 10) },
+            start: { y: startDate.slice(0, 4), m: startDate.slice(5, 7), d: startDate.slice(8, 10) },
+          },
+        },
+        kasetsu: {
+          ...initialForm.kasetsu,
+          section_kasetsu: sectionKasetsu,
+          section_ashiba: sectionAshiba,
+          section_bouhan: sectionBouhan,
+          section_yosan: sectionYosan,
+        },
+        todokede: {
+          ...initialForm.todokede,
+          grp_todokede: grpTodokede,
+          grp_chosa: grpChosa,
+          grp_kakunin: grpKakunin,
+        },
+        tenpu: {
+          checkedMap: {},
+          fileMap: {},
+          textMap: {},
+        },
+      };
+      const fd = buildMultipartFormData(form);
+      if (editId) {
+        await formApi.update(editId, fd);
+      } else {
+        const result = await formApi.create(fd);
+        // Upload any pending files that were selected before form was saved
+        const newId = result?.id;
+        if (newId) {
+          const pending = Object.entries(pendingFilesRef.current);
+          await Promise.all(
+            pending.map(([key, file]) => attachmentApi.upload(newId, key, file).catch(() => {}))
+          );
+          pendingFilesRef.current = {};
+        }
+      }
+      nav("/", { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || "保存に失敗しました");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const updatePage1Row = (id: string, next: CheckRow) => {
     setPage1Rows((prev) => prev.map((r) => (r.id === id ? next : r)));
   };
@@ -531,7 +701,7 @@ export default function EizenRequestAllInOnePage() {
             </div>
             <div className="col-span-2">
               <label className="mb-1 block text-sm font-semibold text-slate-700">起票日</label>
-              <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={inputClass} />
+              <JaDatePicker value={issueDate} onChange={setIssueDate} className={inputClass} />
             </div>
           </div>
         </div>
@@ -618,6 +788,11 @@ export default function EizenRequestAllInOnePage() {
           setDapManagerConfirmDrawing={setDapManagerConfirmDrawing}
           dapManagerConfirmPhoto={dapManagerConfirmPhoto}
           setDapManagerConfirmPhoto={setDapManagerConfirmPhoto}
+          attachments={attachments}
+          fileInputRefs={fileInputRefs}
+          onFileCheckChange={handleFileCheckChange}
+          onFileSelected={handleFileSelected}
+          getAttachmentUrl={getAttachmentUrl}
         />
 
         <TemporaryCheckSection
@@ -625,6 +800,14 @@ export default function EizenRequestAllInOnePage() {
           updateRow={updatePage1Row}
           siteInstruction={siteInstruction1}
           setSiteInstruction={setSiteInstruction1}
+          sectionKasetsu={sectionKasetsu}
+          setSectionKasetsu={setSectionKasetsu}
+          sectionAshiba={sectionAshiba}
+          setSectionAshiba={setSectionAshiba}
+          sectionBouhan={sectionBouhan}
+          setSectionBouhan={setSectionBouhan}
+          sectionYosan={sectionYosan}
+          setSectionYosan={setSectionYosan}
         />
 
         <TemporaryConfirmSection
@@ -632,6 +815,12 @@ export default function EizenRequestAllInOnePage() {
           updateRow={updatePage2Row}
           siteInstruction={siteInstruction2}
           setSiteInstruction={setSiteInstruction2}
+          grpTodokede={grpTodokede}
+          setGrpTodokede={setGrpTodokede}
+          grpChosa={grpChosa}
+          setGrpChosa={setGrpChosa}
+          grpKakunin={grpKakunin}
+          setGrpKakunin={setGrpKakunin}
         />
 
         <MaintenanceAttachmentSection
@@ -685,6 +874,11 @@ export default function EizenRequestAllInOnePage() {
           setLostOrder={setLostOrder}
           finalReason={finalReason}
           setFinalReason={setFinalReason}
+          attachments={attachments}
+          fileInputRefs={fileInputRefs}
+          onFileCheckChange={handleFileCheckChange}
+          onFileSelected={handleFileSelected}
+          getAttachmentUrl={getAttachmentUrl}
         />
 
         <RequestSection
@@ -719,8 +913,8 @@ export default function EizenRequestAllInOnePage() {
           <button type="button" onClick={() => nav("/", { replace: true })} className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
             提案物件一覧
           </button>
-          <button type="button" className="rounded-xl bg-sky-600 px-6 py-3 font-semibold text-white hover:bg-sky-700">
-            登録
+          <button type="button" onClick={handleSubmit} disabled={submitting} className="rounded-xl bg-sky-600 px-6 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-50">
+            {submitting ? "登録中..." : "登録"}
           </button>
         </div>
       </main>

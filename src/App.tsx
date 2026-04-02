@@ -75,7 +75,15 @@ export default function App() {
             path="/form"
             element={
               <ForceChangePasswordRoute>
-                {/* <FormPage /> */}
+                <EizenRequestAllInOnePage />
+              </ForceChangePasswordRoute>
+            }
+          />
+
+          <Route
+            path="/form/:id"
+            element={
+              <ForceChangePasswordRoute>
                 <EizenRequestAllInOnePage />
               </ForceChangePasswordRoute>
             }

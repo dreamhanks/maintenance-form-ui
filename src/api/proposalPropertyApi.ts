@@ -1,32 +1,47 @@
-import { proposalDummyData } from "../data/dummyData";
+import { formApi } from "../form/api";
 import { ProposalRow, ProposalSearchParams } from "../types";
-
-function wait(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export async function fetchProposals(
   params: ProposalSearchParams
 ): Promise<ProposalRow[]> {
-  await wait(300);
-
-  const keyword = (params.keyword ?? "").trim().toLowerCase();
-  const status = params.status ?? "すべて";
-
-  return proposalDummyData.filter((row) => {
-    const matchOffice = params.salesOffice
-      ? row.salesOffice === params.salesOffice
-      : true;
-
-    const matchKeyword =
-      keyword.length === 0
-        ? true
-        : row.id.toLowerCase().includes(keyword) ||
-          row.ownerName.toLowerCase().includes(keyword) ||
-          row.buildingName.toLowerCase().includes(keyword);
-
-    const matchStatus = status === "すべて" ? true : row.status === status;
-
-    return matchOffice && matchKeyword && matchStatus;
+  const data = await formApi.list({
+    salesOffice: params.salesOffice,
+    keyword: params.keyword,
+    status: params.status === "すべて" ? undefined : params.status,
   });
+
+  return data.map((row: any) => ({
+    id: row.id ?? row.propertyCode ?? "",
+    ownerName: row.ownerName ?? row.customerName ?? "",
+    buildingName: row.buildingName ?? "",
+    salesOffice: row.salesOffice ?? "",
+    status: row.status ?? "",
+
+    daipaTanto: row.daipaTanto ?? "",
+    daipaTantoDate: row.daipaTantoDate ?? "",
+
+    daipaKacho: row.daipaKacho ?? "",
+    daipaKachoDate: row.daipaKachoDate ?? "",
+
+    maintenanceManager1: row.maintenanceManager1 ?? "",
+    maintenanceManager1Date: row.maintenanceManager1Date ?? "",
+
+    designManager1: row.designManager1 ?? "",
+    designManager1Date: row.designManager1Date ?? "",
+
+    kanriTanto: row.kanriTanto ?? "",
+    kanriTantoDate: row.kanriTantoDate ?? "",
+
+    kanriKacho: row.kanriKacho ?? "",
+    kanriKachoDate: row.kanriKachoDate ?? "",
+
+    maintenanceManager2: row.maintenanceManager2 ?? "",
+    maintenanceManager2Date: row.maintenanceManager2Date ?? "",
+
+    designManager2: row.designManager2 ?? "",
+    designManager2Date: row.designManager2Date ?? "",
+
+    gyomukaConfirmUser: row.gyomukaConfirmUser ?? "",
+    confirmDate: row.confirmDate ?? "",
+  }));
 }

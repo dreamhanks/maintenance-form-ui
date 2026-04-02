@@ -1,5 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ja } from "date-fns/locale/ja";
+import "react-datepicker/dist/react-datepicker.css";
+
+registerLocale("ja", ja);
 
 type RequestForm = {
   topTantosha: string;
@@ -129,69 +134,26 @@ function createInitialRows(): SpecRow[] {
   return rows;
 }
 
-function pad2(v: number) {
-  return String(v).padStart(2, "0");
+function toPickerDate(year: string, month: string, day: string): Date | null {
+  if (!year || !month || !day) return null;
+  const d = new Date(Number(year), Number(month) - 1, Number(day));
+  return isNaN(d.getTime()) ? null : d;
 }
 
-function toDateString(year: string, month: string, day: string) {
-  if (!year || !month || !day) return "";
-  return `${year}-${pad2(Number(month))}-${pad2(Number(day))}`;
-}
+type YmdOnChange = {
+  onYearChange: (v: string) => void;
+  onMonthChange: (v: string) => void;
+  onDayChange: (v: string) => void;
+};
 
-function splitDate(dateStr: string) {
-  const [y, m, d] = dateStr.split("-");
-  return {
-    year: y ?? "",
-    month: m ? String(Number(m)) : "",
-    day: d ? String(Number(d)) : "",
-  };
-}
-
-function DatePickerButton({
-  year,
-  month,
-  day,
-  onChange,
-  buttonLabel = "日付選択",
-}: {
-  year: string;
-  month: string;
-  day: string;
-  onChange: (next: { year: string; month: string; day: string }) => void;
-  buttonLabel?: string;
-}) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const handleOpen = () => {
-    const el = inputRef.current;
-    if (!el) return;
-
-    if (typeof el.showPicker === "function") {
-      el.showPicker();
-    } else {
-      el.click();
-    }
-  };
-
-  return (
-    <div className="flex items-center justify-center gap-2">
-      <input
-        ref={inputRef}
-        type="date"
-        lang="ja-JP"
-        className="absolute h-0 w-0 opacity-0 pointer-events-none"
-        value={toDateString(year, month, day)}
-        onChange={(e) => onChange(splitDate(e.target.value))}
-      />
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="rounded border border-gray-500 bg-white px-2 py-[2px] text-[10px] hover:bg-gray-50"
-      >
-        {buttonLabel}
-      </button>
-    </div>
-  );
+function handlePickerChange(
+  d: Date | null,
+  fns: YmdOnChange,
+) {
+  if (!d) return;
+  fns.onYearChange(String(d.getFullYear()));
+  fns.onMonthChange(String(d.getMonth() + 1));
+  fns.onDayChange(String(d.getDate()));
 }
 
 function YmdInputGroup({
@@ -205,30 +167,47 @@ function YmdInputGroup({
   year: string;
   month: string;
   day: string;
-  onYearChange: (v: string) => void;
-  onMonthChange: (v: string) => void;
-  onDayChange: (v: string) => void;
-}) {
+} & YmdOnChange) {
+  const [open, setOpen] = useState(false);
+  const openPicker = () => setOpen(true);
+
   return (
-    <div className="flex items-center justify-center gap-2 text-[12px]">
+    <div className="relative flex items-center justify-center gap-2 text-[12px]">
       <input
         value={year}
         onChange={(e) => onYearChange(e.target.value)}
-        className="w-12 border-b border-black bg-transparent text-center outline-none"
+        onClick={openPicker}
+        readOnly
+        className="w-12 border-b border-black bg-transparent text-center outline-none cursor-pointer"
       />
       <span>年</span>
       <input
         value={month}
         onChange={(e) => onMonthChange(e.target.value)}
-        className="w-8 border-b border-black bg-transparent text-center outline-none"
+        onClick={openPicker}
+        readOnly
+        className="w-8 border-b border-black bg-transparent text-center outline-none cursor-pointer"
       />
       <span>月</span>
       <input
         value={day}
         onChange={(e) => onDayChange(e.target.value)}
-        className="w-8 border-b border-black bg-transparent text-center outline-none"
+        onClick={openPicker}
+        readOnly
+        className="w-8 border-b border-black bg-transparent text-center outline-none cursor-pointer"
       />
       <span>日</span>
+      <div className="absolute left-0 top-0 h-0 w-0 overflow-visible">
+        <DatePicker
+          locale="ja"
+          dateFormat="yyyy/MM/dd"
+          selected={toPickerDate(year, month, day)}
+          onChange={(d: Date | null) => { handlePickerChange(d, { onYearChange, onMonthChange, onDayChange }); setOpen(false); }}
+          open={open}
+          onClickOutside={() => setOpen(false)}
+          className="absolute h-0 w-0 opacity-0 pointer-events-none"
+        />
+      </div>
     </div>
   );
 }
@@ -244,30 +223,47 @@ function SmallYmdInputGroup({
   year: string;
   month: string;
   day: string;
-  onYearChange: (v: string) => void;
-  onMonthChange: (v: string) => void;
-  onDayChange: (v: string) => void;
-}) {
+} & YmdOnChange) {
+  const [open, setOpen] = useState(false);
+  const openPicker = () => setOpen(true);
+
   return (
-    <div className="flex items-center justify-center gap-1 text-[12px]">
+    <div className="relative flex items-center justify-center gap-1 text-[12px]">
       <input
         value={year}
         onChange={(e) => onYearChange(e.target.value)}
-        className="w-9 border-b border-black bg-transparent text-center outline-none"
+        onClick={openPicker}
+        readOnly
+        className="w-9 border-b border-black bg-transparent text-center outline-none cursor-pointer"
       />
       <span>年</span>
       <input
         value={month}
         onChange={(e) => onMonthChange(e.target.value)}
-        className="w-5 border-b border-black bg-transparent text-center outline-none"
+        onClick={openPicker}
+        readOnly
+        className="w-5 border-b border-black bg-transparent text-center outline-none cursor-pointer"
       />
       <span>月</span>
       <input
         value={day}
         onChange={(e) => onDayChange(e.target.value)}
-        className="w-5 border-b border-black bg-transparent text-center outline-none"
+        onClick={openPicker}
+        readOnly
+        className="w-5 border-b border-black bg-transparent text-center outline-none cursor-pointer"
       />
       <span>日</span>
+      <div className="absolute left-0 top-0 h-0 w-0 overflow-visible">
+        <DatePicker
+          locale="ja"
+          dateFormat="yyyy/MM/dd"
+          selected={toPickerDate(year, month, day)}
+          onChange={(d: Date | null) => { handlePickerChange(d, { onYearChange, onMonthChange, onDayChange }); setOpen(false); }}
+          open={open}
+          onClickOutside={() => setOpen(false)}
+          className="absolute h-0 w-0 opacity-0 pointer-events-none"
+        />
+      </div>
     </div>
   );
 }
@@ -584,16 +580,6 @@ export default function MitsumoriIraishoPage() {
 
             <div className="w-[300px] text-right">
               <div className="mb-1 flex justify-end gap-5 pr-1 text-[12px]">
-                <DatePickerButton
-                  year={form.year}
-                  month={form.month}
-                  day={form.day}
-                  onChange={(next) => {
-                    updateForm("year", next.year);
-                    updateForm("month", next.month);
-                    updateForm("day", next.day);
-                  }}
-                />
                 <YmdInputGroup
                   year={form.year}
                   month={form.month}
@@ -642,20 +628,7 @@ export default function MitsumoriIraishoPage() {
 
                 <td className={`${blueCell} text-[12px]`}>依頼日</td>
 
-                <td className={tdBase}>
-                  <DatePickerButton
-                    year={form.requestYear}
-                    month={form.requestMonth}
-                    day={form.requestDay}
-                    onChange={(next) => {
-                      updateForm("requestYear", next.year);
-                      updateForm("requestMonth", next.month);
-                      updateForm("requestDay", next.day);
-                    }}
-                  />
-                </td>
-
-                <td className={tdBase} colSpan={5}>
+                <td className={tdBase} colSpan={6}>
                   <YmdInputGroup
                     year={form.requestYear}
                     month={form.requestMonth}
@@ -793,16 +766,6 @@ export default function MitsumoriIraishoPage() {
                     placeholder="YYYY/MM/DD"
                   /> */}
                   <div className="flex items-center justify-center gap-2">
-                    <DatePickerButton
-                      year={form.eigyoTeianYear}
-                      month={form.eigyoTeianMonth}
-                      day={form.eigyoTeianDay}
-                      onChange={(next) => {
-                        updateForm("eigyoTeianYear", next.year);
-                        updateForm("eigyoTeianMonth", next.month);
-                        updateForm("eigyoTeianDay", next.day);
-                      }}
-                    />
                     <SmallYmdInputGroup
                       year={form.eigyoTeianYear}
                       month={form.eigyoTeianMonth}
@@ -825,16 +788,6 @@ export default function MitsumoriIraishoPage() {
                     placeholder="YYYY/MM/DD"
                   /> */}
                                     <div className="flex items-center justify-center gap-2">
-                    <DatePickerButton
-                      year={form.keiyakuYear}
-                      month={form.keiyakuMonth}
-                      day={form.keiyakuDay}
-                      onChange={(next) => {
-                        updateForm("keiyakuYear", next.year);
-                        updateForm("keiyakuMonth", next.month);
-                        updateForm("keiyakuDay", next.day);
-                      }}
-                    />
                     <SmallYmdInputGroup
                       year={form.keiyakuYear}
                       month={form.keiyakuMonth}
@@ -857,16 +810,6 @@ export default function MitsumoriIraishoPage() {
                     placeholder="YYYY/MM/DD"
                   /> */}
                   <div className="flex items-center justify-center gap-2">
-                    <DatePickerButton
-                      year={form.chakkoYear}
-                      month={form.chakkoMonth}
-                      day={form.chakkoDay}
-                      onChange={(next) => {
-                        updateForm("chakkoYear", next.year);
-                        updateForm("chakkoMonth", next.month);
-                        updateForm("chakkoDay", next.day);
-                      }}
-                    />
                     <SmallYmdInputGroup
                       year={form.chakkoYear}
                       month={form.chakkoMonth}
@@ -915,20 +858,7 @@ export default function MitsumoriIraishoPage() {
               <tr className="h-[22px]">
                 <td className={`${blueCell} text-[12px]`}>提出期限</td>
 
-                <td className={tdBase}>
-                  <DatePickerButton
-                    year={form.deadlineYear}
-                    month={form.deadlineMonth}
-                    day={form.deadlineDay}
-                    onChange={(next) => {
-                      updateForm("deadlineYear", next.year);
-                      updateForm("deadlineMonth", next.month);
-                      updateForm("deadlineDay", next.day);
-                    }}
-                  />
-                </td>
-
-                <td className={tdBase}>
+                <td className={tdBase} colSpan={2}>
                   <YmdInputGroup
                     year={form.deadlineYear}
                     month={form.deadlineMonth}

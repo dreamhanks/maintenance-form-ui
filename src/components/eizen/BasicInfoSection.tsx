@@ -1,6 +1,7 @@
 import { inputClass, sectionHeader, sectionWrap, textareaClass } from "./EizenFormStyles";
 import { Check, LabelCell, ValueCell, YesNoSwitch } from "./EizenCommon";
 import { YesNo } from "./EizenFormTypes";
+import JaDatePicker from "../JaDatePicker";
 
 type Props = {
   furigana: string;
@@ -106,7 +107,7 @@ export default function BasicInfoSection(props: Props) {
 
           <LabelCell>完成年月日</LabelCell>
           <ValueCell className="col-span-3">
-            <input type="date" value={props.completionDate} onChange={(e) => props.setCompletionDate(e.target.value)} className={inputClass} />
+            <JaDatePicker value={props.completionDate} onChange={props.setCompletionDate} className={inputClass} />
           </ValueCell>
           <LabelCell>商品名称</LabelCell>
           <ValueCell className="col-span-7">
@@ -216,15 +217,15 @@ export default function BasicInfoSection(props: Props) {
             <div className="text-center">予定日</div>
         </div>
         <ValueCell className="col-span-3">
-          <input type="date" value={props.proposalDate} onChange={(e) => props.setProposalDate(e.target.value)} className={inputClass} />
+          <JaDatePicker value={props.proposalDate} onChange={props.setProposalDate} className={inputClass} />
         </ValueCell>
         <LabelCell><div className="text-center pt-1">契約予定日</div></LabelCell>
         <ValueCell className="col-span-3">
-          <input type="date" value={props.contractDate} onChange={(e) => props.setContractDate(e.target.value)} className={inputClass} />
+          <JaDatePicker value={props.contractDate} onChange={props.setContractDate} className={inputClass} />
         </ValueCell>
         <LabelCell><div className="text-center pt-1">着工予定日</div></LabelCell>
         <ValueCell className="col-span-3">
-          <input type="date" value={props.startDate} onChange={(e) => props.setStartDate(e.target.value)} className={inputClass} />
+          <JaDatePicker value={props.startDate} onChange={props.setStartDate} className={inputClass} />
         </ValueCell>
       </div>
     </section>

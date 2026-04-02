@@ -113,20 +113,33 @@ export function MatrixRow({
     type,
     row,
     onChange,
+    categoryCheckbox,
 }: {
     index: number;
     type: number;
     row: CheckRow;
     onChange: (next: CheckRow) => void;
+    categoryCheckbox?: { checked: boolean; onChange: (v: boolean) => void };
 }) {
   const optionEntries = Object.entries(row.checks);
+
+  const categoryContent = categoryCheckbox ? (
+    <label className="inline-flex items-center gap-1 whitespace-nowrap cursor-pointer">
+      <input type="checkbox" checked={categoryCheckbox.checked} onChange={(e) => categoryCheckbox.onChange(e.target.checked)} className="h-4 w-4 shrink-0 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+      <span>{row.category}</span>
+    </label>
+  ) : row.category;
 
   let htmlText = <div className="col-span-1" />
 
   if(type === 1 && (index === 0 || index === 6 || index === 13 || index === 14)) {
-    htmlText = <div className="col-span-1 border-t border-slate-300 px-3 py-3 text-sm font-semibold text-slate-800">{row.category}</div>
+    htmlText = <div className="col-span-1 overflow-visible border-t border-slate-300 text-sm font-semibold text-slate-800" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+      {categoryContent}
+    </div>
   } else if (type === 2 && (index === 0 || index === 5 || index === 7 || index === 13)) {
-    htmlText = <div className="col-span-1 border-t border-slate-300 px-3 py-3 text-sm font-semibold text-slate-800">{row.category}</div>
+    htmlText = <div className="col-span-1 overflow-visible border-t border-slate-300 text-sm font-semibold text-slate-800" style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+      {categoryContent}
+    </div>
   }
 
   return (
