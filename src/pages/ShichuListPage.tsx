@@ -4,7 +4,7 @@ import AppPageLayout from "../components/AppPageLayout";
 import ListToolbar from "../components/ListToolbar";
 import ShichuTable from "../components/ShichuTable";
 import { fetchShichuRows } from "../api/shichuApi";
-import { salesOfficeOptions } from "../data/dummyData";
+import { useUserOffices } from "../hooks/useUserOffices";
 import { ShichuRow } from "../types";
 
 const menuItems = [
@@ -15,26 +15,39 @@ const menuItems = [
 
 export default function ShichuListPage() {
   const nav = useNavigate();
-  const [salesOffice, setSalesOffice] = useState("名古屋");
+  const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
+  const [salesOffice, setSalesOffice] = useState("");
   const [keyword, setKeyword] = useState("");
   const [rows, setRows] = useState<ShichuRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(true);
 
   useEffect(() => {
+    if (defaultOffice && !salesOffice) setSalesOffice(defaultOffice);
+  }, [defaultOffice, salesOffice]);
+
+  useEffect(() => {
+    if (!salesOffice) return;
     const load = async () => {
       setLoading(true);
+      setError(null);
       try {
         const data = await fetchShichuRows({ salesOffice, keyword });
         setRows(data);
         setSelectedIds([]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "データの取得に失敗しました");
+        setRows([]);
       } finally {
         setLoading(false);
       }
     };
     load();
   }, [salesOffice, keyword]);
+
+  const displayError = officeError || error;
 
   const toggleAll = () => {
     const allSelected =
@@ -58,7 +71,7 @@ export default function ShichuListPage() {
       headerContent={
         <ListToolbar
           salesOffice={salesOffice}
-          officeOptions={salesOfficeOptions}
+          officeOptions={officeOptions}
           keyword={keyword}
           selectedCount={selectedIds.length}
           totalCount={rows.length}
@@ -71,6 +84,11 @@ export default function ShichuListPage() {
       }
       maxWidthClassName="max-w-[1700px]"
     >
+      {displayError && (
+        <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded mb-4">
+          {displayError}
+        </div>
+      )}
       <ShichuTable
         rows={rows}
         loading={loading}

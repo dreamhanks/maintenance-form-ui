@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { CheckRow, NeedFlag, OrderResult, YesNo } from "../components/eizen/EizenFormTypes";
-import { formApi, attachmentApi } from "../form/api";
-import { buildMultipartFormData } from "../form/payload_multipart";
+import { formApi, attachmentApi, workflowApi, mitsumoriApi } from "../form/api";
+import type { WorkflowStepDto } from "../form/api";
+import { useAuth } from "../auth/AuthContext";
 import { FullForm, initialForm } from "../form/formTypes";
 import { inputClass } from "../components/eizen/EizenFormStyles";
-import JaDatePicker from "../components/JaDatePicker";
 import BasicInfoSection from "../components/eizen/BasicInfoSection";
 import AttachmentSection from "../components/eizen/AttachmentSection";
 import TemporaryCheckSection from "../components/eizen/TemporaryCheckSection";
@@ -146,7 +146,7 @@ const makeRowsPage1 = (): CheckRow[] => [
   {
     id: "r9",
     category: "足場",
-    item: "昇降階段、中木、中桟等",
+    item: "昇降階段、巾木、中桟等",
     need: "",
     checks: {
       昇降階段: false,
@@ -414,7 +414,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     variant: "fullInput",
     remarkExtra: [
       { label: "備考　保管先：", value: "" },
-      { label: "状態確証及び枚数添付：", value: "" },
+      { label: "状態確証及び枚数添付：", value: "", fileUploadFieldKey: "jotai_kakunin_tenpu", fileCheckboxValue: false },
     ],
   },
   {
@@ -506,13 +506,232 @@ export default function EizenRequestAllInOnePage() {
   const { id } = useParams<{ id: string }>();
   const editId = id ? Number(id) : null;
   const [submitting, setSubmitting] = useState(false);
+  const savedSnapshotRef = useRef<string | null>(null);
+  const isInitialLoad = useRef(true);
+  const captureSnapshotOnNextRender = useRef(false);
+  const [showMitsumoriDialog, setShowMitsumoriDialog] = useState(false);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
 
   // Attachment state: fieldKey → { filename, uploading }
   const [attachments, setAttachments] = useState<Record<string, { filename: string; uploading: boolean }>>({});
-  // Pending files for unsaved forms (no editId yet)
+  // Pending file selections — only flushed to backend on save button click
   const pendingFilesRef = useRef<Record<string, File>>({});
+  // Field keys whose existing server-side attachments should be deleted on save
+  const deletedFieldKeysRef = useRef<Set<string>>(new Set());
   // Hidden file input refs per fieldKey
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Restore all form fields from a draft-format object (used by API load only)
+  const restoreFromDraft = useCallback((d: any) => {
+    if (d.furigana) setFurigana(d.furigana);
+    if (d.customerName) setCustomerName(d.customerName);
+    if (d.address) setAddress(d.address);
+    if (d.propertyCd) setPropertyCd(d.propertyCd);
+    if (d.propertyCd2) setPropertyCd2(d.propertyCd2);
+    if (d.propertyCd3) setPropertyCd3(d.propertyCd3);
+    if (d.buildingName) setBuildingName(d.buildingName);
+    if (d.completionDate) setCompletionDate(d.completionDate);
+    if (d.productName) setProductName(d.productName);
+    if (d.repairHistory) setRepairHistory(d.repairHistory);
+    if (d.roof != null) setRoof(d.roof);
+    if (d.outsideWall != null) setOutsideWall(d.outsideWall);
+    if (d.balcony != null) setBalcony(d.balcony);
+    if (d.commonArea != null) setCommonArea(d.commonArea);
+    if (d.privateArea != null) setPrivateArea(d.privateArea);
+    if (d.otherWork != null) setOtherWork(d.otherWork);
+    if (d.otherWorkText) setOtherWorkText(d.otherWorkText);
+    if (d.workDetail) setWorkDetail(d.workDetail);
+    if (d.ownerFlag) setOwnerFlag(d.ownerFlag);
+    if (d.ownerText) setOwnerText(d.ownerText);
+    if (d.residentFlag) setResidentFlag(d.residentFlag);
+    if (d.residentText) setResidentText(d.residentText);
+    if (d.neighborFlag) setNeighborFlag(d.neighborFlag);
+    if (d.neighborText) setNeighborText(d.neighborText);
+    if (d.plannedVendorName) setPlannedVendorName(d.plannedVendorName);
+    if (d.plannedVendorCd) setPlannedVendorCd(d.plannedVendorCd);
+    if (d.plannedVendorCd2) setPlannedVendorCd2(d.plannedVendorCd2);
+    if (d.fixedVendorName) setFixedVendorName(d.fixedVendorName);
+    if (d.fixedVendorCd) setFixedVendorCd(d.fixedVendorCd);
+    if (d.fixedVendorCd2) setFixedVendorCd2(d.fixedVendorCd2);
+    if (d.proposalDate) setProposalDate(d.proposalDate);
+    if (d.contractDate) setContractDate(d.contractDate);
+    if (d.startDate) setStartDate(d.startDate);
+    if (d.drawing != null) setDrawing(d.drawing);
+    if (d.otherMaterial != null) setOtherMaterial(d.otherMaterial);
+    if (d.photo4side != null) setPhoto4side(d.photo4side);
+    if (d.photoPart != null) setPhotoPart(d.photoPart);
+    if (d.photoOther != null) setPhotoOther(d.photoOther);
+    if (d.photoOtherText) setPhotoOtherText(d.photoOtherText);
+    if (d.attachRemark) setAttachRemark(d.attachRemark);
+    if (d.dapManagerConfirmDrawing != null) setDapManagerConfirmDrawing(d.dapManagerConfirmDrawing);
+    if (d.dapManagerConfirmPhoto != null) setDapManagerConfirmPhoto(d.dapManagerConfirmPhoto);
+    // Merge saved row state with current factory definitions so structural
+    // fields (variant, fileUploadFieldKey, line2Check, etc.) added after
+    // the form was saved are preserved while user-entered values are restored.
+    const mergeRows = (saved: CheckRow[] | undefined, factory: CheckRow[]): CheckRow[] => {
+      if (!saved) return factory;
+      return factory.map((factoryRow) => {
+        const savedRow = saved.find((r) => r.id === factoryRow.id);
+        if (!savedRow) return factoryRow;
+        // Merge remarkExtra by index, keeping factory's structural fields and saved values
+        const mergedRemarkExtra = factoryRow.remarkExtra?.map((fe, idx) => ({
+          ...fe,
+          value: savedRow.remarkExtra?.[idx]?.value ?? fe.value,
+          fileCheckboxValue: savedRow.remarkExtra?.[idx]?.fileCheckboxValue ?? fe.fileCheckboxValue,
+        }));
+        // Saved values first, then factory structural fields override
+        return {
+          ...savedRow,
+          variant: factoryRow.variant,
+          line2Check: factoryRow.line2Check,
+          radioColKeys: factoryRow.radioColKeys,
+          splitAt: factoryRow.splitAt,
+          amountFirst: factoryRow.amountFirst,
+          remarkExtra: mergedRemarkExtra,
+        };
+      });
+    };
+    if (d.page1Rows) setPage1Rows(mergeRows(d.page1Rows, makeRowsPage1()));
+    if (d.page2Rows) setPage2Rows(mergeRows(d.page2Rows, makeRowsPage2()));
+    if (d.siteInstruction1) setSiteInstruction1(d.siteInstruction1);
+    if (d.siteInstruction2) setSiteInstruction2(d.siteInstruction2);
+    if (d.sectionKasetsu != null) setSectionKasetsu(d.sectionKasetsu);
+    if (d.sectionAshiba != null) setSectionAshiba(d.sectionAshiba);
+    if (d.sectionBouhan != null) setSectionBouhan(d.sectionBouhan);
+    if (d.sectionYosan != null) setSectionYosan(d.sectionYosan);
+    if (d.grpTodokede != null) setGrpTodokede(d.grpTodokede);
+    if (d.grpChosa != null) setGrpChosa(d.grpChosa);
+    if (d.grpKakunin != null) setGrpKakunin(d.grpKakunin);
+    if (d.requiredDrawing != null) setRequiredDrawing(d.requiredDrawing);
+    if (d.requiredOther != null) setRequiredOther(d.requiredOther);
+    if (d.requiredOtherText) setRequiredOtherText(d.requiredOtherText);
+    if (d.maintenanceRemark) setMaintenanceRemark(d.maintenanceRemark);
+    if (d.designNeed) setDesignNeed(d.designNeed);
+    if (d.employeeCd) setEmployeeCd(d.employeeCd);
+    if (d.employeeName) setEmployeeName(d.employeeName);
+    if (d.confirmApplicationNeed) setConfirmApplicationNeed(d.confirmApplicationNeed);
+    if (d.designInstruction) setDesignInstruction(d.designInstruction);
+    if (d.designAttachment) setDesignAttachment(d.designAttachment);
+    if (d.designDapConfirm != null) setDesignDapConfirm(d.designDapConfirm);
+    if (d.designRemark) setDesignRemark(d.designRemark);
+    if (d.estimateOutput != null) setEstimateOutput(d.estimateOutput);
+    if (d.estimateAttach != null) setEstimateAttach(d.estimateAttach);
+    if (d.estimateRemark) setEstimateRemark(d.estimateRemark);
+    if (d.maintenanceEstimateAttach != null) setMaintenanceEstimateAttach(d.maintenanceEstimateAttach);
+    if (d.maintenanceEstimateRemark) setMaintenanceEstimateRemark(d.maintenanceEstimateRemark);
+    if (d.orderResult) setOrderResult(d.orderResult);
+    if (d.juchuCheck != null) setJuchuCheck(d.juchuCheck);
+    if (d.shitchuCheck != null) setShitchuCheck(d.shitchuCheck);
+    if (d.daipaFinalConfirm != null) setDaipaFinalConfirm(d.daipaFinalConfirm);
+    if (d.lostOrder != null) setLostOrder(d.lostOrder);
+    if (d.generalApplyAttach != null) setGeneralApplyAttach(d.generalApplyAttach);
+    if (d.generalApplyNotNeed != null) setGeneralApplyNotNeed(d.generalApplyNotNeed);
+    if (d.finalReason) setFinalReason(d.finalReason);
+    if (d.gyomuItakuCd) setGyomuItakuCd(d.gyomuItakuCd);
+    if (d.gyomuItakuName) setGyomuItakuName(d.gyomuItakuName);
+    if (d.partnerCd) setPartnerCd(d.partnerCd);
+    if (d.partnerName) setPartnerName(d.partnerName);
+  }, []);
+
+  // For new (unsaved) forms there's nothing to load — finish init immediately
+  useEffect(() => {
+    if (editId) return;
+    isInitialLoad.current = false;
+  }, [editId]);
+
+  // Load form detail on edit — restore all fields from payloadJson.uiState
+  const formLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!editId || formLoadedRef.current) return;
+    formLoadedRef.current = true;
+    formApi.get(editId).then((data: any) => {
+      if (data.documentNumber) setDocumentNo(data.documentNumber);
+      if (data.createdDate) setIssueDate(data.createdDate);
+
+      if (!data.payloadJson) {
+        captureSnapshotOnNextRender.current = true;
+        return;
+      }
+      try {
+        const p = typeof data.payloadJson === "string" ? JSON.parse(data.payloadJson) : data.payloadJson;
+        // Restore from uiState (complete round-trip of all fields)
+        if (p?.uiState) {
+          restoreFromDraft(p.uiState);
+          captureSnapshotOnNextRender.current = true;
+          return;
+        }
+        // Fallback: restore from structured FullForm fields (legacy payloads)
+        const prop = p?.property;
+        if (prop) {
+          if (prop.furigana) setFurigana(prop.furigana);
+          if (prop.customerName) setCustomerName(prop.customerName);
+          const b = prop.building;
+          if (b) {
+            if (b.address) setAddress(b.address);
+            if (b.propertyCode) setPropertyCd(b.propertyCode);
+            if (b.propertyCode2) setPropertyCd2(b.propertyCode2);
+            if (b.propertyCode3) setPropertyCd3(b.propertyCode3);
+            if (b.buildingName) setBuildingName(b.buildingName);
+            if (b.completionYm) setCompletionDate(b.completionYm);
+            if (b.branchName) setProductName(b.branchName);
+            if (b.renovationHistory) setRepairHistory(b.renovationHistory);
+          }
+          if (prop.renovationContent) setWorkDetail(prop.renovationContent);
+          const req = prop.requests;
+          if (req) {
+            if (req.owner) {
+              setOwnerFlag(req.owner.has === "1" ? "あり" : req.owner.has === "0" ? "なし" : "");
+              if (req.owner.note) setOwnerText(req.owner.note);
+            }
+            if (req.resident) {
+              setResidentFlag(req.resident.has === "1" ? "あり" : req.resident.has === "0" ? "なし" : "");
+              if (req.resident.note) setResidentText(req.resident.note);
+            }
+            if (req.neighbors) {
+              setNeighborFlag(req.neighbors.has === "1" ? "あり" : req.neighbors.has === "0" ? "なし" : "");
+              if (req.neighbors.note) setNeighborText(req.neighbors.note);
+            }
+          }
+          const v = prop.vendor;
+          if (v) {
+            if (v.plannedVendorName) setPlannedVendorName(v.plannedVendorName);
+            if (v.confirmed?.name) setFixedVendorName(v.confirmed.name);
+          }
+          const s = prop.schedule;
+          if (s) {
+            const toDate = (ymd: any) => ymd?.y && ymd?.m && ymd?.d ? `${ymd.y}-${ymd.m}-${ymd.d}` : "";
+            const pd = toDate(s.proposal); if (pd) setProposalDate(pd);
+            const cd = toDate(s.contract); if (cd) setContractDate(cd);
+            const sd = toDate(s.start); if (sd) setStartDate(sd);
+          }
+        }
+        const k = p?.kasetsu;
+        if (k) {
+          if (k.section_kasetsu != null) setSectionKasetsu(k.section_kasetsu);
+          if (k.section_ashiba != null) setSectionAshiba(k.section_ashiba);
+          if (k.section_bouhan != null) setSectionBouhan(k.section_bouhan);
+          if (k.section_yosan != null) setSectionYosan(k.section_yosan);
+        }
+        const t = p?.todokede;
+        if (t) {
+          if (t.grp_todokede != null) setGrpTodokede(t.grp_todokede);
+          if (t.grp_chosa != null) setGrpChosa(t.grp_chosa);
+          if (t.grp_kakunin != null) setGrpKakunin(t.grp_kakunin);
+        }
+      } catch { /* ignore corrupt payloadJson */ }
+
+      if (data.workflowSteps) setWorkflowSteps(data.workflowSteps);
+
+      // Defer the clean-snapshot capture to the next render after
+      // restoreFromDraft's setState calls have been committed. The flag is
+      // consumed by a render-driven effect (see below) so the snapshot is
+      // taken from the same render that already reflects the loaded data.
+      captureSnapshotOnNextRender.current = true;
+    }).catch(() => {
+      // Even on failure, release the initial-load gate so the user isn't stuck
+      isInitialLoad.current = false;
+    });
+  }, [editId, restoreFromDraft]);
 
   // Load existing attachments on edit
   useEffect(() => {
@@ -520,7 +739,7 @@ export default function EizenRequestAllInOnePage() {
     attachmentApi.list(editId).then((list) => {
       const map: Record<string, { filename: string; uploading: boolean }> = {};
       for (const att of list) {
-        map[att.fieldKey] = { filename: att.originalName ?? att.fieldKey, uploading: false };
+        map[att.fieldKey] = { filename: att.originalFilename ?? att.fieldKey, uploading: false };
       }
       setAttachments(map);
     }).catch(() => {});
@@ -528,19 +747,20 @@ export default function EizenRequestAllInOnePage() {
 
   const handleFileCheckChange = (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => {
     if (checked) {
-      // Open file picker
+      // Open file picker — actual selection handled by handleFileSelected
       const input = fileInputRefs.current[fieldKey];
       if (input) {
         input.value = "";
         input.click();
       }
     } else {
-      // Uncheck → delete file
+      // Uncheck → drop pending selection and mark existing server file for deletion on save.
+      // No backend call here — deferred until the user clicks save.
       setChecked(false);
-      if (editId && attachments[fieldKey]) {
-        attachmentApi.delete(editId, fieldKey).catch(() => {});
-      }
       delete pendingFilesRef.current[fieldKey];
+      if (editId && attachments[fieldKey]) {
+        deletedFieldKeysRef.current.add(fieldKey);
+      }
       setAttachments((prev) => {
         const next = { ...prev };
         delete next[fieldKey];
@@ -550,48 +770,52 @@ export default function EizenRequestAllInOnePage() {
   };
 
   const handleFileSelected = (fieldKey: string, file: File, setChecked: (v: boolean) => void) => {
-    setChecked(true);
-    if (editId) {
-      setAttachments((prev) => ({ ...prev, [fieldKey]: { filename: file.name, uploading: true } }));
-      attachmentApi.upload(editId, fieldKey, file)
-        .then(() => {
-          setAttachments((prev) => ({ ...prev, [fieldKey]: { filename: file.name, uploading: false } }));
-        })
-        .catch(() => {
-          toast.error("ファイルアップロードに失敗しました");
-          setChecked(false);
-          setAttachments((prev) => {
-            const next = { ...prev };
-            delete next[fieldKey];
-            return next;
-          });
-        });
-    } else {
-      // Store locally until form is created
-      pendingFilesRef.current[fieldKey] = file;
-      setAttachments((prev) => ({ ...prev, [fieldKey]: { filename: file.name, uploading: false } }));
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('PDFまたは画像ファイルのみアップロードできます');
+      return;
     }
+    const MAX_SIZE = 30 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error('ファイルサイズは30MB以下にしてください');
+      return;
+    }
+    // Store the File in memory only — uploaded to backend on save button click.
+    setChecked(true);
+    pendingFilesRef.current[fieldKey] = file;
+    deletedFieldKeysRef.current.delete(fieldKey);
+    setAttachments((prev) => ({ ...prev, [fieldKey]: { filename: file.name + "（未保存）", uploading: false } }));
   };
 
   const getAttachmentUrl = (fieldKey: string): string | null => {
-    if (editId) {
-      return attachmentApi.openUrl(editId, fieldKey);
-    }
-    // For unsaved forms, create a blob URL from the pending file
+    // Pending (unsaved) selection takes precedence — use a blob URL
     const pending = pendingFilesRef.current[fieldKey];
     if (pending) {
       return URL.createObjectURL(pending);
+    }
+    if (editId && !deletedFieldKeysRef.current.has(fieldKey)) {
+      return attachmentApi.openUrl(editId, fieldKey);
     }
     return null;
   };
 
   const [documentNo, setDocumentNo] = useState("");
-  const [issueDate, setIssueDate] = useState("");
+  const todayStr = new Date().getFullYear() + "-" + String(new Date().getMonth() + 1).padStart(2, "0") + "-" + String(new Date().getDate()).padStart(2, "0");
+  const [issueDate, setIssueDate] = useState(todayStr);
 
   const [furigana, setFurigana] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [address, setAddress] = useState("");
   const [propertyCd, setPropertyCd] = useState("");
+  const [propertyCd2, setPropertyCd2] = useState("");
+  const [propertyCd3, setPropertyCd3] = useState("");
   const [buildingName, setBuildingName] = useState("");
   const [completionDate, setCompletionDate] = useState("");
   const [productName, setProductName] = useState("");
@@ -615,8 +839,10 @@ export default function EizenRequestAllInOnePage() {
 
   const [plannedVendorName, setPlannedVendorName] = useState("");
   const [plannedVendorCd, setPlannedVendorCd] = useState("");
+  const [plannedVendorCd2, setPlannedVendorCd2] = useState("");
   const [fixedVendorName, setFixedVendorName] = useState("");
   const [fixedVendorCd, setFixedVendorCd] = useState("");
+  const [fixedVendorCd2, setFixedVendorCd2] = useState("");
   const [proposalDate, setProposalDate] = useState("");
   const [contractDate, setContractDate] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -664,6 +890,9 @@ export default function EizenRequestAllInOnePage() {
   const [maintenanceEstimateAttach, setMaintenanceEstimateAttach] = useState(false);
   const [maintenanceEstimateRemark, setMaintenanceEstimateRemark] = useState("");
   const [orderResult, setOrderResult] = useState<OrderResult>("");
+  const [juchuCheck, setJuchuCheck] = useState(false);
+  const [shitchuCheck, setShitchuCheck] = useState(false);
+  const [daipaFinalConfirm, setDaipaFinalConfirm] = useState(false);
   const [lostOrder, setLostOrder] = useState(false);
   const [generalApplyAttach, setGeneralApplyAttach] = useState(false);
   const [generalApplyNotNeed, setGeneralApplyNotNeed] = useState(false);
@@ -674,16 +903,72 @@ export default function EizenRequestAllInOnePage() {
   const [partnerCd, setPartnerCd] = useState("");
   const [partnerName, setPartnerName] = useState("");
 
-  const [approval1, setApproval1] = useState("");
-  const [approval2, setApproval2] = useState("");
-  const [approval3, setApproval3] = useState("");
-  const [approval4, setApproval4] = useState("");
-  const [approval5, setApproval5] = useState("");
-  const [approval6, setApproval6] = useState("");
-  const [approval7, setApproval7] = useState("");
+  const { user } = useAuth();
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStepDto[]>([]);
 
-  const handleSubmit = async () => {
-    if (submitting) return;
+  // Fetch workflow state when editing an existing form
+  useEffect(() => {
+    if (!editId) return;
+    workflowApi.get(editId).then(setWorkflowSteps).catch(() => {});
+  }, [editId]);
+
+  // ---- Build UI state snapshot for payload (no localStorage; DB only) ----
+  // buildDraftRef always holds the latest buildDraft so closures (e.g. the
+  // load effect's setTimeout) can read post-render state without stale captures.
+  const buildDraftRef = useRef<() => any>(() => ({}));
+  const buildDraft = useCallback(() => ({
+    documentNo, issueDate, furigana, customerName, address, propertyCd, propertyCd2, propertyCd3, buildingName,
+    completionDate, productName, repairHistory,
+    roof, outsideWall, balcony, commonArea, privateArea, otherWork, otherWorkText, workDetail,
+    ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
+    plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
+    proposalDate, contractDate, startDate,
+    drawing, otherMaterial, photo4side, photoPart, photoOther, photoOtherText,
+    attachRemark, dapManagerConfirmDrawing, dapManagerConfirmPhoto,
+    page1Rows, page2Rows, siteInstruction1, siteInstruction2,
+    sectionKasetsu, sectionAshiba, sectionBouhan, sectionYosan,
+    grpTodokede, grpChosa, grpKakunin,
+    requiredDrawing, requiredOther, requiredOtherText, maintenanceRemark,
+    designNeed, employeeCd, employeeName, confirmApplicationNeed,
+    designInstruction, designAttachment, designDapConfirm, designRemark,
+    estimateOutput, estimateAttach, estimateRemark,
+    maintenanceEstimateAttach, maintenanceEstimateRemark,
+    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, generalApplyNotNeed, finalReason,
+    gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
+  }), [
+    documentNo, issueDate, furigana, customerName, address, propertyCd, propertyCd2, propertyCd3, buildingName,
+    completionDate, productName, repairHistory,
+    roof, outsideWall, balcony, commonArea, privateArea, otherWork, otherWorkText, workDetail,
+    ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
+    plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
+    proposalDate, contractDate, startDate,
+    drawing, otherMaterial, photo4side, photoPart, photoOther, photoOtherText,
+    attachRemark, dapManagerConfirmDrawing, dapManagerConfirmPhoto,
+    page1Rows, page2Rows, siteInstruction1, siteInstruction2,
+    sectionKasetsu, sectionAshiba, sectionBouhan, sectionYosan,
+    grpTodokede, grpChosa, grpKakunin,
+    requiredDrawing, requiredOther, requiredOtherText, maintenanceRemark,
+    designNeed, employeeCd, employeeName, confirmApplicationNeed,
+    designInstruction, designAttachment, designDapConfirm, designRemark,
+    estimateOutput, estimateAttach, estimateRemark,
+    maintenanceEstimateAttach, maintenanceEstimateRemark,
+    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, generalApplyNotNeed, finalReason,
+    gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
+  ]);
+
+  // Keep ref in sync with the latest buildDraft on every render, and capture
+  // the post-load snapshot on the first render after restoreFromDraft runs.
+  useEffect(() => {
+    buildDraftRef.current = buildDraft;
+    if (captureSnapshotOnNextRender.current) {
+      captureSnapshotOnNextRender.current = false;
+      savedSnapshotRef.current = JSON.stringify(buildDraft());
+      isInitialLoad.current = false;
+    }
+  });
+
+  const handleSubmit = async (skipNavigate = false): Promise<number | null> => {
+    if (submitting) return null;
     setSubmitting(true);
     try {
       const form: FullForm = {
@@ -736,27 +1021,83 @@ export default function EizenRequestAllInOnePage() {
           textMap: {},
         },
       };
-      const fd = buildMultipartFormData(form);
+      // Include full UI state for complete round-trip restoration
+      const payloadWithUiState = {
+        ...JSON.parse(JSON.stringify(form)),
+        uiState: buildDraft(),
+      };
+      const fd = new FormData();
+      fd.append("payload", JSON.stringify(payloadWithUiState));
+      // Append files from tenpu
+      for (const [key, file] of Object.entries(form.tenpu.fileMap)) {
+        if (file) fd.append(key, file);
+      }
+      if (form.kasetsu.ashiba_partialFile) {
+        fd.append("ashiba_partialFile", form.kasetsu.ashiba_partialFile);
+      }
+      let targetId: number | null = editId;
       if (editId) {
         await formApi.update(editId, fd);
       } else {
         const result = await formApi.create(fd);
-        // Upload any pending files that were selected before form was saved
-        const newId = result?.id;
-        if (newId) {
-          const pending = Object.entries(pendingFilesRef.current);
-          await Promise.all(
-            pending.map(([key, file]) => attachmentApi.upload(newId, key, file).catch(() => {}))
-          );
-          pendingFilesRef.current = {};
-        }
+        targetId = result?.id ?? null;
       }
-      nav("/", { replace: true });
+      // After the form record exists, flush pending file deletions and uploads.
+      if (targetId) {
+        const deletions = Array.from(deletedFieldKeysRef.current);
+        await Promise.all(
+          deletions.map((key) => attachmentApi.delete(targetId!, key).catch(() => {}))
+        );
+        deletedFieldKeysRef.current.clear();
+
+        const pending = Object.entries(pendingFilesRef.current);
+        await Promise.all(
+          pending.map(([key, file]) => attachmentApi.upload(targetId!, key, file).catch(() => {}))
+        );
+        pendingFilesRef.current = {};
+      }
+      savedSnapshotRef.current = JSON.stringify(buildDraft());
+      toast.success("保存しました");
+      if (!skipNavigate) nav("/", { replace: true });
+      return targetId;
     } catch (err: any) {
       toast.error(err?.message || "保存に失敗しました");
+      return null;
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const openMitsumoriFor = async (id: number) => {
+    try {
+      const existing = await mitsumoriApi.get(id);
+      if (!existing) {
+        await mitsumoriApi.create(id);
+      }
+      nav(`/mitsumori/${id}`);
+    } catch {
+      toast.error("エラーが発生しました");
+    }
+  };
+
+  const isFormDirty = () => {
+    if (isInitialLoad.current) return false;
+    if (savedSnapshotRef.current == null) return true;
+    return savedSnapshotRef.current !== JSON.stringify(buildDraft());
+  };
+
+  const handleOpenMitsumori = async () => {
+    if (editId && !isFormDirty()) {
+      await openMitsumoriFor(editId);
+      return;
+    }
+    setShowMitsumoriDialog(true);
+  };
+
+  const handleConfirmSaveAndOpen = async () => {
+    setShowMitsumoriDialog(false);
+    const targetId = await handleSubmit(true);
+    if (targetId) await openMitsumoriFor(targetId);
   };
 
   const updatePage1Row = (id: string, next: CheckRow) => {
@@ -782,11 +1123,11 @@ export default function EizenRequestAllInOnePage() {
             </div>
             <div className="col-span-2">
               <label className="mb-1 block text-sm font-semibold text-slate-700">文書番号</label>
-              <input value={documentNo} onChange={(e) => setDocumentNo(e.target.value)} className={inputClass} />
+              <input value={documentNo || "保存後に発行"} readOnly className={inputClass + " bg-slate-50 cursor-default"} />
             </div>
             <div className="col-span-2">
               <label className="mb-1 block text-sm font-semibold text-slate-700">起票日</label>
-              <JaDatePicker value={issueDate} onChange={setIssueDate} className={inputClass} />
+              <input value={issueDate ? issueDate.replace(/(\d{4})-(\d{2})-(\d{2})/, "$1年$2月$3日") : ""} readOnly className={inputClass + " bg-slate-50 cursor-default"} />
             </div>
           </div>
         </div>
@@ -802,6 +1143,10 @@ export default function EizenRequestAllInOnePage() {
           setAddress={setAddress}
           propertyCd={propertyCd}
           setPropertyCd={setPropertyCd}
+          propertyCd2={propertyCd2}
+          setPropertyCd2={setPropertyCd2}
+          propertyCd3={propertyCd3}
+          setPropertyCd3={setPropertyCd3}
           buildingName={buildingName}
           setBuildingName={setBuildingName}
           completionDate={completionDate}
@@ -842,10 +1187,14 @@ export default function EizenRequestAllInOnePage() {
           setPlannedVendorName={setPlannedVendorName}
           plannedVendorCd={plannedVendorCd}
           setPlannedVendorCd={setPlannedVendorCd}
+          plannedVendorCd2={plannedVendorCd2}
+          setPlannedVendorCd2={setPlannedVendorCd2}
           fixedVendorName={fixedVendorName}
           setFixedVendorName={setFixedVendorName}
           fixedVendorCd={fixedVendorCd}
           setFixedVendorCd={setFixedVendorCd}
+          fixedVendorCd2={fixedVendorCd2}
+          setFixedVendorCd2={setFixedVendorCd2}
           proposalDate={proposalDate}
           setProposalDate={setProposalDate}
           contractDate={contractDate}
@@ -893,6 +1242,24 @@ export default function EizenRequestAllInOnePage() {
           setSectionBouhan={setSectionBouhan}
           sectionYosan={sectionYosan}
           setSectionYosan={setSectionYosan}
+          ashibaPlanFileUpload={{
+            matchKey: "仮設図面添付",
+            fieldKey: "ashiba_plan",
+            attachments,
+            fileInputRefs,
+            onFileCheckChange: handleFileCheckChange,
+            onFileSelected: handleFileSelected,
+            getAttachmentUrl,
+          }}
+          plantingPlanFileUpload={{
+            matchKey: "図面添付",
+            fieldKey: "planting_plan",
+            attachments,
+            fileInputRefs,
+            onFileCheckChange: handleFileCheckChange,
+            onFileSelected: handleFileSelected,
+            getAttachmentUrl,
+          }}
         />
 
         <TemporaryConfirmSection
@@ -906,6 +1273,31 @@ export default function EizenRequestAllInOnePage() {
           setGrpChosa={setGrpChosa}
           grpKakunin={grpKakunin}
           setGrpKakunin={setGrpKakunin}
+          danshinSonotaFileUpload={{
+            matchKey: "その他",
+            fieldKey: "danshin_sonota",
+            attachments,
+            fileInputRefs,
+            onFileCheckChange: handleFileCheckChange,
+            onFileSelected: handleFileSelected,
+            getAttachmentUrl,
+          }}
+          shitajiFileUpload={{
+            matchKey: "必要箇所",
+            fieldKey: "shitaji_hitsuyokasho",
+            attachments,
+            fileInputRefs,
+            onFileCheckChange: handleFileCheckChange,
+            onFileSelected: handleFileSelected,
+            getAttachmentUrl,
+          }}
+          remarkFileUpload={{
+            attachments,
+            fileInputRefs,
+            onFileSelected: handleFileSelected,
+            onFileCheckChange: handleFileCheckChange,
+            getAttachmentUrl,
+          }}
         />
 
         <MaintenanceAttachmentSection
@@ -917,6 +1309,11 @@ export default function EizenRequestAllInOnePage() {
           setRequiredOtherText={setRequiredOtherText}
           maintenanceRemark={maintenanceRemark}
           setMaintenanceRemark={setMaintenanceRemark}
+          attachments={attachments}
+          fileInputRefs={fileInputRefs}
+          onFileCheckChange={handleFileCheckChange}
+          onFileSelected={handleFileSelected}
+          getAttachmentUrl={getAttachmentUrl}
         />
 
         <DesignConfirmSection
@@ -951,6 +1348,12 @@ export default function EizenRequestAllInOnePage() {
           setMaintenanceEstimateRemark={setMaintenanceEstimateRemark}
           orderResult={orderResult}
           setOrderResult={setOrderResult}
+          juchuCheck={juchuCheck}
+          setJuchuCheck={setJuchuCheck}
+          shitchuCheck={shitchuCheck}
+          setShitchuCheck={setShitchuCheck}
+          daipaFinalConfirm={daipaFinalConfirm}
+          setDaipaFinalConfirm={setDaipaFinalConfirm}
           generalApplyAttach={generalApplyAttach}
           setGeneralApplyAttach={setGeneralApplyAttach}
           generalApplyNotNeed={generalApplyNotNeed}
@@ -964,6 +1367,7 @@ export default function EizenRequestAllInOnePage() {
           onFileCheckChange={handleFileCheckChange}
           onFileSelected={handleFileSelected}
           getAttachmentUrl={getAttachmentUrl}
+          onOpenMitsumori={handleOpenMitsumori}
         />
 
         <RequestSection
@@ -978,31 +1382,54 @@ export default function EizenRequestAllInOnePage() {
         />
 
         <ApprovalFlowSection
-          approval1={approval1}
-          setApproval1={setApproval1}
-          approval2={approval2}
-          setApproval2={setApproval2}
-          approval3={approval3}
-          setApproval3={setApproval3}
-          approval4={approval4}
-          setApproval4={setApproval4}
-          approval5={approval5}
-          setApproval5={setApproval5}
-          approval6={approval6}
-          setApproval6={setApproval6}
-          approval7={approval7}
-          setApproval7={setApproval7}
+          formId={editId}
+          steps={workflowSteps}
+          userRole={user?.role}
+          onStepsChange={setWorkflowSteps}
         />
 
         <div className="flex justify-end gap-3 pb-10">
-          <button type="button" onClick={() => nav("/", { replace: true })} className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
+          <button type="button" onClick={() => { if (isFormDirty()) { setShowLeaveDialog(true); } else { nav("/", { replace: true }); } }} className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
             提案物件一覧
           </button>
-          <button type="button" onClick={handleSubmit} disabled={submitting} className="rounded-xl bg-sky-600 px-6 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-50">
+          <button type="button" onClick={() => handleSubmit(false)} disabled={submitting} className="rounded-xl bg-sky-600 px-6 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-50">
             {submitting ? "登録中..." : "登録"}
           </button>
         </div>
       </main>
+      {showLeaveDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">未保存の変更があります。</div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" disabled={submitting} onClick={async () => { const targetId = await handleSubmit(true); if (targetId) { setShowLeaveDialog(false); nav("/", { replace: true }); } else { setShowLeaveDialog(false); } }} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                保存して移動
+              </button>
+              <button type="button" onClick={() => { setShowLeaveDialog(false); nav("/", { replace: true }); }} className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+                保存せずに移動
+              </button>
+              <button type="button" onClick={() => setShowLeaveDialog(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showMitsumoriDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">未保存の変更があります。保存してから見積依頼書を開きますか？</div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setShowMitsumoriDialog(false)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                キャンセル
+              </button>
+              <button type="button" onClick={handleConfirmSaveAndOpen} disabled={submitting} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50">
+                保存して開く
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

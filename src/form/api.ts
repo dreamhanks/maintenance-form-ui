@@ -1,5 +1,17 @@
 const API_BASE = "http://localhost:8080";
 
+// Centralized auth-failure handler. Any 401/403 from the backend means the
+// session is gone — bounce the user to /login. Skip when the failing call
+// is itself an auth endpoint, otherwise /api/auth/me probing would loop.
+function handleAuthFailure(path: string, status: number): boolean {
+  if (status !== 401 && status !== 403) return false;
+  if (path.includes("/api/auth/")) return false;
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+  return true;
+}
+
 export type LoginRequest = {
   employeeCode: string;
   password: string;
@@ -7,7 +19,6 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   user: User;
-  mustChangePassword: boolean;
 };
 
 export type User = {
@@ -23,19 +34,23 @@ export type User = {
   jobTypeName?: string | null;
   employmentType?: string | null;
   employmentTypeName?: string | null;
+  role?: string | null;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = init?.method?.toUpperCase() ?? "GET";
+  const needsContentType = method !== "GET" && method !== "HEAD";
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(needsContentType ? { "Content-Type": "application/json" } : {}),
       ...(init?.headers ?? {}),
     },
     credentials: "include", // IMPORTANT: send/receive JSESSIONID
   });
 
   if (!res.ok) {
+    if (handleAuthFailure(path, res.status)) throw new Error("unauthorized");
     const text = await res.text().catch(() => "");
     throw new Error(text || `HTTP ${res.status}`);
   }
@@ -50,14 +65,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const authApi = {
   login: (req: LoginRequest) => request<LoginResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(req) }),
   me: () => request<User>("/api/auth/me", { method: "GET" }),
-  mustChangePassword: () => request<boolean>("/api/auth/must-change-password", { method: "GET" }),
-
-  changePassword: (currentPassword: string, newPassword: string) =>
-    request<void>("/api/auth/change-password", {
-      method: "POST",
-      body: JSON.stringify({ currentPassword, newPassword }),
-    }),
-
   logout: () => request<void>("/api/auth/logout", { method: "POST" }),
 };
 
@@ -69,6 +76,7 @@ export async function postMultipart(url: string, fd: FormData) {
     credentials: "include",
   });
   if (!res.ok) {
+    if (handleAuthFailure(url, res.status)) throw new Error("unauthorized");
     const text = await res.text().catch(() => "");
     throw new Error(text || `HTTP ${res.status}`);
   }
@@ -81,7 +89,10 @@ export async function putMultipart(url: string, fd: FormData) {
     body: fd,
     credentials: "include",
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    if (handleAuthFailure(url, res.status)) throw new Error("unauthorized");
+    throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+  }
   return res.json();
 }
 
@@ -101,12 +112,28 @@ export const formApi = {
     `${API_BASE}/api/forms/${id}/files/${fieldKey}`,
 };
 
+export type WorkflowStepDto = {
+  stepNumber: number;
+  stepName: string;
+  stepLabel: string;
+  status: string;
+  actorEmployeeCode: string | null;
+  actorName: string | null;
+  comment: string | null;
+  actionedAt: string | null;
+};
+
 export const workflowApi = {
-  get: (id: number) => request<any[]>(`/api/forms/${id}/workflow`),
-  approve: (id: number, step: string, approverName: string) =>
-    request<any>(`/api/forms/${id}/approve?step=${encodeURIComponent(step)}`, {
+  get: (id: number) => request<WorkflowStepDto[]>(`/api/forms/${id}/workflow`),
+  confirm: (id: number, step: number) =>
+    request<WorkflowStepDto[]>(`/api/forms/${id}/workflow/confirm?step=${step}`, {
       method: "POST",
-      body: JSON.stringify({ approverName }),
+      body: JSON.stringify({}),
+    }),
+  reject: (id: number, step: number) =>
+    request<WorkflowStepDto[]>(`/api/forms/${id}/workflow/reject?step=${step}`, {
+      method: "POST",
+      body: JSON.stringify({}),
     }),
 };
 
@@ -124,8 +151,42 @@ export const judgmentApi = {
   },
 };
 
+export type OfficeDto = {
+  officeCode: string;
+  officeName: string;
+};
+
 export const masterApi = {
-  offices: () => request<string[]>("/api/master/offices"),
+  offices: () => request<OfficeDto[]>("/api/master/offices"),
+  userOffices: () => request<OfficeDto[]>("/api/master/user-offices"),
+};
+
+export type MitsumoriIraishoDto = {
+  id: number;
+  formRecordId: number;
+  formData: Record<string, any>;
+};
+
+export const mitsumoriApi = {
+  /** Returns the record, or null if not found (404). Throws on other errors. */
+  get: async (formRecordId: number): Promise<MitsumoriIraishoDto | null> => {
+    const res = await fetch(`${API_BASE}/api/mitsumori-iraisho/${formRecordId}`, {
+      credentials: "include",
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      if (handleAuthFailure(`/api/mitsumori-iraisho/${formRecordId}`, res.status)) throw new Error("unauthorized");
+      throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+    }
+    return (await res.json()) as MitsumoriIraishoDto;
+  },
+  create: (formRecordId: number) =>
+    request<MitsumoriIraishoDto>(`/api/mitsumori-iraisho/${formRecordId}`, { method: "POST" }),
+  update: (formRecordId: number, formData: Record<string, any>) =>
+    request<MitsumoriIraishoDto>(`/api/mitsumori-iraisho/${formRecordId}`, {
+      method: "PUT",
+      body: JSON.stringify(formData),
+    }),
 };
 
 export const attachmentApi = {
@@ -136,7 +197,13 @@ export const attachmentApi = {
       method: "POST",
       body: fd,
       credentials: "include",
-    }).then(r => { if (!r.ok) throw new Error(); return r.json(); });
+    }).then(r => {
+      if (!r.ok) {
+        if (handleAuthFailure(`/api/forms/${formId}/files/${fieldKey}`, r.status)) throw new Error("unauthorized");
+        throw new Error();
+      }
+      return r.json();
+    });
   },
   delete: (formId: number, fieldKey: string) =>
     request<void>(`/api/forms/${formId}/files/${fieldKey}`, { method: "DELETE" }),

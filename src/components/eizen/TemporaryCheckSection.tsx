@@ -1,6 +1,6 @@
 import { CheckRow } from "./EizenFormTypes";
 import { sectionHeader, sectionWrap, textareaClass } from "./EizenFormStyles";
-import { LabelCell, MatrixRow, ValueCell } from "./EizenCommon";
+import { LabelCell, MatrixRow, MatrixRowFileUpload, ValueCell } from "./EizenCommon";
 
 type Props = {
   rows: CheckRow[];
@@ -15,6 +15,8 @@ type Props = {
   setSectionBouhan: (v: boolean) => void;
   sectionYosan: boolean;
   setSectionYosan: (v: boolean) => void;
+  ashibaPlanFileUpload?: MatrixRowFileUpload;
+  plantingPlanFileUpload?: MatrixRowFileUpload;
 };
 
 export default function TemporaryCheckSection(props: Props) {
@@ -38,9 +40,38 @@ export default function TemporaryCheckSection(props: Props) {
         <div className="col-span-5 border border-slate-300 px-3 py-2">備考</div> */}
       </div>
 
-      {props.rows.map((row, i) => (
-        <MatrixRow key={row.id} index={i} type={1} row={row} onChange={(next) => props.updateRow(row.id, next)} categoryCheckbox={categoryCheckboxMap[i]} />
-      ))}
+      {(() => {
+        const renderRow = (row: CheckRow, i: number) => (
+          <MatrixRow
+            key={row.id}
+            index={i}
+            type={1}
+            row={row}
+            onChange={(next) => props.updateRow(row.id, next)}
+            categoryCheckbox={categoryCheckboxMap[i]}
+            fileUpload={row.id === "r7" ? props.ashibaPlanFileUpload : row.id === "r12" ? props.plantingPlanFileUpload : undefined}
+          />
+        );
+        const groups: { masterIdx: number; range: [number, number]; enabled: boolean }[] = [
+          { masterIdx: 0, range: [0, 6], enabled: props.sectionKasetsu },
+          { masterIdx: 7, range: [7, 14], enabled: props.sectionAshiba },
+          { masterIdx: 15, range: [15, 15], enabled: props.sectionBouhan },
+          { masterIdx: 16, range: [16, props.rows.length - 1], enabled: props.sectionYosan },
+        ];
+        const dimChildrenExceptFirst = "[&>div>*:not(:first-child)]:opacity-50 [&>div>*:not(:first-child)]:pointer-events-none";
+        return groups.map((g, gi) => (
+          <div key={gi}>
+            <div className={!g.enabled ? dimChildrenExceptFirst : ""}>
+              {renderRow(props.rows[g.masterIdx], g.masterIdx)}
+            </div>
+            {g.range[1] > g.masterIdx && (
+              <div className={!g.enabled ? "opacity-50 pointer-events-none" : ""}>
+                {props.rows.slice(g.masterIdx + 1, g.range[1] + 1).map((row, j) => renderRow(row, g.masterIdx + 1 + j))}
+              </div>
+            )}
+          </div>
+        ));
+      })()}
 
       <div className="grid grid-cols-12">
         <LabelCell>現場指示事項</LabelCell>

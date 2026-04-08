@@ -19,5 +19,5 @@ export type CheckRow = {
   splitAt?: number;
   radioColKeys?: string[];
   amountFirst?: boolean;
-  remarkExtra?: { label: string; value: string }[];
+  remarkExtra?: { label: string; value: string; fileUploadFieldKey?: string; fileCheckboxValue?: boolean }[];
 };

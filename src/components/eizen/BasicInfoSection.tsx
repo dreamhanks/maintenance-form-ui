@@ -12,6 +12,10 @@ type Props = {
   setAddress: (v: string) => void;
   propertyCd: string;
   setPropertyCd: (v: string) => void;
+  propertyCd2: string;
+  setPropertyCd2: (v: string) => void;
+  propertyCd3: string;
+  setPropertyCd3: (v: string) => void;
   buildingName: string;
   setBuildingName: (v: string) => void;
   completionDate: string;
@@ -55,10 +59,14 @@ type Props = {
   setPlannedVendorName: (v: string) => void;
   plannedVendorCd: string;
   setPlannedVendorCd: (v: string) => void;
+  plannedVendorCd2: string;
+  setPlannedVendorCd2: (v: string) => void;
   fixedVendorName: string;
   setFixedVendorName: (v: string) => void;
   fixedVendorCd: string;
   setFixedVendorCd: (v: string) => void;
+  fixedVendorCd2: string;
+  setFixedVendorCd2: (v: string) => void;
   proposalDate: string;
   setProposalDate: (v: string) => void;
   contractDate: string;
@@ -95,9 +103,9 @@ export default function BasicInfoSection(props: Props) {
             <div className="flex items-center justify-center gap-1" >
                 <input value={props.propertyCd} onChange={(e) => props.setPropertyCd(e.target.value)} className={inputClass} />
                 <div>ー</div>
-                <input className={inputClass} />
+                <input value={props.propertyCd2} onChange={(e) => props.setPropertyCd2(e.target.value)} className={inputClass} />
                 <div>ー</div>
-                <input className={inputClass} />
+                <input value={props.propertyCd3} onChange={(e) => props.setPropertyCd3(e.target.value)} className={inputClass} />
             </div>
           </ValueCell>
           <LabelCell>建物名称</LabelCell>
@@ -128,20 +136,13 @@ export default function BasicInfoSection(props: Props) {
             <Check label="バルコニー・ベランダ" checked={props.balcony} onChange={props.setBalcony} />
             <Check label="共用部（廊下・エントランス）" checked={props.commonArea} onChange={props.setCommonArea} />
             <Check label="専有部（室内）" checked={props.privateArea} onChange={props.setPrivateArea} />
-            <div>
+            <div className="inline-flex items-center gap-1">
                 <Check label="その他" checked={props.otherWork} onChange={props.setOtherWork} />
-                <span>(
-                    <input className={`w-48 border-b border-black outline-none bg-transparent`} type="text"/>
-                    )
-                </span>
+                <span>(</span>
+                <input value={props.otherWorkText} onChange={(e) => props.setOtherWorkText(e.target.value)} className="w-48 border-b border-black outline-none bg-transparent" type="text"/>
+                <span>)</span>
             </div>
           </div>
-
-          {props.otherWork && (
-            <div className="mt-3 max-w-md">
-              <input value={props.otherWorkText} onChange={(e) => props.setOtherWorkText(e.target.value)} className={inputClass} placeholder="その他" />
-            </div>
-          )}
 
           <div className="mt-4">
             <label className="mb-2 block text-sm font-semibold text-slate-700">工事内容詳細：</label>
@@ -187,7 +188,7 @@ export default function BasicInfoSection(props: Props) {
             <div className="flex items-center justify-center gap-2">
                 <input value={props.plannedVendorCd} onChange={(e) => props.setPlannedVendorCd(e.target.value)} className={inputClass} />
                 <div>ー</div>
-                <input className={inputClass} />
+                <input value={props.plannedVendorCd2} onChange={(e) => props.setPlannedVendorCd2(e.target.value)} className={inputClass} />
             </div>
           </ValueCell>
           {/* <LabelCell>ー</LabelCell> */}
@@ -203,7 +204,7 @@ export default function BasicInfoSection(props: Props) {
             <div className="flex items-center justify-center gap-2">
                 <input value={props.fixedVendorCd} onChange={(e) => props.setFixedVendorCd(e.target.value)} className={inputClass} />
                 <div>ー</div>
-                <input className={inputClass} />
+                <input value={props.fixedVendorCd2} onChange={(e) => props.setFixedVendorCd2(e.target.value)} className={inputClass} />
             </div>
           </ValueCell>
           <div className="col-span-4 bg-slate-100 border border-slate-300" />

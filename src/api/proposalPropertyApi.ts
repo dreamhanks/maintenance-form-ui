@@ -11,7 +11,8 @@ export async function fetchProposals(
   });
 
   return data.map((row: any) => ({
-    id: row.id ?? row.propertyCode ?? "",
+    id: String(row.id ?? ""),
+    propertyCode: row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
     salesOffice: row.salesOffice ?? "",

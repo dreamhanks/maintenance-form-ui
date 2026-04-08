@@ -4,10 +4,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
-import { ForceChangePasswordRoute } from "./auth/ForceChangePasswordRoute";
 
 import LoginPage from "./pages/LoginPage";
-import ChangePasswordPage from "./pages/ChangePasswordPage";
 // import FormPage from "./pages/FormPage";
 import ProposalListPage from "./pages/ProposalListPage";
 import JuchuHanteiListPage from "./pages/JuchuHanteiListPage";
@@ -24,77 +22,66 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
-          {/* must be logged in */}
-          <Route
-            path="/change-password"
-            element={
-              <ProtectedRoute>
-                <ChangePasswordPage />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* must be logged in AND mustChangePassword = false */}
           <Route
             path="/"
             element={
-              <ForceChangePasswordRoute>
+              <ProtectedRoute>
                 <ProposalListPage />
-              </ForceChangePasswordRoute>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/juchu"
             element={
-              <ForceChangePasswordRoute>
+              <ProtectedRoute>
                 <JuchuHanteiListPage />
-              </ForceChangePasswordRoute>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/shichu"
             element={
-              <ForceChangePasswordRoute>
+              <ProtectedRoute>
                 <ShichuListPage />
-              </ForceChangePasswordRoute>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/keiyaku"
             element={
-              <ForceChangePasswordRoute>
+              <ProtectedRoute>
                 <KeiyakuListPage />
-              </ForceChangePasswordRoute>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/form"
             element={
-              <ForceChangePasswordRoute>
+              <ProtectedRoute>
                 <EizenRequestAllInOnePage />
-              </ForceChangePasswordRoute>
+              </ProtectedRoute>
             }
           />
 
           <Route
             path="/form/:id"
             element={
-              <ForceChangePasswordRoute>
+              <ProtectedRoute>
                 <EizenRequestAllInOnePage />
-              </ForceChangePasswordRoute>
+              </ProtectedRoute>
             }
           />
 
           <Route
-            path="/mitsumori"
+            path="/mitsumori/:formRecordId"
             element={
-              <ForceChangePasswordRoute>
+              <ProtectedRoute>
                 <MitsumoriIraishoPage />
-              </ForceChangePasswordRoute>
+              </ProtectedRoute>
             }
           />
         </Routes>

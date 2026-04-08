@@ -15,14 +15,10 @@ const onSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setBusy(true);
   try {
-    const resp = await login(employeeCode.trim(), password);
+    await login(employeeCode.trim(), password);
     toast.success("ログインしました", { position: "top-center", autoClose: 1200 });
 
-    if (resp.mustChangePassword) {
-      nav("/change-password", { replace: true });
-    } else {
-      nav("/", { replace: true });
-    }
+    nav("/", { replace: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     toast.error(err?.message ?? "ログインに失敗しました", { position: "top-center" });

@@ -2,7 +2,6 @@ import React from "react";
 import { OrderResult } from "./EizenFormTypes";
 import { inputClass, sectionWrap, textareaClass } from "./EizenFormStyles";
 import { LabelCell, ValueCell } from "./EizenCommon";
-import { Link } from "react-router-dom";
 
 type Props = {
   estimateOutput: boolean;
@@ -23,6 +22,12 @@ type Props = {
   setGeneralApplyAttach: (v: boolean) => void;
   generalApplyNotNeed: boolean;
   setGeneralApplyNotNeed: (v: boolean) => void;
+  juchuCheck: boolean;
+  setJuchuCheck: (v: boolean) => void;
+  shitchuCheck: boolean;
+  setShitchuCheck: (v: boolean) => void;
+  daipaFinalConfirm: boolean;
+  setDaipaFinalConfirm: (v: boolean) => void;
   lostOrder: boolean;
   setLostOrder: (v: boolean) => void;
   finalReason: string;
@@ -33,6 +38,7 @@ type Props = {
   onFileCheckChange: (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => void;
   onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
   getAttachmentUrl: (fieldKey: string) => string | null;
+  onOpenMitsumori: () => void;
 };
 
 function FileLink({ fieldKey, attachments, getAttachmentUrl }: {
@@ -72,7 +78,7 @@ function HiddenFileInput({ fieldKey, fileInputRefs, onFileSelected, setChecked }
   return (
     <input
       type="file"
-      accept="application/pdf"
+      accept="image/*,application/pdf"
       className="hidden"
       ref={(el) => { fileInputRefs.current[fieldKey] = el; }}
       onChange={(e) => {
@@ -99,18 +105,21 @@ export default function EstimateFinalSection(props: Props) {
 
         <LabelCell>見積書</LabelCell>
         <div className="col-span-3 grid grid-cols-12">
-          <Link to="/mitsumori" className="col-span-8 border border-slate-400 px-3 py-2 underline">業者見積依頼書出力</Link>
-          <ValueCell className="col-span-4 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.estimateOutput} onChange={(e) => props.onFileCheckChange("vendor_estimate_request", e.target.checked, props.setEstimateOutput)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
-            <div>出力</div>
-            <HiddenFileInput fieldKey="vendor_estimate_request" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateOutput} />
+          <button type="button" onClick={props.onOpenMitsumori} className="col-span-8 border border-slate-400 px-3 py-2 underline text-left">業者見積依頼書出力</button>
+          <ValueCell className="col-span-4 flex flex-col items-center justify-center border border-slate-400">
+            <div className="flex items-center gap-2">
+              <HiddenFileInput fieldKey="vendor_estimate_request" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateOutput} />
+            </div>
             <FileLink fieldKey="vendor_estimate_request" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
+            <FileLink fieldKey="estimate_output_pdf" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <div className="col-span-8 border border-slate-400 px-3 py-2">見積書の添付</div>
-          <ValueCell className="col-span-4 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.estimateAttach} onChange={(e) => props.onFileCheckChange("estimate_attached", e.target.checked, props.setEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
-            <div>見積書</div>
-            <HiddenFileInput fieldKey="estimate_attached" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateAttach} />
+          <ValueCell className="col-span-4 flex flex-col items-center justify-center border border-slate-400">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={props.estimateAttach} onChange={(e) => props.onFileCheckChange("estimate_attached", e.target.checked, props.setEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+              <div>見積書</div>
+              <HiddenFileInput fieldKey="estimate_attached" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateAttach} />
+            </div>
             <FileLink fieldKey="estimate_attached" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <ValueCell className="col-span-12 border border-slate-400">
@@ -121,9 +130,13 @@ export default function EstimateFinalSection(props: Props) {
         <LabelCell>見積書</LabelCell>
         <div className="col-span-2 grid grid-cols-12">
           <div className="col-span-6 border border-slate-400 px-3 pt-3">見積書添付</div>
-          <ValueCell className="col-span-6 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.maintenanceEstimateAttach} onChange={(e) => props.setMaintenanceEstimateAttach(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
-            <div>見積書</div>
+          <ValueCell className="col-span-6 flex flex-col items-center justify-center border border-slate-400">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={props.maintenanceEstimateAttach} onChange={(e) => props.onFileCheckChange("mitsumori_mitstumosho", e.target.checked, props.setMaintenanceEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+              <div>見積書</div>
+              <HiddenFileInput fieldKey="mitsumori_mitstumosho" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setMaintenanceEstimateAttach} />
+            </div>
+            <FileLink fieldKey="mitsumori_mitstumosho" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <ValueCell className="col-span-12 pt-5">
             <input value={props.maintenanceEstimateRemark} onChange={(e) => props.setMaintenanceEstimateRemark(e.target.value)} className={inputClass} placeholder="備考" />
@@ -133,28 +146,30 @@ export default function EstimateFinalSection(props: Props) {
         <div className="col-span-5 grid grid-cols-12">
           {/* <LabelCell>受注</LabelCell> */}
           <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
-            {/* <input type="radio" name="orderResult" checked={props.orderResult === "受注"} onChange={() => props.setOrderResult("受注")} className="h-5 w-5 border-slate-400 text-sky-600 focus:ring-sky-500" /> */}
+            <input type="checkbox" checked={props.juchuCheck} onChange={(e) => props.setJuchuCheck(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
             <div>受注</div>
           </ValueCell>
           {/* <LabelCell>失注</LabelCell> */}
           <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+            <input type="checkbox" checked={props.shitchuCheck} onChange={(e) => props.setShitchuCheck(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
             <div>失注</div>
-            {/* <input type="radio" name="orderResult" checked={props.orderResult === "失注"} onChange={() => props.setOrderResult("失注")} className="h-5 w-5 border-slate-400 text-sky-600 focus:ring-sky-500" /> */}
           </ValueCell>
           <div className="col-span-4 border border-slate-400 text-center pt-2">大パ管理職確認</div>
           <ValueCell className="col-span-2 flex items-center justify-center">
-            <input type="checkbox" className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+            <input type="checkbox" checked={props.daipaFinalConfirm} onChange={(e) => props.setDaipaFinalConfirm(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
           </ValueCell>
           <div className="col-span-3 border border-slate-400 text-center">一般申請</div>
           {/* <ValueCell className="col-span-3 flex items-center justify-center">
             <input type="checkbox" checked={props.generalApplyAttach} onChange={(e) => props.setGeneralApplyAttach(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
           </ValueCell> */}
             
-          <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.lostOrder} onChange={(e) => props.setLostOrder(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
-            <div>添付</div>
+          <ValueCell className="col-span-3 flex flex-col items-center justify-center border border-slate-400">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={props.lostOrder} onChange={(e) => props.onFileCheckChange("daipa_saishuu_tenpu", e.target.checked, props.setLostOrder)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+              <div>添付</div>
+              <HiddenFileInput fieldKey="daipa_saishuu_tenpu" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setLostOrder} />
+            </div>
+            <FileLink fieldKey="daipa_saishuu_tenpu" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <ValueCell className="col-span-6 flex items-center justify-center border border-slate-400 gap-2">
             <input type="checkbox" checked={props.generalApplyNotNeed} onChange={(e) => props.setGeneralApplyNotNeed(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />

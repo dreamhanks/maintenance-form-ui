@@ -4,7 +4,8 @@ import AppPageLayout from "../components/AppPageLayout";
 import ListToolbar from "../components/ListToolbar";
 import ProposalTable from "../components/ProposalTable";
 import { fetchProposals } from "../api/proposalPropertyApi";
-import { salesOfficeOptions, statusOptions } from "../data/dummyData";
+import { statusOptions } from "../data/dummyData";
+import { useUserOffices } from "../hooks/useUserOffices";
 import { ProposalRow } from "../types";
 
 const menuItems = [
@@ -15,27 +16,41 @@ const menuItems = [
 
 export default function ProposalListPage() {
   const nav = useNavigate();
-  const [salesOffice, setSalesOffice] = useState("名古屋");
+  const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
+  const [salesOffice, setSalesOffice] = useState("");
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState("すべて");
   const [rows, setRows] = useState<ProposalRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(true);
 
+  // Set default office once loaded
   useEffect(() => {
+    if (defaultOffice && !salesOffice) setSalesOffice(defaultOffice);
+  }, [defaultOffice, salesOffice]);
+
+  useEffect(() => {
+    if (!salesOffice) return;
     const load = async () => {
       setLoading(true);
+      setError(null);
       try {
         const data = await fetchProposals({ salesOffice, keyword, status });
         setRows(data);
         setSelectedIds([]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "データの取得に失敗しました");
+        setRows([]);
       } finally {
         setLoading(false);
       }
     };
     load();
   }, [salesOffice, keyword, status]);
+
+  const displayError = officeError || error;
 
   const toggleAll = () => {
     const allSelected =
@@ -59,7 +74,7 @@ export default function ProposalListPage() {
       headerContent={
         <ListToolbar
           salesOffice={salesOffice}
-          officeOptions={salesOfficeOptions}
+          officeOptions={officeOptions}
           keyword={keyword}
           status={status}
           statusOptions={statusOptions}
@@ -81,12 +96,18 @@ export default function ProposalListPage() {
         />
       }
     >
+      {displayError && (
+        <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded mb-4">
+          {displayError}
+        </div>
+      )}
       <ProposalTable
         rows={rows}
         loading={loading}
         selectedIds={selectedIds}
         onToggleOne={toggleOne}
         onToggleAll={toggleAll}
+        onRowClick={(id) => nav(`/form/${id}`)}
       />
     </AppPageLayout>
   );

@@ -108,18 +108,42 @@ export function YesNoSwitch({
   );
 }
 
+export type MatrixRowFileUpload = {
+  matchKey: string;
+  fieldKey: string;
+  attachments: Record<string, { filename: string; uploading: boolean }>;
+  fileInputRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
+  onFileCheckChange: (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => void;
+  onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
+  getAttachmentUrl: (fieldKey: string) => string | null;
+};
+
+export type RemarkFileUploadContext = {
+  attachments: Record<string, { filename: string; uploading: boolean }>;
+  fileInputRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
+  onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
+  onFileCheckChange: (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => void;
+  getAttachmentUrl: (fieldKey: string) => string | null;
+};
+
 export function MatrixRow({
     index,
     type,
     row,
     onChange,
     categoryCheckbox,
+    fileUpload,
+    sonotaFileUpload,
+    remarkFileUpload,
 }: {
     index: number;
     type: number;
     row: CheckRow;
     onChange: (next: CheckRow) => void;
     categoryCheckbox?: { checked: boolean; onChange: (v: boolean) => void };
+    fileUpload?: MatrixRowFileUpload;
+    sonotaFileUpload?: MatrixRowFileUpload;
+    remarkFileUpload?: RemarkFileUploadContext;
 }) {
   const optionEntries = Object.entries(row.checks);
 
@@ -260,7 +284,7 @@ export function MatrixRow({
             </div>
           </div>
 
-          <div className="col-span-6 border border-slate-300 px-3 py-3">
+          <div className={`col-span-6 border border-slate-300 px-3 py-3 ${row.need === "不要" ? "opacity-50 pointer-events-none" : ""}`}>
             {row.variant === "fullInput" ? (
               <textarea
                 value={row.amount || ""}
@@ -293,16 +317,60 @@ export function MatrixRow({
                   )}
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  {optionEntries.slice(row.splitAt ?? 1).filter(([key]) => !(row.otherText !== undefined && key === "その他")).map(([key, val]) => (
-                    <Check
-                      key={key}
-                      label={key}
-                      checked={val}
-                      onChange={(checked) =>
-                        onChange({ ...row, checks: { ...row.checks, [key]: checked } })
-                      }
-                    />
-                  ))}
+                  {optionEntries.slice(row.splitAt ?? 1).filter(([key]) => !(row.otherText !== undefined && key === "その他")).map(([key, val]) => {
+                    if (fileUpload && key === fileUpload.matchKey) {
+                      const setChecked = (v: boolean) =>
+                        onChange({ ...row, checks: { ...row.checks, [key]: v } });
+                      const att = fileUpload.attachments[fileUpload.fieldKey];
+                      const url = fileUpload.getAttachmentUrl(fileUpload.fieldKey);
+                      return (
+                        <div key={key} className="inline-flex items-center gap-2">
+                          <Check
+                            label={key}
+                            checked={val}
+                            onChange={(checked) =>
+                              fileUpload.onFileCheckChange(fileUpload.fieldKey, checked, setChecked)
+                            }
+                          />
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            className="hidden"
+                            ref={(el) => { fileUpload.fileInputRefs.current[fileUpload.fieldKey] = el; }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) fileUpload.onFileSelected(fileUpload.fieldKey, file, setChecked);
+                            }}
+                          />
+                          {att && (
+                            att.uploading ? (
+                              <span className="text-xs text-slate-400">アップロード中...</span>
+                            ) : (
+                              <a
+                                href={url ?? "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600"
+                                onClick={(e) => { if (!url) e.preventDefault(); }}
+                              >
+                                {att.filename}
+                              </a>
+                            )
+                          )}
+                        </div>
+                      );
+                    }
+                    return (
+                      <Check
+                        key={key}
+                        label={key}
+                        checked={val}
+                        onChange={(checked) =>
+                          onChange({ ...row, checks: { ...row.checks, [key]: checked } })
+                        }
+                      />
+                    );
+                  })}
                 </div>
                 {row.otherText !== undefined && row.checks["その他"] !== undefined && (
                   <div className="flex items-center gap-1">
@@ -330,13 +398,56 @@ export function MatrixRow({
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   {optionEntries.filter(([key]) => !(row.otherText !== undefined && key === "その他")).map(([key, val], i) => (
                     <React.Fragment key={key}>
-                      <Check
-                        label={key}
-                        checked={val}
-                        onChange={(checked) =>
-                          onChange({ ...row, checks: { ...row.checks, [key]: checked } })
-                        }
-                      />
+                      {fileUpload && key === fileUpload.matchKey ? (
+                        (() => {
+                          const setChecked = (v: boolean) =>
+                            onChange({ ...row, checks: { ...row.checks, [key]: v } });
+                          const att = fileUpload.attachments[fileUpload.fieldKey];
+                          const url = fileUpload.getAttachmentUrl(fileUpload.fieldKey);
+                          return (
+                            <div className="inline-flex items-center gap-2">
+                              <Check
+                                label={key}
+                                checked={val}
+                                onChange={(checked) =>
+                                  fileUpload.onFileCheckChange(fileUpload.fieldKey, checked, setChecked)
+                                }
+                              />
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                className="hidden"
+                                ref={(el) => { fileUpload.fileInputRefs.current[fileUpload.fieldKey] = el; }}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) fileUpload.onFileSelected(fileUpload.fieldKey, file, setChecked);
+                                }}
+                              />
+                              {att && (att.uploading ? (
+                                <span className="text-xs text-slate-400">アップロード中...</span>
+                              ) : (
+                                <a
+                                  href={url ?? "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600"
+                                  onClick={(e) => { if (!url) e.preventDefault(); }}
+                                >
+                                  {att.filename}
+                                </a>
+                              ))}
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <Check
+                          label={key}
+                          checked={val}
+                          onChange={(checked) =>
+                            onChange({ ...row, checks: { ...row.checks, [key]: checked } })
+                          }
+                        />
+                      )}
                       {(i === optionEntries.filter(([k]) => !(row.otherText !== undefined && k === "その他")).length - 1 && !optionEntries.some(([k]) => k === "その他") && row.otherText !== undefined) && (
                         <div className="inline-flex items-center gap-1 text-sm">
                           <span>（</span>
@@ -352,13 +463,19 @@ export function MatrixRow({
                   ))}
                 </div>
                 {row.otherText !== undefined && row.checks["その他"] !== undefined && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 flex-wrap">
                     <Check
                       label="その他"
                       checked={row.checks["その他"]}
-                      onChange={(checked) =>
-                        onChange({ ...row, checks: { ...row.checks, "その他": checked } })
-                      }
+                      onChange={(checked) => {
+                        const setChecked = (v: boolean) =>
+                          onChange({ ...row, checks: { ...row.checks, "その他": v } });
+                        if (sonotaFileUpload) {
+                          sonotaFileUpload.onFileCheckChange(sonotaFileUpload.fieldKey, checked, setChecked);
+                        } else {
+                          setChecked(checked);
+                        }
+                      }}
                     />
                     <div className="inline-flex items-center gap-1 text-sm">
                       <span>（</span>
@@ -369,6 +486,41 @@ export function MatrixRow({
                       />
                       <span>）</span>
                     </div>
+                    {sonotaFileUpload && (() => {
+                      const att = sonotaFileUpload.attachments[sonotaFileUpload.fieldKey];
+                      const url = sonotaFileUpload.getAttachmentUrl(sonotaFileUpload.fieldKey);
+                      return (
+                        <>
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            className="hidden"
+                            ref={(el) => { sonotaFileUpload.fileInputRefs.current[sonotaFileUpload.fieldKey] = el; }}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const setChecked = (v: boolean) =>
+                                  onChange({ ...row, checks: { ...row.checks, "その他": v } });
+                                sonotaFileUpload.onFileSelected(sonotaFileUpload.fieldKey, file, setChecked);
+                              }
+                            }}
+                          />
+                          {att && (att.uploading ? (
+                            <span className="text-xs text-slate-400">アップロード中...</span>
+                          ) : (
+                            <a
+                              href={url ?? "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600"
+                              onClick={(e) => { if (!url) e.preventDefault(); }}
+                            >
+                              {att.filename}
+                            </a>
+                          ))}
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -408,22 +560,66 @@ export function MatrixRow({
                 </div>
               )}
               <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {row.variant !== "checksInConfirm" && optionEntries.filter(([key]) => !(row.otherText !== undefined && key === "その他")).map(([key, val]) => (
-                  <Check
-                    key={key}
-                    label={key}
-                    checked={val}
-                    onChange={(checked) =>
-                      onChange({
-                        ...row,
-                        checks: {
-                          ...row.checks,
-                          [key]: checked,
-                        },
-                      })
-                    }
-                  />
-                ))}
+                {row.variant !== "checksInConfirm" && optionEntries.filter(([key]) => !(row.otherText !== undefined && key === "その他")).map(([key, val]) => {
+                  if (fileUpload && key === fileUpload.matchKey) {
+                    const setChecked = (v: boolean) =>
+                      onChange({ ...row, checks: { ...row.checks, [key]: v } });
+                    const att = fileUpload.attachments[fileUpload.fieldKey];
+                    const url = fileUpload.getAttachmentUrl(fileUpload.fieldKey);
+                    return (
+                      <div key={key} className="inline-flex items-center gap-2">
+                        <Check
+                          label={key}
+                          checked={val}
+                          onChange={(checked) =>
+                            fileUpload.onFileCheckChange(fileUpload.fieldKey, checked, setChecked)
+                          }
+                        />
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          ref={(el) => { fileUpload.fileInputRefs.current[fileUpload.fieldKey] = el; }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) fileUpload.onFileSelected(fileUpload.fieldKey, file, setChecked);
+                          }}
+                        />
+                        {att && (
+                          att.uploading ? (
+                            <span className="text-xs text-slate-400">アップロード中...</span>
+                          ) : (
+                            <a
+                              href={url ?? "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600"
+                              onClick={(e) => { if (!url) e.preventDefault(); }}
+                            >
+                              {att.filename}
+                            </a>
+                          )
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <Check
+                      key={key}
+                      label={key}
+                      checked={val}
+                      onChange={(checked) =>
+                        onChange({
+                          ...row,
+                          checks: {
+                            ...row.checks,
+                            [key]: checked,
+                          },
+                        })
+                      }
+                    />
+                  );
+                })}
 
                 {!row.amountFirst && row.unit && (
                   <div className="inline-flex items-center gap-2">
@@ -496,20 +692,65 @@ export function MatrixRow({
         {!row.remarkExtra && (
           <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} className={textareaClass} />
         )}
-        {row.remarkExtra && row.remarkExtra.map((extra, i) => (
-          <div key={i} className="mt-2 flex items-center gap-2">
-            <span className="whitespace-nowrap text-sm text-slate-700">{extra.label}</span>
-            <input
-              value={extra.value}
-              onChange={(e) => {
-                const updated = [...row.remarkExtra!];
-                updated[i] = { ...updated[i], value: e.target.value };
-                onChange({ ...row, remarkExtra: updated });
-              }}
-              className={inputClass}
-            />
-          </div>
-        ))}
+        {row.remarkExtra && row.remarkExtra.map((extra, i) => {
+          const updateEntry = (patch: Partial<typeof extra>) => {
+            const updated = [...row.remarkExtra!];
+            updated[i] = { ...updated[i], ...patch };
+            onChange({ ...row, remarkExtra: updated });
+          };
+          const hasFileUpload = !!(extra.fileUploadFieldKey && remarkFileUpload);
+          const fk = extra.fileUploadFieldKey;
+          const att = hasFileUpload ? remarkFileUpload!.attachments[fk!] : undefined;
+          const url = hasFileUpload ? remarkFileUpload!.getAttachmentUrl(fk!) : null;
+          const checkboxChecked = !!extra.fileCheckboxValue;
+          const setCheckboxChecked = (v: boolean) => updateEntry({ fileCheckboxValue: v });
+          return (
+            <div key={i} className="mt-2 flex items-center gap-2 flex-wrap">
+              {hasFileUpload && (
+                <input
+                  type="checkbox"
+                  checked={checkboxChecked}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    remarkFileUpload!.onFileCheckChange(fk!, checked, setCheckboxChecked);
+                  }}
+                  className="h-4 w-4 shrink-0 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+                />
+              )}
+              <span className="whitespace-nowrap text-sm text-slate-700">{extra.label}</span>
+              <input
+                value={extra.value}
+                onChange={(e) => updateEntry({ value: e.target.value })}
+                className={inputClass}
+              />
+              {hasFileUpload && (
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  ref={(el) => { remarkFileUpload!.fileInputRefs.current[fk!] = el; }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) remarkFileUpload!.onFileSelected(fk!, file, setCheckboxChecked);
+                  }}
+                />
+              )}
+              {hasFileUpload && checkboxChecked && att && (att.uploading ? (
+                <span className="text-xs text-slate-400">アップロード中...</span>
+              ) : (
+                <a
+                  href={url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600"
+                  onClick={(e) => { if (!url) e.preventDefault(); }}
+                >
+                  {att.filename}
+                </a>
+              ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

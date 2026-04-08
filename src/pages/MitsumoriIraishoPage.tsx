@@ -1,13 +1,23 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
+import { mitsumoriApi } from "../form/api";
 import DatePicker, { registerLocale } from "react-datepicker";
+
+const API_BASE = "http://localhost:8080";
 import { ja } from "date-fns/locale/ja";
 import "react-datepicker/dist/react-datepicker.css";
 
 registerLocale("ja", ja);
 
 type RequestForm = {
+  topAtena: string;
   topTantosha: string;
+  mitsumoriIraiNaiyo2: string;
+  mitsumoriIraiNaiyo3: string;
+  mitsumoriIraiNaiyo4: string;
+  mitsumoriIraiNaiyo5: string;
+  mitsumoriIraiNaiyo6: string;
 
   year: string;
   month: string;
@@ -395,8 +405,22 @@ function SpecSheetPage({
 
 export default function MitsumoriIraishoPage() {
   const nav = useNavigate();
+  const { formRecordId: formRecordIdParam } = useParams<{ formRecordId: string }>();
+  const formRecordId = formRecordIdParam ? Number(formRecordIdParam) : null;
+  const [saving, setSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const isInitialLoad = useRef(true);
+  const [showBackDialog, setShowBackDialog] = useState(false);
+  const markDirty = () => { if (!isInitialLoad.current) setIsDirty(true); };
+  const [pdfBusy, setPdfBusy] = useState(false);
   const [form, setForm] = useState<RequestForm>({
+    topAtena: "",
     topTantosha: "",
+    mitsumoriIraiNaiyo2: "",
+    mitsumoriIraiNaiyo3: "",
+    mitsumoriIraiNaiyo4: "",
+    mitsumoriIraiNaiyo5: "",
+    mitsumoriIraiNaiyo6: "",
 
     year: "",
     month: "",
@@ -465,6 +489,7 @@ export default function MitsumoriIraishoPage() {
     value: RequestForm[K]
   ) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    markDirty();
   };
 
   const updateSpecRow = (
@@ -475,9 +500,11 @@ export default function MitsumoriIraishoPage() {
     setSpecRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, [key]: value } : row))
     );
+    markDirty();
   };
 
   const handleAddPage = () => {
+    markDirty();
     setSpecRows((prev) => {
       const nextRows = [...prev];
       const currentCount = prev.length;
@@ -494,14 +521,279 @@ export default function MitsumoriIraishoPage() {
   const handleDeleteLastPage = () => {
     if (specRows.length <= LINES_PER_PAGE) return;
     setSpecRows((prev) => prev.slice(0, prev.length - LINES_PER_PAGE));
+    markDirty();
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleExportPdf = async () => {
+    if (!formRecordId) {
+      toast.warning("先にフォームを保存してください");
+      return;
+    }
+    if (pdfBusy) return;
+
+    setPdfBusy(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/pdf/generate-mitsumori/${formRecordId}`,
+        { method: "POST", credentials: "include" },
+      );
+      if (res.status === 401 || res.status === 403) { window.location.href = "/login"; return; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success("PDF出力が完了しました");
+    } catch {
+      toast.error("PDF出力に失敗しました");
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
+  // Scroll to top on mount so the page always opens at the first page
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Load saved form_data from backend on mount
+  useEffect(() => {
+    if (!formRecordId) return;
+    let cancelled = false;
+    mitsumoriApi.get(formRecordId)
+      .then((dto) => {
+        if (cancelled || !dto) return;
+        const d = dto.formData ?? {};
+        if (d.form && typeof d.form === "object") {
+          setForm((prev) => ({ ...prev, ...(d.form as Partial<RequestForm>) }));
+        }
+        if (Array.isArray(d.specRows) && d.specRows.length > 0) {
+          setSpecRows(d.specRows as SpecRow[]);
+        }
+
+        // ALWAYS re-sync auto-populated rows (足場設置 row 0 and 飛散防止 row)
+        // from the latest Eizen form data on every page load — regardless of any
+        // saved specRows. Other rows (エントランス, 足場解体後の清掃, etc.) are
+        // never touched.
+        fetch(`${API_BASE}/api/forms/${formRecordId}/eizen-data`, { credentials: "include" })
+          .then((r) => {
+            if (r.status === 401 || r.status === 403) { window.location.href = "/login"; return null; }
+            return r.ok ? r.json() : null;
+          })
+          .then((eizen: any) => {
+            if (cancelled) return;
+            const e = eizen ?? {};
+
+            const ashibaActive = !!e.ashibaEnabled && e.ashibaSetsuchiNeed === "必要";
+            let row0Gyomu = "";
+            let row0Suuryo = "";
+            let row0Tani = "";
+            const shosaiParts: string[] = [];
+            if (ashibaActive) {
+              row0Gyomu = "足場設置";
+              if (e.ashibaSetsuchiM2) {
+                row0Suuryo = String(e.ashibaSetsuchiM2);
+                row0Tani = "m2";
+              }
+              // 昇降階段 items first
+              if (e.shoshoNeed === "必要") {
+                const c = e.shoshoChecks ?? {};
+                if (c.shoshodan) shosaiParts.push("昇降階段");
+                if (c.habaki) shosaiParts.push("巾木");
+                if (c.nakasan) shosaiParts.push("中桟");
+                if (c.anzenBlock) shosaiParts.push("安全ブロック");
+              }
+              // 飛散防止 items appended after
+              if (e.hisanNeed === "必要") {
+                const c = e.hisanChecks ?? {};
+                if (c.asagao) shosaiParts.push("朝顔");
+                if (c.boonSheet) shosaiParts.push("防音シート");
+                if (c.boonPanel) shosaiParts.push("防音パネル");
+                if (c.sonotaChecked && c.sonotaText) shosaiParts.push(String(c.sonotaText));
+              }
+            }
+            const row0Shosai = shosaiParts.join("　");
+
+            // Row 1 — エントランス・共用部養生
+            const entranceActive = !!e.ashibaEnabled && e.entranceNeed === "必要";
+            let row1Gyomu = "";
+            let row1Tani = "";
+            let row1Shosai = "";
+            if (entranceActive) {
+              row1Gyomu = "エントランス・共用部養生";
+              row1Tani = "式";
+              const c = e.entranceChecks ?? {};
+              const parts: string[] = [];
+              if (c.hashiraYojo) parts.push("柱養生材");
+              if (c.yukaYojo) parts.push("床養生材");
+              if (c.sonotaChecked && c.sonotaText) parts.push(String(c.sonotaText));
+              row1Shosai = parts.join("　");
+            }
+
+            // Row 2 — 足場解体後の清掃費用
+            const cleanActive = !!e.ashibaEnabled && e.ashibaCleanNeed === "必要";
+            let row2Gyomu = "";
+            let row2Tani = "";
+            let row2Shosai = "";
+            if (cleanActive) {
+              row2Gyomu = "足場解体後の清掃費用";
+              row2Tani = "式";
+              row2Shosai = e.ashibaCleanText ? String(e.ashibaCleanText) : "";
+            }
+
+            // Row 3 — 夜間照明・防犯カメラ (防犯 section)
+            const bouhanActive = !!e.bouhanEnabled && e.bouhanNeed === "必要";
+            let row3Gyomu = "";
+            let row3Tani = "";
+            let row3Shosai = "";
+            if (bouhanActive) {
+              row3Gyomu = "夜間照明・防犯カメラ";
+              row3Tani = "式";
+              const c = e.bouhanChecks ?? {};
+              const parts: string[] = [];
+              if (c.yakanTo) parts.push("夜間灯");
+              if (c.bouhanCamera) parts.push("防犯カメラ");
+              if (c.tubeLite) parts.push("チューブライト");
+              if (c.sonotaChecked && c.sonotaText) parts.push(String(c.sonotaText));
+              row3Shosai = parts.join("　");
+            }
+
+            // Row 4 — 荷揚げ費用 (予算 section)
+            const niagekiActive = !!e.yosanEnabled && e.niagekiNeed === "必要";
+            let row4Gyomu = "";
+            let row4Tani = "";
+            let row4Shosai = "";
+            if (niagekiActive) {
+              row4Gyomu = "荷揚げ費用";
+              row4Tani = "式";
+              const c = e.niagekiChecks ?? {};
+              const parts: string[] = [];
+              if (c.riccar) parts.push("リッカー");
+              if (c.unic) parts.push("ユニック");
+              if (c.tehakobi) parts.push("手運び（人工）");
+              if (c.sonotaChecked && c.sonotaText) parts.push(String(c.sonotaText));
+              row4Shosai = parts.join("　");
+            }
+
+            setSpecRows((prev) => {
+              const next = prev.map((r) => ({ ...r }));
+
+              // Row 0 — always overwrite with the latest 足場設置 values (or clear).
+              if (next[0]) {
+                next[0].gyomuNaiyo = row0Gyomu;
+                next[0].suuryo = row0Suuryo;
+                next[0].tani = row0Tani;
+                next[0].shosai = row0Shosai;
+              }
+
+              // Row 1 — always overwrite with the latest エントランス・共用部養生 values (or clear).
+              if (next[1]) {
+                next[1].gyomuNaiyo = row1Gyomu;
+                next[1].suuryo = "";
+                next[1].tani = row1Tani;
+                next[1].shosai = row1Shosai;
+              }
+
+              // Row 2 — always overwrite with the latest 足場解体後の清掃費用 values (or clear).
+              if (next[2]) {
+                next[2].gyomuNaiyo = row2Gyomu;
+                next[2].suuryo = "";
+                next[2].tani = row2Tani;
+                next[2].shosai = row2Shosai;
+              }
+
+              // Row 3 — always overwrite with the latest 夜間照明・防犯カメラ values (or clear).
+              if (next[3]) {
+                next[3].gyomuNaiyo = row3Gyomu;
+                next[3].suuryo = "";
+                next[3].tani = row3Tani;
+                next[3].shosai = row3Shosai;
+              }
+
+              // Row 4 — always overwrite with the latest 荷揚げ費用 values (or clear).
+              if (next[4]) {
+                next[4].gyomuNaiyo = row4Gyomu;
+                next[4].suuryo = "";
+                next[4].tani = row4Tani;
+                next[4].shosai = row4Shosai;
+              }
+
+              // Clean up any leftover stand-alone 飛散防止措置 row from a prior
+              // version that placed it on its own line — everything now lives
+              // on row 0.
+              const hisanIdx = next.findIndex(
+                (r, i) => i !== 0 && r.gyomuNaiyo === "飛散防止措置",
+              );
+              if (hisanIdx >= 0) {
+                next[hisanIdx].gyomuNaiyo = "";
+                next[hisanIdx].shosai = "";
+                next[hisanIdx].suuryo = "";
+                next[hisanIdx].tani = "";
+              }
+
+              return next;
+            });
+          })
+          .catch(() => { /* ignore — keep whatever was loaded */ });
+      })
+      .catch(() => { /* ignore — keep defaults */ })
+      .finally(() => {
+        if (cancelled) return;
+        // Release the initial-load gate after state updates have been queued.
+        setTimeout(() => {
+          isInitialLoad.current = false;
+          setIsDirty(false);
+        }, 0);
+      });
+    return () => { cancelled = true; };
+  }, [formRecordId]);
+
+  // For pages opened without a formRecordId, finish init immediately
+  useEffect(() => {
+    if (formRecordId) return;
+    isInitialLoad.current = false;
+  }, [formRecordId]);
+
+  const handleSave = async (): Promise<boolean> => {
+    if (!formRecordId || saving) return false;
+    setSaving(true);
+    try {
+      await mitsumoriApi.update(formRecordId, { form, specRows });
+      setIsDirty(false);
+      toast.success("保存しました");
+      return true;
+    } catch {
+      toast.error("保存に失敗しました");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const navBack = () => nav(formRecordId ? `/form/${formRecordId}` : "/form", { replace: true });
+
+  const handleBack = () => {
+    if (!isDirty) {
+      navBack();
+      return;
+    }
+    setShowBackDialog(true);
+  };
+
+  const handleSaveAndBack = async () => {
+    const ok = await handleSave();
+    if (ok) {
+      setShowBackDialog(false);
+      navBack();
+    }
   };
 
   return (
     <div className="form-text min-h-screen bg-neutral-200 p-4 print:bg-white print:p-0">
+      {pdfBusy && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4 shadow-xl">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+            <p className="text-gray-700 font-medium">PDF出力中...しばらくお待ちください</p>
+          </div>
+        </div>
+      )}
       <style>
         {`
           @page {
@@ -527,10 +819,11 @@ export default function MitsumoriIraishoPage() {
       </style>
 
       <div className="mx-auto w-fit space-y-4 print:space-y-0">
+        {!pdfBusy && (
         <div className="print-hidden flex justify-end gap-2">
           <button
             type="button"
-            onClick={() => nav("/form", { replace: true })}
+            onClick={handleBack}
             className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50"
           >
             戻る
@@ -553,27 +846,39 @@ export default function MitsumoriIraishoPage() {
 
           <button
             type="button"
-            onClick={handlePrint}
-            className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50"
+            onClick={handleSave}
+            disabled={saving || !formRecordId}
+            className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
           >
-            PDF出力
+            {saving ? "保存中..." : "保存"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={pdfBusy || !formRecordId}
+            className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            {pdfBusy ? "出力中..." : "PDF出力"}
           </button>
         </div>
+        )}
 
+        <div>
         {/* PAGE 1 */}
         <div className={`${pageClass} px-8 pt-4 pb-6`}>
           <div className="flex justify-between">
             <div className="w-[240px]">
               {/* <div className="mb-3 text-center text-[11px]">御中</div> */}
               <div className="flex items-end justify-between border-b border-black px-1 mb-4 text-[12px]">
-                <input type="text" className="w-48 bg-transparent px-1 py-0.5 text-[12px] outline-none"/>
+                <input type="text" value={form.topAtena} onChange={(e) => updateForm("topAtena", e.target.value)} className="w-48 bg-transparent px-1 py-0.5 text-[12px] outline-none"/>
                 <span>御中</span>
               </div>
               <div className="flex items-end justify-between border-b border-black px-1 text-[12px]">
                 <span>ご担当者</span>
                 <div className="flex">
-                  <input type="text" className="w-36 bg-transparent px-1 text-[12px] outline-none"/>
-                  <span className="text-[12px]">{form.topTantosha ? `${form.topTantosha} 様` : "様"}</span>
+                  <input type="text" value={form.topTantosha} onChange={(e) => updateForm("topTantosha", e.target.value)} className="w-36 bg-transparent px-1 text-[12px] outline-none"/>
+                  <span className="text-[12px]">様</span>
                 </div>
               </div>
             </div>
@@ -932,11 +1237,20 @@ export default function MitsumoriIraishoPage() {
                 </td>
               </tr>
 
-              {Array.from({ length: 5 }).map((_, i) => (
-                <tr className="h-[30px]" key={i}>
-                  <td className={tdBase} colSpan={9}></td>
-                </tr>
-              ))}
+              {([2, 3, 4, 5, 6] as const).map((n) => {
+                const key = `mitsumoriIraiNaiyo${n}` as const;
+                return (
+                  <tr className="h-[30px]" key={n}>
+                    <td className={tdBase} colSpan={9}>
+                      <input
+                        value={form[key]}
+                        onChange={(e) => updateForm(key, e.target.value)}
+                        className={inputClass}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
 
               <tr className="h-[44px]">
                 <td className={`${blueCell} text-[12px]`}>
@@ -1049,7 +1363,26 @@ export default function MitsumoriIraishoPage() {
             {pageIndex !== specPages.length - 1 && <div className="page-break" />}
           </React.Fragment>
         ))}
+        </div>
       </div>
+      {showBackDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[440px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">見積依頼書に未保存の変更があります。</div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" disabled={saving} onClick={handleSaveAndBack} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                保存して戻る
+              </button>
+              <button type="button" onClick={() => { setShowBackDialog(false); navBack(); }} className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+                保存せずに戻る
+              </button>
+              <button type="button" onClick={() => setShowBackDialog(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

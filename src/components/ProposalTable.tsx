@@ -7,6 +7,7 @@ type ProposalTableProps = {
   selectedIds: string[];
   onToggleOne: (id: string) => void;
   onToggleAll: () => void;
+  onRowClick?: (id: string) => void;
 };
 
 const headers = [
@@ -59,7 +60,7 @@ function getStatusClass(status: string) {
 
 function tableRowCells(row: ProposalRow) {
   return [
-    row.id,
+    row.propertyCode,
     row.ownerName,
     row.buildingName,
     row.salesOffice,
@@ -91,6 +92,7 @@ export default function ProposalTable({
   selectedIds,
   onToggleOne,
   onToggleAll,
+  onRowClick,
 }: ProposalTableProps) {
   const isAllSelected = useMemo(() => {
     if (rows.length === 0) return false;
@@ -138,9 +140,10 @@ export default function ProposalTable({
                 rows.map((row, index) => (
                   <tr
                     key={`${row.id}-${index}`}
-                    className="odd:bg-white even:bg-slate-50 hover:bg-amber-50"
+                    className={`odd:bg-white even:bg-slate-50 hover:bg-amber-50${onRowClick ? " cursor-pointer" : ""}`}
+                    onClick={() => onRowClick?.(row.id)}
                   >
-                    <td className="border-b border-r border-slate-200 px-3 py-2 text-center">
+                    <td className="border-b border-r border-slate-200 px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(row.id)}

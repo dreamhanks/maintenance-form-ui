@@ -65,7 +65,7 @@ function HiddenFileInput({ fieldKey, fileInputRefs, onFileSelected, setChecked }
   return (
     <input
       type="file"
-      accept="application/pdf"
+      accept="image/*,application/pdf"
       className="hidden"
       ref={(el) => { fileInputRefs.current[fieldKey] = el; }}
       onChange={(e) => {
@@ -89,12 +89,8 @@ export default function AttachmentSection(props: Props) {
         <LabelCell>図面</LabelCell>
         <ValueCell className="col-span-10">
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <Check label="図面" checked={props.drawing} onChange={(v) => props.onFileCheckChange("drawing", v, props.setDrawing)} />
-            <FileLink fieldKey="drawing" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
-            <HiddenFileInput fieldKey="drawing" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setDrawing} />
-            <Check label="その他資料" checked={props.otherMaterial} onChange={(v) => props.onFileCheckChange("other_material", v, props.setOtherMaterial)} />
-            <FileLink fieldKey="other_material" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
-            <HiddenFileInput fieldKey="other_material" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setOtherMaterial} />
+            <Check label="図面" checked={props.drawing} onChange={props.setDrawing} />
+            <Check label="その他資料" checked={props.otherMaterial} onChange={props.setOtherMaterial} />
             <span className="text-sm text-slate-600">
               ※図面：配置図、平面図、立面図、矩計図、屋根伏せ図、案内図は必ず添付すること。
             </span>
@@ -103,6 +99,8 @@ export default function AttachmentSection(props: Props) {
         <ValueCell className="flex items-center justify-center">
           <input
             type="checkbox"
+            checked={props.dapManagerConfirmDrawing}
+            onChange={(e) => props.setDapManagerConfirmDrawing(e.target.checked)}
             className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
           />
         </ValueCell>
@@ -129,11 +127,8 @@ export default function AttachmentSection(props: Props) {
         <ValueCell className="flex items-center justify-center">
           <input
             type="checkbox"
-            checked={props.dapManagerConfirmPhoto || props.dapManagerConfirmDrawing}
-            onChange={(e) => {
-              props.setDapManagerConfirmDrawing(e.target.checked);
-              props.setDapManagerConfirmPhoto(e.target.checked);
-            }}
+            checked={props.dapManagerConfirmPhoto}
+            onChange={(e) => props.setDapManagerConfirmPhoto(e.target.checked)}
             className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
           />
         </ValueCell>
