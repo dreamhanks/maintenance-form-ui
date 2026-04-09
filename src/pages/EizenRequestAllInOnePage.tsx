@@ -647,6 +647,7 @@ export default function EizenRequestAllInOnePage() {
     formApi.get(editId).then((data: any) => {
       if (data.documentNumber) setDocumentNo(data.documentNumber);
       if (data.createdDate) setIssueDate(data.createdDate);
+      if (data.creatorRole) setCreatorRole(data.creatorRole);
 
       if (!data.payloadJson) {
         captureSnapshotOnNextRender.current = true;
@@ -905,11 +906,39 @@ export default function EizenRequestAllInOnePage() {
 
   const { user } = useAuth();
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStepDto[]>([]);
+  const [creatorRole, setCreatorRole] = useState<string | null>(null);
+  // While the workflow is being fetched on edit, hold the UI in a neutral
+  // "checking permission" state to avoid the read-only banner flickering on
+  // for matching users before the workflow response arrives.
+  const [workflowLoading, setWorkflowLoading] = useState<boolean>(!!editId);
+
+  // Compute read-only mode based on current pending step's required role.
+  // - New (unsaved) form → editable
+  // - admin → editable
+  // - user.role matches the role of the pending step → editable
+  // - otherwise → read-only
+  const pendingStep = workflowSteps.find((s) => s.status === "pending");
+  const isEditableRaw =
+    !editId ||
+    user?.role === "admin" ||
+    (!!pendingStep && user?.role === pendingStep.stepName);
+  // While loading on an edit page, treat as not-editable but suppress the banner.
+  const isEditable = workflowLoading ? false : isEditableRaw;
+  const readOnlyNotice = !workflowLoading && !isEditable && pendingStep
+    ? `現在 ${pendingStep.stepLabel} が確認中です。編集できません。`
+    : null;
 
   // Fetch workflow state when editing an existing form
   useEffect(() => {
-    if (!editId) return;
-    workflowApi.get(editId).then(setWorkflowSteps).catch(() => {});
+    if (!editId) {
+      setWorkflowLoading(false);
+      return;
+    }
+    setWorkflowLoading(true);
+    workflowApi.get(editId)
+      .then(setWorkflowSteps)
+      .catch(() => {})
+      .finally(() => setWorkflowLoading(false));
   }, [editId]);
 
   // ---- Build UI state snapshot for payload (no localStorage; DB only) ----
@@ -1136,6 +1165,15 @@ export default function EizenRequestAllInOnePage() {
       </div>
 
       <main className="mx-auto flex max-w-[1700px] flex-col gap-6 px-4 py-6">
+        {workflowLoading && editId && (
+          <div className="text-sm text-gray-400">権限を確認中...</div>
+        )}
+        {readOnlyNotice && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            {readOnlyNotice}
+          </div>
+        )}
+        <fieldset disabled={!isEditable} className="contents">
         <BasicInfoSection
           furigana={furigana}
           setFurigana={setFurigana}
@@ -1383,18 +1421,28 @@ export default function EizenRequestAllInOnePage() {
           setPartnerName={setPartnerName}
         />
 
+        </fieldset>
+
         <ApprovalFlowSection
           formId={editId}
           steps={workflowSteps}
           userRole={user?.role}
+          creatorRole={creatorRole}
           onStepsChange={setWorkflowSteps}
+          isFormDirty={isFormDirty}
+          onSaveForm={() => handleSubmit(true)}
         />
 
         <div className="flex justify-end gap-3 pb-10">
           <button type="button" onClick={() => { if (isFormDirty()) { setShowLeaveDialog(true); } else { nav("/", { replace: true }); } }} className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
             提案物件一覧
           </button>
-          <button type="button" onClick={() => handleSubmit(false)} disabled={submitting} className="rounded-xl bg-sky-600 px-6 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-50">
+          <button
+            type="button"
+            onClick={() => handleSubmit(false)}
+            disabled={!isEditable || submitting}
+            className={`rounded-xl bg-sky-600 px-6 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-50 ${!isEditable ? "cursor-not-allowed" : ""}`}
+          >
             {submitting ? "登録中..." : "登録"}
           </button>
         </div>

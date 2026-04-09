@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import { mitsumoriApi } from "../form/api";
+import { mitsumoriApi, workflowApi, type WorkflowStepDto } from "../form/api";
+import { useAuth } from "../auth/AuthContext";
 import DatePicker, { registerLocale } from "react-datepicker";
 
 const API_BASE = "http://localhost:8080";
@@ -474,6 +475,33 @@ export default function MitsumoriIraishoPage() {
 
   const [specRows, setSpecRows] = useState<SpecRow[]>(createInitialRows());
 
+  const { user } = useAuth();
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStepDto[]>([]);
+  const [workflowLoading, setWorkflowLoading] = useState<boolean>(!!formRecordId);
+  const pendingStep = workflowSteps.find((s) => s.status === "pending");
+  const isEditableRaw =
+    !formRecordId ||
+    user?.role === "admin" ||
+    (!!pendingStep && user?.role === pendingStep.stepName);
+  // While loading on a saved form, treat as not-editable but suppress the banner
+  // so non-matching users don't see a flicker before the workflow arrives.
+  const isEditable = workflowLoading ? false : isEditableRaw;
+  const readOnlyNotice = !workflowLoading && !isEditable && pendingStep
+    ? `現在 ${pendingStep.stepLabel} が確認中です。編集できません。`
+    : null;
+
+  useEffect(() => {
+    if (!formRecordId) {
+      setWorkflowLoading(false);
+      return;
+    }
+    setWorkflowLoading(true);
+    workflowApi.get(formRecordId)
+      .then(setWorkflowSteps)
+      .catch(() => {})
+      .finally(() => setWorkflowLoading(false));
+  }, [formRecordId]);
+
   const specPages = useMemo(() => {
     const pageCount = Math.ceil(specRows.length / LINES_PER_PAGE);
     return Array.from({ length: pageCount }, (_, pageIndex) =>
@@ -846,7 +874,7 @@ export default function MitsumoriIraishoPage() {
 
       <div className="mx-auto w-fit space-y-4 print:space-y-0">
         {!pdfBusy && (
-        <div className="print-hidden flex justify-end gap-2">
+        <div className="print-hidden flex justify-end gap-2 mb-4">
           <button
             type="button"
             onClick={handleBack}
@@ -857,7 +885,8 @@ export default function MitsumoriIraishoPage() {
           <button
             type="button"
             onClick={handleAddPage}
-            className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50"
+            disabled={!isEditable}
+            className={`rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 ${!isEditable ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             見積仕様書 ページ追加
           </button>
@@ -865,7 +894,8 @@ export default function MitsumoriIraishoPage() {
           <button
             type="button"
             onClick={handleDeleteLastPage}
-            className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50"
+            disabled={!isEditable}
+            className={`rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 ${!isEditable ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             最終ページ削除
           </button>
@@ -873,8 +903,8 @@ export default function MitsumoriIraishoPage() {
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving || !formRecordId}
-            className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+            disabled={!isEditable || saving || !formRecordId}
+            className={`rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 ${!isEditable ? "cursor-not-allowed" : ""}`}
           >
             {saving ? "保存中..." : "保存"}
           </button>
@@ -882,14 +912,20 @@ export default function MitsumoriIraishoPage() {
           <button
             type="button"
             onClick={handleExportPdf}
-            disabled={pdfBusy || !formRecordId}
-            className="rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+            disabled={!isEditable || pdfBusy || !formRecordId}
+            className={`rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 ${!isEditable ? "cursor-not-allowed" : ""}`}
           >
             {pdfBusy ? "出力中..." : "PDF出力"}
           </button>
         </div>
         )}
 
+        {readOnlyNotice && (
+          <div className="print-hidden rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            {readOnlyNotice}
+          </div>
+        )}
+        <fieldset disabled={!isEditable} className="contents">
         <div>
         {/* PAGE 1 */}
         <div className={`${pageClass} px-8 pt-4 pb-6`}>
@@ -1389,6 +1425,7 @@ export default function MitsumoriIraishoPage() {
           </React.Fragment>
         ))}
         </div>
+        </fieldset>
       </div>
       {showBackDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

@@ -105,12 +105,17 @@ export default function EstimateFinalSection(props: Props) {
 
         <LabelCell>見積書</LabelCell>
         <div className="col-span-3 grid grid-cols-12">
-          <button type="button" onClick={props.onOpenMitsumori} className="col-span-8 border border-slate-400 px-3 py-2 underline text-left">業者見積依頼書出力</button>
+          <a
+            role="button"
+            tabIndex={0}
+            onClick={props.onOpenMitsumori}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); props.onOpenMitsumori(); } }}
+            className="col-span-8 border border-slate-400 px-3 py-2 underline text-left cursor-pointer select-none"
+          >業者見積依頼書出力</a>
           <ValueCell className="col-span-4 flex flex-col items-center justify-center border border-slate-400">
             <div className="flex items-center gap-2">
               <HiddenFileInput fieldKey="vendor_estimate_request" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateOutput} />
             </div>
-            <FileLink fieldKey="vendor_estimate_request" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
             <FileLink fieldKey="estimate_output_pdf" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <div className="col-span-8 border border-slate-400 px-3 py-2">見積書の添付</div>

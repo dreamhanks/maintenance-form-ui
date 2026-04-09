@@ -1,6 +1,8 @@
+import { ReactNode } from "react";
 import { SalesOfficeOption } from "../types";
 
 type ListToolbarProps = {
+  leadingAction?: ReactNode;
   salesOffice: string;
   officeOptions: SalesOfficeOption[];
   keyword?: string;
@@ -11,6 +13,7 @@ type ListToolbarProps = {
   totalCount?: number;
   primaryActionLabel?: string;
   secondaryActionLabel?: string;
+  secondaryActionDisabled?: boolean;
   tertiaryActionLabel?: string;
   onSalesOfficeChange: (value: string) => void;
   onKeywordChange?: (value: string) => void;
@@ -22,6 +25,7 @@ type ListToolbarProps = {
 };
 
 export default function ListToolbar({
+  leadingAction,
   salesOffice,
   officeOptions,
   keyword = "",
@@ -32,6 +36,7 @@ export default function ListToolbar({
   totalCount,
   primaryActionLabel,
   secondaryActionLabel,
+  secondaryActionDisabled,
   tertiaryActionLabel,
   onSalesOfficeChange,
   onKeywordChange,
@@ -54,8 +59,9 @@ export default function ListToolbar({
           </div>
         </div>
 
-        {(primaryActionLabel || secondaryActionLabel || tertiaryActionLabel) && (
+        {(leadingAction || primaryActionLabel || secondaryActionLabel || tertiaryActionLabel) && (
           <div className="flex flex-wrap items-center gap-2">
+            {leadingAction}
             {primaryActionLabel && onPrimaryAction && (
               <button
                 type="button"
@@ -70,7 +76,8 @@ export default function ListToolbar({
               <button
                 type="button"
                 onClick={onSecondaryAction}
-                className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                disabled={secondaryActionDisabled}
+                className={`rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 ${secondaryActionDisabled ? "opacity-50 cursor-not-allowed hover:bg-emerald-600" : ""}`}
               >
                 {secondaryActionLabel}
               </button>

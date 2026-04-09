@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import AppPageLayout from "../components/AppPageLayout";
 import ListToolbar from "../components/ListToolbar";
 import ProposalTable from "../components/ProposalTable";
 import { fetchProposals } from "../api/proposalPropertyApi";
 import { statusOptions } from "../data/dummyData";
 import { useUserOffices } from "../hooks/useUserOffices";
+import { useAuth } from "../auth/AuthContext";
 import { ProposalRow } from "../types";
 
 const menuItems = [
@@ -16,6 +18,11 @@ const menuItems = [
 
 export default function ProposalListPage() {
   const nav = useNavigate();
+  const { user } = useAuth();
+  const canCreate =
+    user?.role === "大パ担当者" ||
+    user?.role === "大パ管理職" ||
+    user?.role === "admin";
   const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
   const [salesOffice, setSalesOffice] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -52,6 +59,19 @@ export default function ProposalListPage() {
 
   const displayError = officeError || error;
 
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("logout failed");
+      nav("/login", { replace: true });
+    } catch {
+      toast.error("ログアウトに失敗しました");
+    }
+  };
+
   const toggleAll = () => {
     const allSelected =
       rows.length > 0 && rows.every((row) => selectedIds.includes(row.id));
@@ -80,15 +100,21 @@ export default function ProposalListPage() {
           statusOptions={statusOptions}
           selectedCount={selectedIds.length}
           totalCount={rows.length}
-          primaryActionLabel="物件情報更新"
+          leadingAction={
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="bg-white border border-gray-300 text-sm text-gray-600 px-4 py-2 rounded hover:bg-gray-50"
+            >
+              ログアウト
+            </button>
+          }
           secondaryActionLabel="新規作成"
-          tertiaryActionLabel="複製"
+          secondaryActionDisabled={!canCreate}
           onSalesOfficeChange={setSalesOffice}
           onKeywordChange={setKeyword}
           onStatusChange={setStatus}
-          onPrimaryAction={() => console.log("物件情報更新", selectedIds)}
           onSecondaryAction={() => nav("/form", { replace: true })}
-          onTertiaryAction={() => console.log("複製", selectedIds)}
           onClearFilters={() => {
             setKeyword("");
             setStatus("すべて");

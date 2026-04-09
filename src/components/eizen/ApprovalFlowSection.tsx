@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { toast } from "react-toastify";
 import { sectionWrap } from "./EizenFormStyles";
 import type { WorkflowStepDto } from "../../form/api";
@@ -21,7 +22,10 @@ type Props = {
   formId: number | null;
   steps: WorkflowStepDto[];
   userRole: string | null | undefined;
+  creatorRole?: string | null;
   onStepsChange: (steps: WorkflowStepDto[]) => void;
+  isFormDirty?: () => boolean;
+  onSaveForm?: () => Promise<number | null>;
 };
 
 function StepBox({
@@ -30,29 +34,26 @@ function StepBox({
   formId,
   prevConfirmed,
   onStepsChange,
+  onRequestConfirm,
 }: {
   step: WorkflowStepDto;
   userRole: string | null | undefined;
   formId: number | null;
   prevConfirmed: boolean;
   onStepsChange: (steps: WorkflowStepDto[]) => void;
+  onRequestConfirm: (stepNumber: number) => void;
 }) {
   const requiredRole = STEP_ROLES[step.stepNumber];
   const roleMatch = userRole === requiredRole || userRole === "admin";
   const isConfirmed = step.status === "confirmed";
 
   const canConfirm = !!formId && roleMatch && prevConfirmed && !isConfirmed && step.status !== "waiting";
-  const canReject = !!formId && roleMatch && isConfirmed;
+  // Step 1 cannot be rejected (no previous step) — backend enforces this too.
+  const canReject = !!formId && roleMatch && isConfirmed && step.stepNumber !== 1;
 
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (!formId || !canConfirm) return;
-    try {
-      const updated = await workflowApi.confirm(formId, step.stepNumber);
-      onStepsChange(updated);
-      toast.success(`${step.stepLabel} を確認しました`);
-    } catch (err: any) {
-      toast.error(err?.message || "確認に失敗しました");
-    }
+    onRequestConfirm(step.stepNumber);
   };
 
   const handleReject = async () => {
@@ -67,9 +68,9 @@ function StepBox({
   };
 
   return (
-    <div className="rounded-xl border-2 border-slate-800">
+    <div className="w-32 rounded-xl border-2 border-slate-800">
       <div className="border-b-2 border-slate-800 bg-slate-50 px-3 py-2 text-center font-semibold text-sm">
-        {step.stepLabel}
+        {step.stepLabel.replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, "")}
       </div>
       <div className="flex h-14 items-center justify-center px-2 text-center text-sm font-medium text-slate-800">
         {isConfirmed ? step.actorName : ""}
@@ -106,7 +107,7 @@ function StepBox({
 
 function Arrow() {
   return (
-    <div className="flex items-center justify-center">
+    <div className="self-center flex items-center justify-center h-6 w-6">
       <div className="h-0.5 w-6 bg-slate-800 relative">
         <div className="absolute right-0 top-1/2 -translate-y-1/2 border-y-4 border-l-4 border-y-transparent border-l-slate-800" />
       </div>
@@ -125,8 +126,51 @@ const DEFAULT_STEPS: WorkflowStepDto[] = Array.from({ length: 10 }, (_, i) => ({
   actionedAt: null,
 }));
 
-export default function ApprovalFlowSection({ formId, steps, userRole, onStepsChange }: Props) {
+export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, onStepsChange, isFormDirty, onSaveForm }: Props) {
   const effectiveSteps = steps.length > 0 ? steps : DEFAULT_STEPS;
+  const [pendingConfirmStep, setPendingConfirmStep] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const runConfirm = async (stepNumber: number) => {
+    if (!formId) return;
+    try {
+      const updated = await workflowApi.confirm(formId, stepNumber);
+      onStepsChange(updated);
+      const label = effectiveSteps.find((s) => s.stepNumber === stepNumber)?.stepLabel ?? "";
+      toast.success(`${label} を確認しました`);
+    } catch (err: any) {
+      toast.error(err?.message || "確認に失敗しました");
+    }
+  };
+
+  const handleRequestConfirm = (stepNumber: number) => {
+    if (isFormDirty && isFormDirty()) {
+      setPendingConfirmStep(stepNumber);
+      return;
+    }
+    runConfirm(stepNumber);
+  };
+
+  const handleSaveAndConfirm = async () => {
+    if (pendingConfirmStep == null || !onSaveForm) return;
+    setBusy(true);
+    try {
+      const savedId = await onSaveForm();
+      if (!savedId) {
+        toast.error("保存に失敗しました");
+        return;
+      }
+      const stepNumber = pendingConfirmStep;
+      setPendingConfirmStep(null);
+      await runConfirm(stepNumber);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Hide 大パ担当者 steps (1, 5, 8) when the form was created by 大パ管理職.
+  const skipDaipaTanto = creatorRole === "大パ管理職";
+  const isHidden = (n: number) => skipDaipaTanto && (n === 1 || n === 5 || n === 8);
 
   const getStep = (n: number) => effectiveSteps.find((s) => s.stepNumber === n);
   const isPrevConfirmed = (n: number) => {
@@ -136,6 +180,7 @@ export default function ApprovalFlowSection({ formId, steps, userRole, onStepsCh
   };
 
   const renderBox = (n: number) => {
+    if (isHidden(n)) return null;
     const step = getStep(n);
     if (!step) return null;
     return (
@@ -145,6 +190,7 @@ export default function ApprovalFlowSection({ formId, steps, userRole, onStepsCh
         formId={formId}
         prevConfirmed={isPrevConfirmed(n)}
         onStepsChange={onStepsChange}
+        onRequestConfirm={handleRequestConfirm}
       />
     );
   };
@@ -153,24 +199,49 @@ export default function ApprovalFlowSection({ formId, steps, userRole, onStepsCh
     <section className={sectionWrap}>
       <div className="p-4">
         <h3 className="mb-3 text-lg font-bold text-slate-800">承認フロー</h3>
-        <div className="grid [grid-template-columns:repeat(24,minmax(0,1fr))] gap-3">
-          {/* Row: steps 1-4, arrow, steps 5-7, arrow, steps 8-10 */}
-          <div />
-          <div className="col-span-2">{renderBox(1)}</div>
-          <div className="col-span-2">{renderBox(2)}</div>
-          <div className="col-span-2">{renderBox(3)}</div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {renderBox(1)}
+          {renderBox(2)}
+          {renderBox(3)}
           <Arrow />
-          <div className="col-span-2">{renderBox(4)}</div>
+          {renderBox(4)}
           <Arrow />
-          <div className="col-span-2">{renderBox(5)}</div>
-          <div className="col-span-2">{renderBox(6)}</div>
-          <div className="col-span-2">{renderBox(7)}</div>
+          {renderBox(5)}
+          {renderBox(6)}
+          {renderBox(7)}
           <Arrow />
-          <div className="col-span-2">{renderBox(8)}</div>
-          <div className="col-span-2">{renderBox(9)}</div>
-          <div className="col-span-2">{renderBox(10)}</div>
+          {renderBox(8)}
+          {renderBox(9)}
+          {renderBox(10)}
         </div>
       </div>
+      {pendingConfirmStep != null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">
+              未保存の変更があります。保存してから確認しますか？
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={handleSaveAndConfirm}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                保存して確認
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setPendingConfirmStep(null)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
