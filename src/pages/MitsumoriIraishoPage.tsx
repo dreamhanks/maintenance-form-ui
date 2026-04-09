@@ -13,6 +13,7 @@ registerLocale("ja", ja);
 type RequestForm = {
   topAtena: string;
   topTantosha: string;
+  mitsumoriIraiNaiyo: string;
   mitsumoriIraiNaiyo2: string;
   mitsumoriIraiNaiyo3: string;
   mitsumoriIraiNaiyo4: string;
@@ -55,7 +56,6 @@ type RequestForm = {
 
   kaishuBui: string;
   kojiNaiyoShosai: string;
-  mitsumoriIraiNaiyo: string;
 
   kouishoSagyo: "有" | "無" | "";
   kouishoShiyo: string;
@@ -416,6 +416,7 @@ export default function MitsumoriIraishoPage() {
   const [form, setForm] = useState<RequestForm>({
     topAtena: "",
     topTantosha: "",
+    mitsumoriIraiNaiyo: "",
     mitsumoriIraiNaiyo2: "",
     mitsumoriIraiNaiyo3: "",
     mitsumoriIraiNaiyo4: "",
@@ -458,7 +459,6 @@ export default function MitsumoriIraishoPage() {
 
     kaishuBui: "",
     kojiNaiyoShosai: "",
-    mitsumoriIraiNaiyo: "別紙見積仕様書を参照",
 
     kouishoSagyo: "",
     kouishoShiyo: "",
@@ -580,6 +580,32 @@ export default function MitsumoriIraishoPage() {
             if (cancelled) return;
             const e = eizen ?? {};
 
+            // ALWAYS overwrite 住所 / 建物名称 / 営繕提案予定日 / 契約予定日 /
+            // 着工予定日 from the latest Eizen form data on every page load,
+            // so 見積依頼書 reflects updates made in EizenRequestAllInOnePage.
+            const splitYmd = (s: any): [string, string, string] => {
+              if (!s || typeof s !== "string") return ["", "", ""];
+              const parts = s.split("/");
+              return [parts[0] ?? "", parts[1] ?? "", parts[2] ?? ""];
+            };
+            const [pY, pM, pD] = splitYmd(e.proposalDate);
+            const [kY, kM, kD] = splitYmd(e.contractDate);
+            const [cY, cM, cD] = splitYmd(e.startDate);
+            setForm((prev) => ({
+              ...prev,
+              buildingAddress: typeof e.address === "string" ? e.address : "",
+              buildingName: typeof e.buildingName === "string" ? e.buildingName : "",
+              eigyoTeianYear: pY,
+              eigyoTeianMonth: pM,
+              eigyoTeianDay: pD,
+              keiyakuYear: kY,
+              keiyakuMonth: kM,
+              keiyakuDay: kD,
+              chakkoYear: cY,
+              chakkoMonth: cM,
+              chakkoDay: cD,
+            }));
+
             const ashibaActive = !!e.ashibaEnabled && e.ashibaSetsuchiNeed === "必要";
             let row0Gyomu = "";
             let row0Suuryo = "";
@@ -664,7 +690,7 @@ export default function MitsumoriIraishoPage() {
               row4Tani = "式";
               const c = e.niagekiChecks ?? {};
               const parts: string[] = [];
-              if (c.riccar) parts.push("リッカー");
+              if (c.riccar) parts.push("レッカー");
               if (c.unic) parts.push("ユニック");
               if (c.tehakobi) parts.push("手運び（人工）");
               if (c.sonotaChecked && c.sonotaText) parts.push(String(c.sonotaText));
@@ -1139,14 +1165,11 @@ export default function MitsumoriIraishoPage() {
               <tr className="h-[22px]">
                 <td className={`${blueCell} text-[12px]`}>提出方法</td>
                 <td className={tdBase}>
-                  <div className="flex justify-center items-center">
-                    <div style={{fontSize: 12}} className="w-16">メール:</div>
                     <input
                       value={form.teishutsuMethod}
                       onChange={(e) => updateForm("teishutsuMethod", e.target.value)}
                       className={inputClass}
                     />
-                  </div>
                 </td>
               </tr>
             </tbody>
@@ -1228,12 +1251,14 @@ export default function MitsumoriIraishoPage() {
                   内容
                 </td>
                 <td className={tdBase} colSpan={9}>
-                  <textarea
-                    rows={1}
-                    value={form.mitsumoriIraiNaiyo}
-                    onChange={(e) => updateForm("mitsumoriIraiNaiyo", e.target.value)}
-                    className={`${textareaClass} h-[24px]`}
-                  />
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="text-[12px] whitespace-nowrap">別紙見積仕様書を参照</span>
+                    <input
+                      value={form.mitsumoriIraiNaiyo}
+                      onChange={(e) => updateForm("mitsumoriIraiNaiyo", e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
                 </td>
               </tr>
 

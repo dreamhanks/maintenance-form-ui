@@ -171,6 +171,9 @@ function createRow(index: number, salesOffice: string): ProposalRow {
   return {
     id: makeCode(index),
     propertyCode: makeCode(index),
+    propertyCode2: "",
+    propertyCode3: "",
+    propertyCodeDisplay: makeCode(index),
     ownerName: pick(ownerNames, index),
     buildingName: pick(buildingNames, index + 2),
     salesOffice,

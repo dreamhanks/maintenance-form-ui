@@ -1,6 +1,9 @@
 export type ProposalRow = {
   id: string;
   propertyCode: string;
+  propertyCode2: string;
+  propertyCode3: string;
+  propertyCodeDisplay: string;
   ownerName: string;
   buildingName: string;
   salesOffice: string;

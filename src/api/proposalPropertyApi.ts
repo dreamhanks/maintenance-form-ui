@@ -13,6 +13,9 @@ export async function fetchProposals(
   return data.map((row: any) => ({
     id: String(row.id ?? ""),
     propertyCode: row.propertyCode ?? "",
+    propertyCode2: row.propertyCode2 ?? "",
+    propertyCode3: row.propertyCode3 ?? "",
+    propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
     salesOffice: row.salesOffice ?? "",

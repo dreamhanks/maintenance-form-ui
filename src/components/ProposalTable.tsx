@@ -60,7 +60,7 @@ function getStatusClass(status: string) {
 
 function tableRowCells(row: ProposalRow) {
   return [
-    row.propertyCode,
+    row.propertyCodeDisplay,
     row.ownerName,
     row.buildingName,
     row.salesOffice,

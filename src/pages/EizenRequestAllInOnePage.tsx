@@ -257,7 +257,7 @@ const makeRowsPage1 = (): CheckRow[] => [
     item: "荷揚げ費用",
     need: "",
     checks: {
-      リッカー: false,
+      レッカー: false,
       ユニック: false,
       "手運び（人工）": false,
       その他: false,
@@ -979,6 +979,8 @@ export default function EizenRequestAllInOnePage() {
           building: {
             address,
             propertyCode: propertyCd,
+            propertyCode2: propertyCd2,
+            propertyCode3: propertyCd3,
             buildingName,
             completionYm: completionDate,
             branchName: productName,

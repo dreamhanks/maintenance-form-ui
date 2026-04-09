@@ -22,6 +22,8 @@ export type PropertyOverviewForm = {
   building: {
     address: string;
     propertyCode: string;
+    propertyCode2?: string;
+    propertyCode3?: string;
     buildingName: string;
     completionYm: string;
     branchName: string;
