@@ -33,14 +33,20 @@ export default function ShichuTable({
   return (
     <section className="min-w-0">
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-[920px] border-collapse">
+        <div className="overflow-x-auto w-full">
+          <table className="table-auto w-full border-collapse">
             <thead>
               <tr>
                 {headers.map((header, index) => (
                   <th
                     key={`${header}-${index}`}
-                    className="border-b border-r border-slate-300 bg-slate-800 px-3 py-3 text-left text-xs font-bold whitespace-nowrap text-white"
+                    className="border-b border-r border-slate-300 px-3 py-2 text-left whitespace-nowrap"
+                    style={{
+                      backgroundColor: "#1e2d40",
+                      color: "#ffffff",
+                      fontSize: 12,
+                      fontWeight: 500,
+                    }}
                   >
                     {header}
                   </th>
@@ -67,7 +73,7 @@ export default function ShichuTable({
                     key={`${row.id}-${index}`}
                     className="odd:bg-white even:bg-slate-50 hover:bg-blue-50"
                   >
-                    <td className="border-b border-r border-slate-200 px-3 py-2 text-center">
+                    <td className="border-b border-r border-slate-200 px-3 py-2 text-center whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(row.id)}

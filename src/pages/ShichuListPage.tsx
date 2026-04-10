@@ -1,20 +1,22 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import AppPageLayout from "../components/AppPageLayout";
 import ListToolbar from "../components/ListToolbar";
 import ShichuTable from "../components/ShichuTable";
+import TopNavBar from "../components/layout/TopNavBar";
 import { fetchShichuRows } from "../api/shichuApi";
 import { useUserOffices } from "../hooks/useUserOffices";
+import { useAuth } from "../auth/AuthContext";
 import { ShichuRow } from "../types";
-
-const menuItems = [
-  { label: "提案物件一覧へ", value: "/" },
-  { label: "受注判定リストへ", value: "/juchu" },
-  { label: "契約済みリストへ", value: "/keiyaku" },
-];
 
 export default function ShichuListPage() {
   const nav = useNavigate();
+  const { user } = useAuth();
+  const canCreate =
+    user?.role === "大パ担当者" ||
+    user?.role === "大パ管理職" ||
+    user?.role === "admin";
   const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
   const [salesOffice, setSalesOffice] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -22,7 +24,19 @@ export default function ShichuListPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [menuOpen, setMenuOpen] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("logout failed");
+      nav("/login", { replace: true });
+    } catch {
+      toast.error("ログアウトに失敗しました");
+    }
+  };
 
   useEffect(() => {
     if (defaultOffice && !salesOffice) setSalesOffice(defaultOffice);
@@ -64,10 +78,14 @@ export default function ShichuListPage() {
   return (
     <AppPageLayout
       title="失注リスト"
-      menuOpen={menuOpen}
-      sideMenuItems={menuItems}
-      onToggleMenu={() => setMenuOpen((prev) => !prev)}
-      onNavigateMenu={(path) => nav(path, { replace: true })}
+      topNav={
+        <TopNavBar
+          activePage="lost"
+          onLogout={handleLogout}
+          canCreate={canCreate}
+          onNewCreate={() => nav("/form", { replace: true })}
+        />
+      }
       headerContent={
         <ListToolbar
           salesOffice={salesOffice}

@@ -3,14 +3,15 @@ import CommonSideMenu, { SideMenuItem } from "./CommonSideMenu";
 
 type AppPageLayoutProps = {
   title: string;
-  menuOpen: boolean;
-  sideMenuItems: SideMenuItem[];
-  onToggleMenu: () => void;
-  onNavigateMenu: (path: string) => void;
+  menuOpen?: boolean;
+  sideMenuItems?: SideMenuItem[];
+  onToggleMenu?: () => void;
+  onNavigateMenu?: (path: string) => void;
   headerContent: React.ReactNode;
   children: React.ReactNode;
   rightPanel?: React.ReactNode;
   maxWidthClassName?: string;
+  topNav?: React.ReactNode;
 };
 
 export default function AppPageLayout({
@@ -23,9 +24,17 @@ export default function AppPageLayout({
   children,
   rightPanel,
   maxWidthClassName = "max-w-[1900px]",
+  topNav,
 }: AppPageLayoutProps) {
+  const showSideMenu =
+    !topNav &&
+    sideMenuItems !== undefined &&
+    onToggleMenu !== undefined &&
+    onNavigateMenu !== undefined;
+
   return (
     <div className="min-h-screen bg-slate-100">
+      {topNav}
       <div className={`mx-auto ${maxWidthClassName} px-4 py-6`}>
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
@@ -36,17 +45,19 @@ export default function AppPageLayout({
           </div>
 
           <div className="flex gap-5 p-5">
-            <CommonSideMenu
-              isOpen={menuOpen}
-              items={sideMenuItems}
-              onToggle={onToggleMenu}
-              onNavigate={onNavigateMenu}
-            />
+            {showSideMenu && (
+              <CommonSideMenu
+                isOpen={menuOpen ?? false}
+                items={sideMenuItems!}
+                onToggle={onToggleMenu!}
+                onNavigate={onNavigateMenu!}
+              />
+            )}
 
             {rightPanel ? (
-              <div className="grid min-w-0 flex-1 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-                <div className="min-w-0">{children}</div>
-                <div>{rightPanel}</div>
+              <div className="flex min-w-0 flex-1 flex-col gap-5 lg:flex-row">
+                <div className="order-last min-w-0 flex-1 lg:order-first">{children}</div>
+                <div className="order-first w-full lg:order-last lg:w-[360px] lg:flex-shrink-0">{rightPanel}</div>
               </div>
             ) : (
               <div className="min-w-0 flex-1">{children}</div>

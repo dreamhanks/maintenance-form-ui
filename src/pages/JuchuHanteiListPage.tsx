@@ -1,22 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import AppPageLayout from "../components/AppPageLayout";
 import ListToolbar from "../components/ListToolbar";
 import JuchuHanteiTable from "../components/JuchuHanteiTable";
 import ContractActionPanel from "../components/ContractActionPanel";
+import TopNavBar from "../components/layout/TopNavBar";
 import { fetchJuchuRows } from "../api/juchuApi";
 import { statusJuchuOptions } from "../data/dummyData";
 import { useUserOffices } from "../hooks/useUserOffices";
+import { useAuth } from "../auth/AuthContext";
 import { JuchuRow } from "../types";
-
-const menuItems = [
-  { label: "提案物件一覧へ", value: "/" },
-  { label: "失注リストへ", value: "/shichu" },
-  { label: "契約済みリストへ", value: "/keiyaku" },
-];
 
 export default function JuchuHanteiListPage() {
   const nav = useNavigate();
+  const { user } = useAuth();
+  const canCreate =
+    user?.role === "大パ担当者" ||
+    user?.role === "大パ管理職" ||
+    user?.role === "admin";
   const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
   const [salesOffice, setSalesOffice] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -25,7 +27,19 @@ export default function JuchuHanteiListPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [menuOpen, setMenuOpen] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("logout failed");
+      nav("/login", { replace: true });
+    } catch {
+      toast.error("ログアウトに失敗しました");
+    }
+  };
 
   useEffect(() => {
     if (defaultOffice && !salesOffice) setSalesOffice(defaultOffice);
@@ -67,10 +81,14 @@ export default function JuchuHanteiListPage() {
   return (
     <AppPageLayout
       title="受注判定リスト"
-      menuOpen={menuOpen}
-      sideMenuItems={menuItems}
-      onToggleMenu={() => setMenuOpen((prev) => !prev)}
-      onNavigateMenu={(path) => nav(path, { replace: true })}
+      topNav={
+        <TopNavBar
+          activePage="order"
+          onLogout={handleLogout}
+          canCreate={canCreate}
+          onNewCreate={() => nav("/form", { replace: true })}
+        />
+      }
       headerContent={
         <ListToolbar
           salesOffice={salesOffice}
