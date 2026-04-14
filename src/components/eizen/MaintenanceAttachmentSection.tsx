@@ -78,7 +78,7 @@ export default function MaintenanceAttachmentSection(props: Props) {
 
           {props.requiredOther && (
             <div className="mt-3 max-w-md">
-              <input value={props.requiredOtherText} onChange={(e) => props.setRequiredOtherText(e.target.value)} className={inputClass} placeholder="その他" />
+              <input value={props.requiredOtherText} onChange={(e) => props.setRequiredOtherText(e.target.value)} maxLength={100} className={inputClass} placeholder="その他" />
               <FileLink fieldKey="mente_kanri_sonota" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
             </div>
           )}
@@ -86,7 +86,7 @@ export default function MaintenanceAttachmentSection(props: Props) {
 
         <LabelCell>備考</LabelCell>
         <ValueCell className="col-span-11">
-          <textarea value={props.maintenanceRemark} onChange={(e) => props.setMaintenanceRemark(e.target.value)} rows={3} className={textareaClass} />
+          <textarea value={props.maintenanceRemark} onChange={(e) => props.setMaintenanceRemark(e.target.value)} rows={3} maxLength={200} className={textareaClass} />
         </ValueCell>
       </div>
     </section>

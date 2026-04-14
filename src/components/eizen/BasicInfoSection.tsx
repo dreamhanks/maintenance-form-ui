@@ -1,7 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import { inputClass, sectionHeader, sectionWrap, textareaClass } from "./EizenFormStyles";
 import { Check, LabelCell, ValueCell, YesNoSwitch } from "./EizenCommon";
 import { YesNo } from "./EizenFormTypes";
 import JaDatePicker from "../JaDatePicker";
+import type { RelatedFormDto } from "../../form/api";
 
 type Props = {
   furigana: string;
@@ -22,8 +24,8 @@ type Props = {
   setCompletionDate: (v: string) => void;
   productName: string;
   setProductName: (v: string) => void;
-  repairHistory: string;
-  setRepairHistory: (v: string) => void;
+  relatedForms: RelatedFormDto[];
+  editId: number | null;
 
   roof: boolean;
   setRoof: (v: boolean) => void;
@@ -75,6 +77,68 @@ type Props = {
   setStartDate: (v: string) => void;
 };
 
+function RelatedFormsDropdown({ editId, relatedForms }: { editId: number | null; relatedForms: RelatedFormDto[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [isOpen]);
+
+  if (editId == null) {
+    return <div className={inputClass + " bg-slate-50 text-slate-400 cursor-default"}>保存後に表示されます</div>;
+  }
+  if (relatedForms.length === 0) {
+    return <div className={inputClass + " bg-slate-50 text-slate-400 cursor-default"}>履歴なし</div>;
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setIsOpen(!isOpen); }}
+        className={inputClass + " cursor-pointer flex items-center justify-between border border-slate-300 rounded-md bg-white"}
+      >
+        <span className="text-slate-500">--- 過去の改修履歴を選択 ---</span>
+        <span className="text-xs text-slate-400 ml-2">▼</span>
+      </div>
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-md border border-slate-300 bg-white shadow-lg">
+          {relatedForms.map((rf) => (
+            <div
+              key={rf.formRecordId}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                window.open(`/form/${rf.formRecordId}`, "_blank");
+                setIsOpen(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  window.open(`/form/${rf.formRecordId}`, "_blank");
+                  setIsOpen(false);
+                }
+              }}
+              className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              {rf.documentNo || `(文書番号なし) [${rf.buildingCode2}]`}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BasicInfoSection(props: Props) {
   return (
     <section className={sectionWrap}>
@@ -124,7 +188,7 @@ export default function BasicInfoSection(props: Props) {
 
           <LabelCell>過去の改修履歴</LabelCell>
           <ValueCell className="col-span-11">
-            <textarea value={props.repairHistory} onChange={(e) => props.setRepairHistory(e.target.value)} rows={3} className={textareaClass} />
+            <RelatedFormsDropdown editId={props.editId} relatedForms={props.relatedForms} />
           </ValueCell>
         </div>
 
@@ -139,14 +203,14 @@ export default function BasicInfoSection(props: Props) {
             <div className="inline-flex items-center gap-1">
                 <Check label="その他" checked={props.otherWork} onChange={props.setOtherWork} />
                 <span>(</span>
-                <input value={props.otherWorkText} onChange={(e) => props.setOtherWorkText(e.target.value)} className="w-48 border-b border-black outline-none bg-transparent" type="text"/>
+                <input value={props.otherWorkText} onChange={(e) => props.setOtherWorkText(e.target.value)} maxLength={60} className="w-48 border-b border-black outline-none bg-transparent" type="text"/>
                 <span>)</span>
             </div>
           </div>
 
           <div className="mt-4">
             <label className="mb-2 block text-sm font-semibold text-slate-700">工事内容詳細：</label>
-            <textarea value={props.workDetail} onChange={(e) => props.setWorkDetail(e.target.value)} rows={3} className={textareaClass} />
+            <textarea value={props.workDetail} onChange={(e) => props.setWorkDetail(e.target.value)} rows={3} maxLength={60} className={textareaClass} />
           </div>
         </ValueCell>
 
@@ -155,25 +219,25 @@ export default function BasicInfoSection(props: Props) {
           <LabelCell>オーナー様</LabelCell>
           <ValueCell className="col-span-11">
             <div className="mb-3">
-              <YesNoSwitch name="owner" value={props.ownerFlag} onChange={props.setOwnerFlag} />
+              <YesNoSwitch name="owner" value={props.ownerFlag} onChange={(v) => { props.setOwnerFlag(v); if (v === "なし") props.setOwnerText(""); }} />
             </div>
-            <input value={props.ownerText} onChange={(e) => props.setOwnerText(e.target.value)} className={inputClass} placeholder="内容" />
+            <input value={props.ownerText} onChange={(e) => props.setOwnerText(e.target.value)} disabled={props.ownerFlag === "なし"} maxLength={100} className={inputClass + (props.ownerFlag === "なし" ? " opacity-50 cursor-not-allowed bg-gray-100" : "")} placeholder="内容" />
           </ValueCell>
 
           <LabelCell>入居者様</LabelCell>
           <ValueCell className="col-span-11">
             <div className="mb-3">
-              <YesNoSwitch name="resident" value={props.residentFlag} onChange={props.setResidentFlag} />
+              <YesNoSwitch name="resident" value={props.residentFlag} onChange={(v) => { props.setResidentFlag(v); if (v === "なし") props.setResidentText(""); }} />
             </div>
-            <input value={props.residentText} onChange={(e) => props.setResidentText(e.target.value)} className={inputClass} placeholder="内容" />
+            <input value={props.residentText} onChange={(e) => props.setResidentText(e.target.value)} disabled={props.residentFlag === "なし"} maxLength={100} className={inputClass + (props.residentFlag === "なし" ? " opacity-50 cursor-not-allowed bg-gray-100" : "")} placeholder="内容" />
           </ValueCell>
 
           <LabelCell>近隣様</LabelCell>
           <ValueCell className="col-span-11">
             <div className="mb-3">
-              <YesNoSwitch name="neighbor" value={props.neighborFlag} onChange={props.setNeighborFlag} />
+              <YesNoSwitch name="neighbor" value={props.neighborFlag} onChange={(v) => { props.setNeighborFlag(v); if (v === "なし") props.setNeighborText(""); }} />
             </div>
-            <input value={props.neighborText} onChange={(e) => props.setNeighborText(e.target.value)} className={inputClass} placeholder="内容" />
+            <input value={props.neighborText} onChange={(e) => props.setNeighborText(e.target.value)} disabled={props.neighborFlag === "なし"} maxLength={100} className={inputClass + (props.neighborFlag === "なし" ? " opacity-50 cursor-not-allowed bg-gray-100" : "")} placeholder="内容" />
           </ValueCell>
         </div>
 
@@ -186,14 +250,12 @@ export default function BasicInfoSection(props: Props) {
           <LabelCell>業者CD</LabelCell>
           <ValueCell className="col-span-3 ">
             <div className="flex items-center justify-center gap-2">
-                <input value={props.plannedVendorCd} onChange={(e) => props.setPlannedVendorCd(e.target.value)} className={inputClass} />
+                <input value={props.plannedVendorCd} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setPlannedVendorCd(v); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
                 <div>ー</div>
-                <input value={props.plannedVendorCd2} onChange={(e) => props.setPlannedVendorCd2(e.target.value)} className={inputClass} />
+                <input value={props.plannedVendorCd2} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setPlannedVendorCd2(v); }} maxLength={3} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
             </div>
           </ValueCell>
-          {/* <LabelCell>ー</LabelCell> */}
           <div className="col-span-4 bg-slate-100 border border-slate-300" />
-          {/* <ValueCell className="col-span-4 bg-slate-300" /> */}
 
           <LabelCell>確定業者名</LabelCell>
           <ValueCell className="col-span-3">
@@ -202,9 +264,9 @@ export default function BasicInfoSection(props: Props) {
           <LabelCell>業者CD</LabelCell>
           <ValueCell className="col-span-3">
             <div className="flex items-center justify-center gap-2">
-                <input value={props.fixedVendorCd} onChange={(e) => props.setFixedVendorCd(e.target.value)} className={inputClass} />
+                <input value={props.fixedVendorCd} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setFixedVendorCd(v); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
                 <div>ー</div>
-                <input value={props.fixedVendorCd2} onChange={(e) => props.setFixedVendorCd2(e.target.value)} className={inputClass} />
+                <input value={props.fixedVendorCd2} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setFixedVendorCd2(v); }} maxLength={3} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
             </div>
           </ValueCell>
           <div className="col-span-4 bg-slate-100 border border-slate-300" />

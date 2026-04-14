@@ -33,39 +33,22 @@ function StepBox({
   userRole,
   formId,
   prevConfirmed,
-  onStepsChange,
   onRequestConfirm,
+  onRequestReject,
 }: {
   step: WorkflowStepDto;
   userRole: string | null | undefined;
   formId: number | null;
   prevConfirmed: boolean;
-  onStepsChange: (steps: WorkflowStepDto[]) => void;
   onRequestConfirm: (stepNumber: number) => void;
+  onRequestReject: (stepNumber: number) => void;
 }) {
   const requiredRole = STEP_ROLES[step.stepNumber];
   const roleMatch = userRole === requiredRole || userRole === "admin";
   const isConfirmed = step.status === "confirmed";
 
   const canConfirm = !!formId && roleMatch && prevConfirmed && !isConfirmed && step.status !== "waiting";
-  // Step 1 cannot be rejected (no previous step) — backend enforces this too.
-  const canReject = !!formId && roleMatch && isConfirmed && step.stepNumber !== 1;
-
-  const handleConfirm = () => {
-    if (!formId || !canConfirm) return;
-    onRequestConfirm(step.stepNumber);
-  };
-
-  const handleReject = async () => {
-    if (!formId || !canReject) return;
-    try {
-      const updated = await workflowApi.reject(formId, step.stepNumber);
-      onStepsChange(updated);
-      toast.success(`${step.stepLabel} を差戻しました`);
-    } catch (err: any) {
-      toast.error(err?.message || "差戻に失敗しました");
-    }
-  };
+  const canReject = !!formId && roleMatch && step.status === "pending" && step.stepNumber !== 1;
 
   return (
     <div className="w-32 rounded-xl border-2 border-slate-800">
@@ -75,30 +58,32 @@ function StepBox({
       <div className="flex h-14 items-center justify-center px-2 text-center text-sm font-medium text-slate-800">
         {isConfirmed ? step.actorName : ""}
       </div>
-      <div className="grid grid-cols-2 border-t-2 border-slate-800">
+      <div className={`${step.stepNumber === 1 ? "" : "grid grid-cols-2"} border-t-2 border-slate-800`}>
+        {step.stepNumber !== 1 && (
+          <button
+            type="button"
+            onClick={() => { if (canReject) onRequestReject(step.stepNumber); }}
+            disabled={!canReject}
+            className={`border-r-2 border-slate-800 px-2 py-2 text-center text-sm font-semibold transition-colors ${
+              canReject
+                ? "bg-red-50 text-red-700 hover:bg-red-100 cursor-pointer"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            差戻
+          </button>
+        )}
         <button
           type="button"
-          onClick={handleConfirm}
+          onClick={() => { if (canConfirm) onRequestConfirm(step.stepNumber); }}
           disabled={!canConfirm}
-          className={`border-r-2 border-slate-800 px-2 py-2 text-center text-sm font-semibold transition-colors ${
+          className={`${step.stepNumber === 1 ? "w-full" : ""} px-2 py-2 text-center text-sm font-semibold transition-colors ${
             canConfirm
               ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
               : "bg-slate-100 text-slate-400 cursor-not-allowed"
           }`}
         >
           確認
-        </button>
-        <button
-          type="button"
-          onClick={handleReject}
-          disabled={!canReject}
-          className={`px-2 py-2 text-center text-sm font-semibold transition-colors ${
-            canReject
-              ? "bg-red-50 text-red-700 hover:bg-red-100 cursor-pointer"
-              : "bg-slate-100 text-slate-400 cursor-not-allowed"
-          }`}
-        >
-          差戻
         </button>
       </div>
     </div>
@@ -126,31 +111,65 @@ const DEFAULT_STEPS: WorkflowStepDto[] = Array.from({ length: 10 }, (_, i) => ({
   actionedAt: null,
 }));
 
+type PendingAction = {
+  type: "confirm" | "reject";
+  stepNumber: number;
+  stepLabel: string;
+} | null;
+
 export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, onStepsChange, isFormDirty, onSaveForm }: Props) {
   const effectiveSteps = steps.length > 0 ? steps : DEFAULT_STEPS;
+  // Dirty-check dialog state (existing: "保存して確認")
   const [pendingConfirmStep, setPendingConfirmStep] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  // Action confirmation dialog state (new)
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+
+  const getLabel = (stepNumber: number) =>
+    effectiveSteps.find((s) => s.stepNumber === stepNumber)?.stepLabel ?? "";
 
   const runConfirm = async (stepNumber: number) => {
     if (!formId) return;
     try {
       const updated = await workflowApi.confirm(formId, stepNumber);
       onStepsChange(updated);
-      const label = effectiveSteps.find((s) => s.stepNumber === stepNumber)?.stepLabel ?? "";
-      toast.success(`${label} を確認しました`);
+      toast.success(`${getLabel(stepNumber)} を確認しました`);
     } catch (err: any) {
       toast.error(err?.message || "確認に失敗しました");
     }
   };
 
+  const runReject = async (stepNumber: number) => {
+    if (!formId) return;
+    try {
+      const updated = await workflowApi.reject(formId, stepNumber);
+      onStepsChange(updated);
+      toast.success(`${getLabel(stepNumber)} を差戻しました`);
+    } catch (err: any) {
+      toast.error(err?.message || "差戻に失敗しました");
+    }
+  };
+
+  // Show the action-confirmation dialog for confirm or reject
+  const showActionDialog = (type: "confirm" | "reject", stepNumber: number) => {
+    setPendingAction({ type, stepNumber, stepLabel: getLabel(stepNumber) });
+  };
+
+  // 確認 button clicked: dirty check first, then action dialog
   const handleRequestConfirm = (stepNumber: number) => {
     if (isFormDirty && isFormDirty()) {
       setPendingConfirmStep(stepNumber);
       return;
     }
-    runConfirm(stepNumber);
+    showActionDialog("confirm", stepNumber);
   };
 
+  // 差戻 button clicked: show action dialog directly (no dirty check)
+  const handleRequestReject = (stepNumber: number) => {
+    showActionDialog("reject", stepNumber);
+  };
+
+  // Dirty-check dialog: save then show action confirmation
   const handleSaveAndConfirm = async () => {
     if (pendingConfirmStep == null || !onSaveForm) return;
     setBusy(true);
@@ -162,9 +181,21 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
       }
       const stepNumber = pendingConfirmStep;
       setPendingConfirmStep(null);
-      await runConfirm(stepNumber);
+      showActionDialog("confirm", stepNumber);
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Action dialog confirmed
+  const handleActionConfirmed = async () => {
+    if (!pendingAction) return;
+    const { type, stepNumber } = pendingAction;
+    setPendingAction(null);
+    if (type === "confirm") {
+      await runConfirm(stepNumber);
+    } else {
+      await runReject(stepNumber);
     }
   };
 
@@ -189,8 +220,8 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
         userRole={userRole}
         formId={formId}
         prevConfirmed={isPrevConfirmed(n)}
-        onStepsChange={onStepsChange}
         onRequestConfirm={handleRequestConfirm}
+        onRequestReject={handleRequestReject}
       />
     );
   };
@@ -215,6 +246,7 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
           {renderBox(10)}
         </div>
       </div>
+      {/* Dirty-check dialog (existing) */}
       {pendingConfirmStep != null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
@@ -237,6 +269,47 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
                 className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
               >
                 キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Action confirmation dialog (new) */}
+      {pendingAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-lg font-semibold text-slate-900">
+              {pendingAction.type === "confirm" ? "確認" : "差戻"}
+            </div>
+            <div className="mt-3 text-sm text-slate-700">
+              {pendingAction.type === "confirm"
+                ? `${pendingAction.stepLabel} を確認しますか？`
+                : (
+                  <>
+                    {pendingAction.stepLabel} を差戻しますか？
+                    <br />
+                    前のステップに戻ります。
+                  </>
+                )}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingAction(null)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleActionConfirmed}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white ${
+                  pendingAction.type === "confirm"
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-red-500 hover:bg-red-600"
+                }`}
+              >
+                {pendingAction.type === "confirm" ? "確認する" : "差戻する"}
               </button>
             </div>
           </div>

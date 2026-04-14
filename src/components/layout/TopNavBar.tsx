@@ -32,7 +32,7 @@ export default function TopNavBar({
 
   return (
     <div
-      className="flex w-full items-center justify-between"
+      className="sticky top-0 z-50 flex w-full items-center justify-between"
       style={{
         height: 52,
         backgroundColor: "#1e2d40",

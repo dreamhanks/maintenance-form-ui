@@ -412,6 +412,7 @@ export default function MitsumoriIraishoPage() {
   const [isDirty, setIsDirty] = useState(false);
   const isInitialLoad = useRef(true);
   const [showBackDialog, setShowBackDialog] = useState(false);
+  const [showPdfDialog, setShowPdfDialog] = useState(false);
   const markDirty = () => { if (!isInitialLoad.current) setIsDirty(true); };
   const [pdfBusy, setPdfBusy] = useState(false);
   const [form, setForm] = useState<RequestForm>({
@@ -911,7 +912,7 @@ export default function MitsumoriIraishoPage() {
 
           <button
             type="button"
-            onClick={handleExportPdf}
+            onClick={() => { if (isDirty) { setShowPdfDialog(true); } else { handleExportPdf(); } }}
             disabled={!isEditable || pdfBusy || !formRecordId}
             className={`rounded border border-black bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 ${!isEditable ? "cursor-not-allowed" : ""}`}
           >
@@ -1439,6 +1440,25 @@ export default function MitsumoriIraishoPage() {
                 保存せずに戻る
               </button>
               <button type="button" onClick={() => setShowBackDialog(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showPdfDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="min-w-[520px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-lg font-semibold text-slate-900">PDF出力</div>
+            <div className="mt-3 text-sm text-slate-700">未保存の変更があります。保存してからPDF出力しますか？</div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" disabled={saving} onClick={async () => { const ok = await handleSave(); if (ok) { setShowPdfDialog(false); handleExportPdf(); } }} className="whitespace-nowrap rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+                保存してPDF出力
+              </button>
+              <button type="button" onClick={() => { setShowPdfDialog(false); handleExportPdf(); }} className="whitespace-nowrap rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+                保存せずにPDF出力
+              </button>
+              <button type="button" onClick={() => setShowPdfDialog(false)} className="whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
                 キャンセル
               </button>
             </div>

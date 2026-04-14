@@ -56,7 +56,7 @@ export default function JuchuHanteiTable({
                     key={`${header}-${index}`}
                     className="border-b border-r border-slate-300 px-3 py-2 text-left whitespace-nowrap"
                     style={{
-                      backgroundColor: "#1e2d40",
+                      backgroundColor: "#2d4a6b",
                       color: "#ffffff",
                       fontSize: 12,
                       fontWeight: 500,

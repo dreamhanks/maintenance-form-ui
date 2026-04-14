@@ -22,10 +22,6 @@ type Props = {
   setGeneralApplyAttach: (v: boolean) => void;
   generalApplyNotNeed: boolean;
   setGeneralApplyNotNeed: (v: boolean) => void;
-  juchuCheck: boolean;
-  setJuchuCheck: (v: boolean) => void;
-  shitchuCheck: boolean;
-  setShitchuCheck: (v: boolean) => void;
   daipaFinalConfirm: boolean;
   setDaipaFinalConfirm: (v: boolean) => void;
   lostOrder: boolean;
@@ -93,13 +89,13 @@ export default function EstimateFinalSection(props: Props) {
   return (
     <section className={sectionWrap}>
       <div className="grid grid-cols-12">
-        <div className="col-span-4 border border-yellow-400 bg-yellow-300 px-4 py-3 text-center text-xl font-bold text-slate-900">
+        <div className="col-span-4 border border-[#17375E] bg-[#17375E] px-4 py-3 text-center text-xl font-bold text-[#F5C518]">
           ◆大パ見積書添付
         </div>
-        <div className="col-span-3 border border-slate-300 bg-slate-200 px-4 py-3 text-center text-xl font-bold text-slate-900">
+        <div className="col-span-3 border border-[#2B547E] bg-[#2B547E] px-4 py-3 text-center text-xl font-bold text-white">
           メンテ管理職確認
         </div>
-        <div className="col-span-5 border border-yellow-400 bg-yellow-300 px-4 py-3 text-center text-xl font-bold text-slate-900">
+        <div className="col-span-5 border border-[#17375E] bg-[#17375E] px-4 py-3 text-center text-xl font-bold text-[#F5C518]">
           ◆大パ最終確認欄
         </div>
 
@@ -121,14 +117,14 @@ export default function EstimateFinalSection(props: Props) {
           <div className="col-span-8 border border-slate-400 px-3 py-2">見積書の添付</div>
           <ValueCell className="col-span-4 flex flex-col items-center justify-center border border-slate-400">
             <div className="flex items-center gap-2">
-              <input type="checkbox" checked={props.estimateAttach} onChange={(e) => props.onFileCheckChange("estimate_attached", e.target.checked, props.setEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+              <input type="checkbox" checked={props.estimateAttach} onChange={(e) => props.onFileCheckChange("estimate_attached", e.target.checked, props.setEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
               <div>見積書</div>
               <HiddenFileInput fieldKey="estimate_attached" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setEstimateAttach} />
             </div>
             <FileLink fieldKey="estimate_attached" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <ValueCell className="col-span-12 border border-slate-400">
-            <input value={props.estimateRemark} onChange={(e) => props.setEstimateRemark(e.target.value)} className={inputClass} placeholder="備考" />
+            <textarea value={props.estimateRemark} onChange={(e) => props.setEstimateRemark(e.target.value)} rows={2} maxLength={200} className={textareaClass} placeholder="備考" />
           </ValueCell>
         </div>
 
@@ -137,53 +133,58 @@ export default function EstimateFinalSection(props: Props) {
           <div className="col-span-6 border border-slate-400 px-3 pt-3">見積書添付</div>
           <ValueCell className="col-span-6 flex flex-col items-center justify-center border border-slate-400">
             <div className="flex items-center gap-2">
-              <input type="checkbox" checked={props.maintenanceEstimateAttach} onChange={(e) => props.onFileCheckChange("mitsumori_mitstumosho", e.target.checked, props.setMaintenanceEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+              <input type="checkbox" checked={props.maintenanceEstimateAttach} onChange={(e) => props.onFileCheckChange("mitsumori_mitstumosho", e.target.checked, props.setMaintenanceEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
               <div>見積書</div>
               <HiddenFileInput fieldKey="mitsumori_mitstumosho" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setMaintenanceEstimateAttach} />
             </div>
             <FileLink fieldKey="mitsumori_mitstumosho" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <ValueCell className="col-span-12 pt-5">
-            <input value={props.maintenanceEstimateRemark} onChange={(e) => props.setMaintenanceEstimateRemark(e.target.value)} className={inputClass} placeholder="備考" />
+            <input value={props.maintenanceEstimateRemark} onChange={(e) => props.setMaintenanceEstimateRemark(e.target.value)} maxLength={100} className={inputClass} placeholder="備考" />
           </ValueCell>
         </div>
 
         <div className="col-span-5 grid grid-cols-12">
           {/* <LabelCell>受注</LabelCell> */}
           <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.juchuCheck} onChange={(e) => props.setJuchuCheck(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
-            <div>受注</div>
+            <label className="inline-flex items-center gap-2">
+              <input type="radio" name="order-result" checked={props.orderResult === "受注"} onChange={() => props.setOrderResult("受注")} className="h-5 w-5 border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
+              受注
+            </label>
           </ValueCell>
-          {/* <LabelCell>失注</LabelCell> */}
           <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.shitchuCheck} onChange={(e) => props.setShitchuCheck(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
-            <div>失注</div>
+            <label className="inline-flex items-center gap-2">
+              <input type="radio" name="order-result" checked={props.orderResult === "失注"} onChange={() => props.setOrderResult("失注")} className="h-5 w-5 border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
+              失注
+            </label>
           </ValueCell>
-          <div className="col-span-4 border border-slate-400 text-center pt-2">大パ管理職確認</div>
+          <div className="col-span-4 border border-slate-400 flex items-center justify-center">大パ管理職確認</div>
           <ValueCell className="col-span-2 flex items-center justify-center">
-            <input type="checkbox" checked={props.daipaFinalConfirm} onChange={(e) => props.setDaipaFinalConfirm(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+            <input type="checkbox" checked={props.daipaFinalConfirm} onChange={(e) => props.setDaipaFinalConfirm(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
           </ValueCell>
-          <div className="col-span-3 border border-slate-400 text-center">一般申請</div>
+          <div className="col-span-3 border border-slate-400 flex items-center justify-center">一般申請</div>
           {/* <ValueCell className="col-span-3 flex items-center justify-center">
-            <input type="checkbox" checked={props.generalApplyAttach} onChange={(e) => props.setGeneralApplyAttach(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+            <input type="checkbox" checked={props.generalApplyAttach} onChange={(e) => props.setGeneralApplyAttach(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
           </ValueCell> */}
             
           <ValueCell className="col-span-3 flex flex-col items-center justify-center border border-slate-400">
             <div className="flex items-center gap-2">
-              <input type="checkbox" checked={props.lostOrder} onChange={(e) => props.onFileCheckChange("daipa_saishuu_tenpu", e.target.checked, props.setLostOrder)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+              <input type="checkbox" checked={props.lostOrder} onChange={(e) => props.onFileCheckChange("daipa_saishuu_tenpu", e.target.checked, props.setLostOrder)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
               <div>添付</div>
               <HiddenFileInput fieldKey="daipa_saishuu_tenpu" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setLostOrder} />
             </div>
             <FileLink fieldKey="daipa_saishuu_tenpu" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
           <ValueCell className="col-span-6 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.generalApplyNotNeed} onChange={(e) => props.setGeneralApplyNotNeed(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+            <input type="checkbox" checked={props.generalApplyNotNeed} onChange={(e) => props.setGeneralApplyNotNeed(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
             <div>一般申請不要</div>
           </ValueCell>
+        {props.orderResult === "失注" && (
         <ValueCell className="col-span-12 flex items-start justify-center border border-slate-400 gap-2">
             <div className="w-12">理由:</div>
-          <textarea value={props.finalReason} onChange={(e) => props.setFinalReason(e.target.value)} rows={1} className={textareaClass} />
+          <textarea value={props.finalReason} onChange={(e) => props.setFinalReason(e.target.value)} rows={2} maxLength={500} className={textareaClass} />
         </ValueCell>
+        )}
         </div>
 
         {/* <LabelCell>理由</LabelCell> */}

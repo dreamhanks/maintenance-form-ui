@@ -81,6 +81,7 @@ const makeRowsPage1 = (): CheckRow[] => [
       "設置部分図面添付": false,
     },
     amount: "",
+    amountNumeric: true,
     amountFirst: true,
     unit: "m必要（要見積）",
     remark: "",
@@ -96,6 +97,7 @@ const makeRowsPage1 = (): CheckRow[] => [
       場内: false,
     },
     amount: "",
+    amountNumeric: true,
     unit: "台必要（要見積）",
     remark: "",
     managerConfirm: false,
@@ -123,6 +125,7 @@ const makeRowsPage1 = (): CheckRow[] => [
       "仮設図面添付": false,
     },
     amount: "",
+    amountNumeric: true,
     unit: "㎡",
     remark: "",
     managerConfirm: false,
@@ -138,6 +141,7 @@ const makeRowsPage1 = (): CheckRow[] => [
       "建設準備届出実施": false,
     },
     amount: "",
+    amountNumeric: true,
     amountFirst: true,
     unit: "円必要（要見積）",
     remark: "",
@@ -247,6 +251,7 @@ const makeRowsPage1 = (): CheckRow[] => [
     },
     otherText: "",
     amount: "",
+    amountNumeric: true,
     unit: "円",
     remark: "",
     managerConfirm: false,
@@ -281,6 +286,7 @@ const makeRowsPage2 = (): CheckRow[] => [
       その他: false,
     },
     amount: "",
+    amountNumeric: true,
     unit: "回",
     otherText: "",
     remark: "",
@@ -299,6 +305,7 @@ const makeRowsPage2 = (): CheckRow[] => [
       その他: false,
     },
     amount: "",
+    amountNumeric: true,
     unit: "㎡",
     otherText: "",
     remark: "",
@@ -317,6 +324,7 @@ const makeRowsPage2 = (): CheckRow[] => [
       その他: false,
     },
     amount: "",
+    amountNumeric: true,
     unit: "円",
     otherText: "",
     remark: "",
@@ -333,6 +341,7 @@ const makeRowsPage2 = (): CheckRow[] => [
       その他: false,
     },
     amount: "",
+    amountNumeric: true,
     unit: "円",
     otherText: "",
     remark: "",
@@ -349,6 +358,7 @@ const makeRowsPage2 = (): CheckRow[] => [
       その他: false,
     },
     amount: "",
+    amountNumeric: true,
     unit: "円",
     otherText: "",
     remark: "",
@@ -378,6 +388,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     },
     otherText: "",
     amount: "",
+    amountNumeric: true,
     unit: "円",
     remark: "",
     managerConfirm: false,
@@ -395,6 +406,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     },
     otherText: "",
     amount: "",
+    amountNumeric: true,
     unit: "円",
     remark: "",
     managerConfirm: false,
@@ -455,9 +467,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     item: "家電リサイクル法",
     need: "",
     checks: {
-      対象あり: false,
       お客様処分: false,
-      対象なし: false,
       その他: false,
     },
     otherText: "",
@@ -465,6 +475,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     managerConfirm: false,
     variant: "noRadioTwoLine",
     radioColKeys: ["対象あり", "対象なし"],
+    radioColAsRadio: true,
   },
   {
     id: "p2r12",
@@ -472,9 +483,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     item: "フロン排出抑制法",
     need: "",
     checks: {
-      対象あり: false,
       お客様処分: false,
-      対象なし: false,
       その他: false,
     },
     otherText: "",
@@ -482,6 +491,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     managerConfirm: false,
     variant: "noRadioTwoLine",
     radioColKeys: ["対象あり", "対象なし"],
+    radioColAsRadio: true,
   },
   {
     id: "p2r13",
@@ -493,6 +503,8 @@ const makeRowsPage2 = (): CheckRow[] => [
       その他: false,
     },
     amount: "",
+    amountNumeric: true,
+    amountInteger: true,
     unit: "年",
     otherText: "",
     remark: "",
@@ -585,8 +597,11 @@ export default function EizenRequestAllInOnePage() {
           variant: factoryRow.variant,
           line2Check: factoryRow.line2Check,
           radioColKeys: factoryRow.radioColKeys,
+          radioColAsRadio: factoryRow.radioColAsRadio,
           splitAt: factoryRow.splitAt,
           amountFirst: factoryRow.amountFirst,
+          amountNumeric: factoryRow.amountNumeric,
+          amountInteger: factoryRow.amountInteger,
           remarkExtra: mergedRemarkExtra,
         };
       });
@@ -611,7 +626,7 @@ export default function EizenRequestAllInOnePage() {
     if (d.employeeName) setEmployeeName(d.employeeName);
     if (d.confirmApplicationNeed) setConfirmApplicationNeed(d.confirmApplicationNeed);
     if (d.designInstruction) setDesignInstruction(d.designInstruction);
-    if (d.designAttachment) setDesignAttachment(d.designAttachment);
+    if (d.designAttachment != null) setDesignAttachment(!!d.designAttachment);
     if (d.designDapConfirm != null) setDesignDapConfirm(d.designDapConfirm);
     if (d.designRemark) setDesignRemark(d.designRemark);
     if (d.estimateOutput != null) setEstimateOutput(d.estimateOutput);
@@ -620,8 +635,11 @@ export default function EizenRequestAllInOnePage() {
     if (d.maintenanceEstimateAttach != null) setMaintenanceEstimateAttach(d.maintenanceEstimateAttach);
     if (d.maintenanceEstimateRemark) setMaintenanceEstimateRemark(d.maintenanceEstimateRemark);
     if (d.orderResult) setOrderResult(d.orderResult);
-    if (d.juchuCheck != null) setJuchuCheck(d.juchuCheck);
-    if (d.shitchuCheck != null) setShitchuCheck(d.shitchuCheck);
+    // Migration: old saved forms may have juchuCheck/shitchuCheck instead of orderResult
+    if (!d.orderResult) {
+      if (d.juchuCheck === true) setOrderResult("受注");
+      else if (d.shitchuCheck === true) setOrderResult("失注");
+    }
     if (d.daipaFinalConfirm != null) setDaipaFinalConfirm(d.daipaFinalConfirm);
     if (d.lostOrder != null) setLostOrder(d.lostOrder);
     if (d.generalApplyAttach != null) setGeneralApplyAttach(d.generalApplyAttach);
@@ -734,6 +752,12 @@ export default function EizenRequestAllInOnePage() {
     });
   }, [editId, restoreFromDraft]);
 
+  // Load related forms (older phases of same building) on edit
+  useEffect(() => {
+    if (!editId) return;
+    formApi.relatedForms(editId).then(setRelatedForms).catch(() => {});
+  }, [editId]);
+
   // Load existing attachments on edit
   useEffect(() => {
     if (!editId) return;
@@ -821,6 +845,7 @@ export default function EizenRequestAllInOnePage() {
   const [completionDate, setCompletionDate] = useState("");
   const [productName, setProductName] = useState("");
   const [repairHistory, setRepairHistory] = useState("");
+  const [relatedForms, setRelatedForms] = useState<import("../form/api").RelatedFormDto[]>([]);
 
   const [roof, setRoof] = useState(false);
   const [outsideWall, setOutsideWall] = useState(false);
@@ -881,7 +906,7 @@ export default function EizenRequestAllInOnePage() {
   const [employeeName, setEmployeeName] = useState("");
   const [confirmApplicationNeed, setConfirmApplicationNeed] = useState<NeedFlag>("");
   const [designInstruction, setDesignInstruction] = useState("");
-  const [designAttachment, setDesignAttachment] = useState("");
+  const [designAttachment, setDesignAttachment] = useState(false);
   const [designDapConfirm, setDesignDapConfirm] = useState(false);
   const [designRemark, setDesignRemark] = useState("");
 
@@ -891,8 +916,8 @@ export default function EizenRequestAllInOnePage() {
   const [maintenanceEstimateAttach, setMaintenanceEstimateAttach] = useState(false);
   const [maintenanceEstimateRemark, setMaintenanceEstimateRemark] = useState("");
   const [orderResult, setOrderResult] = useState<OrderResult>("");
-  const [juchuCheck, setJuchuCheck] = useState(false);
-  const [shitchuCheck, setShitchuCheck] = useState(false);
+  const juchuCheck = orderResult === "受注";
+  const shitchuCheck = orderResult === "失注";
   const [daipaFinalConfirm, setDaipaFinalConfirm] = useState(false);
   const [lostOrder, setLostOrder] = useState(false);
   const [generalApplyAttach, setGeneralApplyAttach] = useState(false);
@@ -1114,7 +1139,18 @@ export default function EizenRequestAllInOnePage() {
   const isFormDirty = () => {
     if (isInitialLoad.current) return false;
     if (savedSnapshotRef.current == null) return true;
-    return savedSnapshotRef.current !== JSON.stringify(buildDraft());
+    const current = JSON.stringify(buildDraft());
+    if (savedSnapshotRef.current !== current) {
+      // DEBUG: find first difference
+      const snap = JSON.parse(savedSnapshotRef.current);
+      const curr = JSON.parse(current);
+      for (const key of new Set([...Object.keys(snap), ...Object.keys(curr)])) {
+        const a = JSON.stringify(snap[key]);
+        const b = JSON.stringify(curr[key]);
+        if (a !== b) console.log("DIRTY KEY:", key, "\n  snapshot:", a?.substring(0, 100), "\n  current:", b?.substring(0, 100));
+      }
+    }
+    return savedSnapshotRef.current !== current;
   };
 
   const handleOpenMitsumori = async () => {
@@ -1145,19 +1181,19 @@ export default function EizenRequestAllInOnePage() {
         <div className="mx-auto max-w-[1700px] px-4 py-4">
           <div className="grid grid-cols-12 items-center gap-3">
             <div className="col-span-8">
-              <h1 className="text-center text-3xl font-bold tracking-wide text-slate-900">
+              <h1 className="text-center text-3xl font-bold tracking-wide text-[#17375E]">
                 営繕工事 事前確認依頼書 兼 見積確認依頼書
               </h1>
-              <p className="mt-2 text-center text-sm text-slate-600">
+              <p className="mt-2 text-center text-sm text-[#2B547E]">
                 下記営繕工事について、工事内容・仮設工事の検証を依頼致します。
               </p>
             </div>
             <div className="col-span-2">
-              <label className="mb-1 block text-sm font-semibold text-slate-700">文書番号</label>
+              <label className="mb-1 block text-sm font-semibold text-[#17375E]">文書番号</label>
               <input value={documentNo || "保存後に発行"} readOnly className={inputClass + " bg-slate-50 cursor-default"} />
             </div>
             <div className="col-span-2">
-              <label className="mb-1 block text-sm font-semibold text-slate-700">起票日</label>
+              <label className="mb-1 block text-sm font-semibold text-[#17375E]">起票日</label>
               <input value={issueDate ? issueDate.replace(/(\d{4})-(\d{2})-(\d{2})/, "$1年$2月$3日") : ""} readOnly className={inputClass + " bg-slate-50 cursor-default"} />
             </div>
           </div>
@@ -1169,7 +1205,7 @@ export default function EizenRequestAllInOnePage() {
           <div className="text-sm text-gray-400">権限を確認中...</div>
         )}
         {readOnlyNotice && (
-          <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          <div className="rounded-lg border border-[#17375E] bg-[#DCE6F1] px-4 py-3 text-sm font-semibold text-[#17375E]">
             {readOnlyNotice}
           </div>
         )}
@@ -1193,8 +1229,8 @@ export default function EizenRequestAllInOnePage() {
           setCompletionDate={setCompletionDate}
           productName={productName}
           setProductName={setProductName}
-          repairHistory={repairHistory}
-          setRepairHistory={setRepairHistory}
+          relatedForms={relatedForms}
+          editId={editId}
           roof={roof}
           setRoof={setRoof}
           outsideWall={outsideWall}
@@ -1282,6 +1318,15 @@ export default function EizenRequestAllInOnePage() {
           setSectionBouhan={setSectionBouhan}
           sectionYosan={sectionYosan}
           setSectionYosan={setSectionYosan}
+          densenbogokanFileUpload={{
+            matchKey: "設置部分図面添付",
+            fieldKey: "densenbogokan_zumen",
+            attachments,
+            fileInputRefs,
+            onFileCheckChange: handleFileCheckChange,
+            onFileSelected: handleFileSelected,
+            getAttachmentUrl,
+          }}
           ashibaPlanFileUpload={{
             matchKey: "仮設図面添付",
             fieldKey: "ashiba_plan",
@@ -1373,6 +1418,11 @@ export default function EizenRequestAllInOnePage() {
           setDesignDapConfirm={setDesignDapConfirm}
           designRemark={designRemark}
           setDesignRemark={setDesignRemark}
+          attachments={attachments}
+          fileInputRefs={fileInputRefs}
+          onFileCheckChange={handleFileCheckChange}
+          onFileSelected={handleFileSelected}
+          getAttachmentUrl={getAttachmentUrl}
         />
 
         <EstimateFinalSection
@@ -1388,10 +1438,6 @@ export default function EizenRequestAllInOnePage() {
           setMaintenanceEstimateRemark={setMaintenanceEstimateRemark}
           orderResult={orderResult}
           setOrderResult={setOrderResult}
-          juchuCheck={juchuCheck}
-          setJuchuCheck={setJuchuCheck}
-          shitchuCheck={shitchuCheck}
-          setShitchuCheck={setShitchuCheck}
           daipaFinalConfirm={daipaFinalConfirm}
           setDaipaFinalConfirm={setDaipaFinalConfirm}
           generalApplyAttach={generalApplyAttach}
@@ -1441,7 +1487,7 @@ export default function EizenRequestAllInOnePage() {
             type="button"
             onClick={() => handleSubmit(false)}
             disabled={!isEditable || submitting}
-            className={`rounded-xl bg-sky-600 px-6 py-3 font-semibold text-white hover:bg-sky-700 disabled:opacity-50 ${!isEditable ? "cursor-not-allowed" : ""}`}
+            className={`rounded-xl bg-[#17375E] px-6 py-3 font-semibold text-white hover:bg-[#1e2d40] disabled:opacity-50 ${!isEditable ? "cursor-not-allowed" : ""}`}
           >
             {submitting ? "登録中..." : "登録"}
           </button>
@@ -1473,7 +1519,7 @@ export default function EizenRequestAllInOnePage() {
               <button type="button" onClick={() => setShowMitsumoriDialog(false)} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                 キャンセル
               </button>
-              <button type="button" onClick={handleConfirmSaveAndOpen} disabled={submitting} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50">
+              <button type="button" onClick={handleConfirmSaveAndOpen} disabled={submitting} className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1e2d40] disabled:opacity-50">
                 保存して開く
               </button>
             </div>

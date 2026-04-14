@@ -6,7 +6,8 @@ export type CheckRow = {
   id: string;
   category?: string;
   item: string;
-  need: NeedFlag;
+  need: NeedFlag | string;
+  radioColAsRadio?: boolean;
   checks: Record<string, boolean>;
   amount?: string;
   unit?: string;
@@ -18,6 +19,9 @@ export type CheckRow = {
   line2Checked?: boolean;
   splitAt?: number;
   radioColKeys?: string[];
+  amountNumeric?: boolean;
+  amountInteger?: boolean;
+  amountMaxLength?: number;
   amountFirst?: boolean;
   remarkExtra?: { label: string; value: string; fileUploadFieldKey?: string; fileCheckboxValue?: boolean }[];
 };

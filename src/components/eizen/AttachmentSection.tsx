@@ -101,7 +101,7 @@ export default function AttachmentSection(props: Props) {
             type="checkbox"
             checked={props.dapManagerConfirmDrawing}
             onChange={(e) => props.setDapManagerConfirmDrawing(e.target.checked)}
-            className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+            className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
           />
         </ValueCell>
 
@@ -120,7 +120,7 @@ export default function AttachmentSection(props: Props) {
           </div>
           {props.photoOther && (
             <div className="mt-3 max-w-md">
-              <input value={props.photoOtherText} onChange={(e) => props.setPhotoOtherText(e.target.value)} className={inputClass} placeholder="その他" />
+              <input value={props.photoOtherText} onChange={(e) => props.setPhotoOtherText(e.target.value)} maxLength={50} className={inputClass} placeholder="その他" />
             </div>
           )}
         </ValueCell>
@@ -129,13 +129,13 @@ export default function AttachmentSection(props: Props) {
             type="checkbox"
             checked={props.dapManagerConfirmPhoto}
             onChange={(e) => props.setDapManagerConfirmPhoto(e.target.checked)}
-            className="h-5 w-5 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+            className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
           />
         </ValueCell>
 
         <LabelCell>備考</LabelCell>
         <ValueCell className="col-span-11">
-          <textarea value={props.attachRemark} onChange={(e) => props.setAttachRemark(e.target.value)} rows={3} className={textareaClass} />
+          <textarea value={props.attachRemark} onChange={(e) => props.setAttachRemark(e.target.value)} rows={3} maxLength={200} className={textareaClass} />
         </ValueCell>
       </div>
     </section>

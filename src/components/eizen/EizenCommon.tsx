@@ -31,7 +31,7 @@ export function Check({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+        className="h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
       />
       <span className="text-sm text-slate-800">{label}</span>
     </label>
@@ -55,7 +55,7 @@ export function NeedSwitch({
           name={name}
           checked={value === "必要"}
           onChange={() => onChange("必要")}
-          className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
+          className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
         />
         <span className="text-sm">必要</span>
       </label>
@@ -65,7 +65,7 @@ export function NeedSwitch({
           name={name}
           checked={value === "不要"}
           onChange={() => onChange("不要")}
-          className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
+          className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
         />
         <span className="text-sm">不要</span>
       </label>
@@ -90,7 +90,7 @@ export function YesNoSwitch({
           name={name}
           checked={value === "なし"}
           onChange={() => onChange("なし")}
-          className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
+          className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
         />
         <span className="text-sm">なし</span>
       </label>
@@ -100,7 +100,7 @@ export function YesNoSwitch({
           name={name}
           checked={value === "あり"}
           onChange={() => onChange("あり")}
-          className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
+          className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
         />
         <span className="text-sm">あり</span>
       </label>
@@ -149,7 +149,7 @@ export function MatrixRow({
 
   const categoryContent = categoryCheckbox ? (
     <label className="inline-flex items-center gap-1 whitespace-nowrap cursor-pointer">
-      <input type="checkbox" checked={categoryCheckbox.checked} onChange={(e) => categoryCheckbox.onChange(e.target.checked)} className="h-4 w-4 shrink-0 rounded border-slate-400 text-sky-600 focus:ring-sky-500" />
+      <input type="checkbox" checked={categoryCheckbox.checked} onChange={(e) => categoryCheckbox.onChange(e.target.checked)} className="h-4 w-4 shrink-0 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
       <span>{row.category}</span>
     </label>
   ) : row.category;
@@ -181,6 +181,7 @@ export function MatrixRow({
               <input
                 value={row.amount || ""}
                 onChange={(e) => onChange({ ...row, amount: e.target.value })}
+                maxLength={200}
                 className={inputClass}
               />
             </div>
@@ -190,7 +191,7 @@ export function MatrixRow({
               type="checkbox"
               checked={row.managerConfirm}
               onChange={(e) => onChange({ ...row, managerConfirm: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+              className="mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
             />
           </div>
         </>
@@ -203,21 +204,36 @@ export function MatrixRow({
           <div className="col-span-2 border border-slate-300 px-3 py-3">
             {row.radioColKeys && (
               <div className="flex flex-col gap-2">
-                {row.radioColKeys.map((rk) => (
-                  <Check
-                    key={rk}
-                    label={rk}
-                    checked={row.checks[rk] ?? false}
-                    onChange={(checked) =>
-                      onChange({ ...row, checks: { ...row.checks, [rk]: checked } })
-                    }
-                  />
-                ))}
+                {row.radioColAsRadio ? (
+                  row.radioColKeys.map((rk) => (
+                    <label key={rk} className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="radio"
+                        name={`${row.id}-radiocol`}
+                        checked={row.need === rk}
+                        onChange={() => onChange({ ...row, need: rk })}
+                        className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
+                      />
+                      {rk}
+                    </label>
+                  ))
+                ) : (
+                  row.radioColKeys.map((rk) => (
+                    <Check
+                      key={rk}
+                      label={rk}
+                      checked={row.checks[rk] ?? false}
+                      onChange={(checked) =>
+                        onChange({ ...row, checks: { ...row.checks, [rk]: checked } })
+                      }
+                    />
+                  ))
+                )}
               </div>
             )}
           </div>
 
-          <div className="col-span-6 border border-slate-300 px-3 py-3">
+          <div className={`col-span-6 border border-slate-300 px-3 py-3 ${row.radioColAsRadio && row.radioColKeys?.includes("対象なし") && row.need === "対象なし" ? "opacity-50 pointer-events-none" : !row.radioColAsRadio && row.radioColKeys?.includes("対象なし") && row.checks["対象なし"] ? "opacity-50 pointer-events-none" : ""}`}>
             <div className={`grid gap-2 ${row.radioColKeys ? "grid-cols-1" : "grid-cols-2"}`}>
               {optionEntries.filter(([key]) => !row.radioColKeys?.includes(key)).map(([key, val]) => (
                 <div key={key} className="flex items-center gap-1">
@@ -234,6 +250,7 @@ export function MatrixRow({
                       <input
                         value={row.otherText}
                         onChange={(e) => onChange({ ...row, otherText: e.target.value })}
+                        maxLength={50}
                         className={inputClass + " w-24"}
                       />
                       <span>）</span>
@@ -249,7 +266,7 @@ export function MatrixRow({
               type="checkbox"
               checked={row.managerConfirm}
               onChange={(e) => onChange({ ...row, managerConfirm: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+              className="mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
             />
           </div>
         </>
@@ -267,7 +284,7 @@ export function MatrixRow({
                   name={`${row.id}-need`}
                   checked={row.need === "必要"}
                   onChange={() => onChange({ ...row, need: "必要" })}
-                  className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
+                  className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
                 />
                 必要
               </label>
@@ -277,7 +294,7 @@ export function MatrixRow({
                   name={`${row.id}-need`}
                   checked={row.need === "不要"}
                   onChange={() => onChange({ ...row, need: "不要" })}
-                  className="h-4 w-4 border-slate-400 text-sky-600 focus:ring-sky-500"
+                  className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
                 />
                 不要
               </label>
@@ -290,6 +307,7 @@ export function MatrixRow({
                 value={row.amount || ""}
                 onChange={(e) => onChange({ ...row, amount: e.target.value })}
                 rows={3}
+                maxLength={200}
                 className={textareaClass}
               />
             ) : row.variant === "twoLine" ? (
@@ -309,7 +327,12 @@ export function MatrixRow({
                     <div className="inline-flex items-center gap-2">
                       <input
                         value={row.amount || ""}
-                        onChange={(e) => onChange({ ...row, amount: e.target.value })}
+                        onChange={(e) => { const v = row.amountNumeric ? e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1") : e.target.value; onChange({ ...row, amount: v }); }}
+                        {...(row.amountNumeric ? {
+                          inputMode: "decimal" as const, pattern: "[0-9.]*",
+                          onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => { const nav = ["Backspace","Delete","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Tab","Home","End"]; if (nav.includes(e.key) || e.ctrlKey || e.metaKey) return; if (!/^[0-9.]$/.test(e.key)) { e.preventDefault(); return; } if (e.key === "." && e.currentTarget.value.includes(".")) e.preventDefault(); },
+                          onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const cleaned = e.clipboardData.getData("text").replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"); onChange({ ...row, amount: cleaned }); },
+                        } : {})}
                         className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm"
                       />
                       <span className="text-sm text-slate-700">{row.unit}</span>
@@ -386,6 +409,7 @@ export function MatrixRow({
                       <input
                         value={row.otherText}
                         onChange={(e) => onChange({ ...row, otherText: e.target.value })}
+                        maxLength={50}
                         className={inputClass + " w-32"}
                       />
                       <span>）</span>
@@ -454,6 +478,7 @@ export function MatrixRow({
                           <input
                             value={row.otherText}
                             onChange={(e) => onChange({ ...row, otherText: e.target.value })}
+                            maxLength={50}
                             className={inputClass + " w-32"}
                           />
                           <span>）</span>
@@ -482,6 +507,7 @@ export function MatrixRow({
                       <input
                         value={row.otherText}
                         onChange={(e) => onChange({ ...row, otherText: e.target.value })}
+                        maxLength={50}
                         className={inputClass + " w-32"}
                       />
                       <span>）</span>
@@ -537,7 +563,12 @@ export function MatrixRow({
                     <div className="inline-flex items-center gap-2">
                       <input
                         value={row.amount || ""}
-                        onChange={(e) => onChange({ ...row, amount: e.target.value })}
+                        onChange={(e) => { const v = row.amountNumeric ? e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1") : e.target.value; onChange({ ...row, amount: v }); }}
+                        {...(row.amountNumeric ? {
+                          inputMode: "decimal" as const, pattern: "[0-9.]*",
+                          onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => { const nav = ["Backspace","Delete","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Tab","Home","End"]; if (nav.includes(e.key) || e.ctrlKey || e.metaKey) return; if (!/^[0-9.]$/.test(e.key)) { e.preventDefault(); return; } if (e.key === "." && e.currentTarget.value.includes(".")) e.preventDefault(); },
+                          onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const cleaned = e.clipboardData.getData("text").replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"); onChange({ ...row, amount: cleaned }); },
+                        } : {})}
                         className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm"
                       />
                       <span className="text-sm text-slate-700">{row.unit}</span>
@@ -552,7 +583,12 @@ export function MatrixRow({
                   <div className="inline-flex items-center gap-2">
                     <input
                       value={row.amount || ""}
-                      onChange={(e) => onChange({ ...row, amount: e.target.value })}
+                      onChange={(e) => { const v = row.amountNumeric ? e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1") : e.target.value; onChange({ ...row, amount: v }); }}
+                      {...(row.amountNumeric ? {
+                        inputMode: "decimal" as const, pattern: "[0-9.]*",
+                        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => { const nav = ["Backspace","Delete","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Tab","Home","End"]; if (nav.includes(e.key) || e.ctrlKey || e.metaKey) return; if (!/^[0-9.]$/.test(e.key)) { e.preventDefault(); return; } if (e.key === "." && e.currentTarget.value.includes(".")) e.preventDefault(); },
+                        onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const cleaned = e.clipboardData.getData("text").replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"); onChange({ ...row, amount: cleaned }); },
+                      } : {})}
                       className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm"
                     />
                     <span className="text-sm text-slate-700">{row.unit}</span>
@@ -625,7 +661,12 @@ export function MatrixRow({
                   <div className="inline-flex items-center gap-2">
                     <input
                       value={row.amount || ""}
-                      onChange={(e) => onChange({ ...row, amount: e.target.value })}
+                      onChange={(e) => { const v = row.amountNumeric ? e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1") : e.target.value; onChange({ ...row, amount: v }); }}
+                      {...(row.amountNumeric ? {
+                        inputMode: "decimal" as const, pattern: "[0-9.]*",
+                        onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => { const nav = ["Backspace","Delete","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Tab","Home","End"]; if (nav.includes(e.key) || e.ctrlKey || e.metaKey) return; if (!/^[0-9.]$/.test(e.key)) { e.preventDefault(); return; } if (e.key === "." && e.currentTarget.value.includes(".")) e.preventDefault(); },
+                        onPaste: (e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const cleaned = e.clipboardData.getData("text").replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1"); onChange({ ...row, amount: cleaned }); },
+                      } : {})}
                       className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm"
                     />
                     <span className="text-sm text-slate-700">{row.unit}</span>
@@ -646,6 +687,7 @@ export function MatrixRow({
                     <input
                       value={row.otherText}
                       onChange={(e) => onChange({ ...row, otherText: e.target.value })}
+                      maxLength={50}
                       className={inputClass + " w-32"}
                     />
                     <span>）</span>
@@ -681,16 +723,16 @@ export function MatrixRow({
                 type="checkbox"
                 checked={row.managerConfirm}
                 onChange={(e) => onChange({ ...row, managerConfirm: e.target.checked })}
-                className="mt-1 h-4 w-4 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+                className="mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
               />
             )}
           </div>
         </>
       )}
 
-      <div className="col-span-11 border border-slate-300 px-2 py-2">
+      <div className="col-span-11 border border-slate-300 bg-white px-2 py-2">
         {!row.remarkExtra && (
-          <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} className={textareaClass} />
+          <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} maxLength={100} className={textareaClass} />
         )}
         {row.remarkExtra && row.remarkExtra.map((extra, i) => {
           const updateEntry = (patch: Partial<typeof extra>) => {
@@ -714,13 +756,14 @@ export function MatrixRow({
                     const checked = e.target.checked;
                     remarkFileUpload!.onFileCheckChange(fk!, checked, setCheckboxChecked);
                   }}
-                  className="h-4 w-4 shrink-0 rounded border-slate-400 text-sky-600 focus:ring-sky-500"
+                  className="h-4 w-4 shrink-0 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
                 />
               )}
               <span className="whitespace-nowrap text-sm text-slate-700">{extra.label}</span>
               <input
                 value={extra.value}
                 onChange={(e) => updateEntry({ value: e.target.value })}
+                maxLength={300}
                 className={inputClass}
               />
               {hasFileUpload && (

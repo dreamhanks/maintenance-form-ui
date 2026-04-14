@@ -110,6 +110,14 @@ export const formApi = {
   delete: (id: number) => request<void>(`/api/forms/${id}`, { method: "DELETE" }),
   downloadUrl: (id: number, fieldKey: string) =>
     `${API_BASE}/api/forms/${id}/files/${fieldKey}`,
+  relatedForms: (id: number) =>
+    request<RelatedFormDto[]>(`/api/forms/${id}/related-forms`),
+};
+
+export type RelatedFormDto = {
+  formRecordId: number;
+  documentNo: string | null;
+  buildingCode2: string;
 };
 
 export type WorkflowStepDto = {
