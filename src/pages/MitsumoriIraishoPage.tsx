@@ -51,6 +51,7 @@ type RequestForm = {
   chakkoDay: string;
 
   teishutsuMethod: string;
+  teishutsuMethodDetail: string;
   deadlineYear: string;
   deadlineMonth: string;
   deadlineDay: string;
@@ -455,6 +456,7 @@ export default function MitsumoriIraishoPage() {
     chakkoDay: "",
 
     teishutsuMethod: "",
+    teishutsuMethodDetail: "",
     deadlineYear: "",
     deadlineMonth: "",
     deadlineDay: "",
@@ -480,15 +482,15 @@ export default function MitsumoriIraishoPage() {
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStepDto[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState<boolean>(!!formRecordId);
   const pendingStep = workflowSteps.find((s) => s.status === "pending");
+  const pendingStepNum = pendingStep?.stepNumber ?? 0;
   const isEditableRaw =
-    !formRecordId ||
     user?.role === "admin" ||
-    (!!pendingStep && user?.role === pendingStep.stepName);
+    (pendingStepNum >= 5 && pendingStepNum <= 7 && !!pendingStep && user?.role === pendingStep.stepName);
   // While loading on a saved form, treat as not-editable but suppress the banner
   // so non-matching users don't see a flicker before the workflow arrives.
   const isEditable = workflowLoading ? false : isEditableRaw;
   const readOnlyNotice = !workflowLoading && !isEditable && pendingStep
-    ? `現在 ${pendingStep.stepLabel} が確認中です。編集できません。`
+    ? "閲覧のみ可能です。編集できません。"
     : null;
 
   useEffect(() => {
@@ -620,6 +622,16 @@ export default function MitsumoriIraishoPage() {
             const [pY, pM, pD] = splitYmd(e.proposalDate);
             const [kY, kM, kD] = splitYmd(e.contractDate);
             const [cY, cM, cD] = splitYmd(e.startDate);
+
+            const buiItems: string[] = [];
+            if (e.kaishuRoof) buiItems.push("屋根");
+            if (e.kaishuOutsideWall) buiItems.push("外壁");
+            if (e.kaishuBalcony) buiItems.push("バルコニー・ベランダ");
+            if (e.kaishuCommonArea) buiItems.push("共用部（廊下・エントランス）");
+            if (e.kaishuPrivateArea) buiItems.push("専有部（室内）");
+            if (e.kaishuOtherWork && e.kaishuOtherWorkText) buiItems.push(String(e.kaishuOtherWorkText));
+            const kaishuBui = buiItems.join("　");
+
             setForm((prev) => ({
               ...prev,
               buildingAddress: typeof e.address === "string" ? e.address : "",
@@ -633,6 +645,8 @@ export default function MitsumoriIraishoPage() {
               chakkoYear: cY,
               chakkoMonth: cM,
               chakkoDay: cD,
+              kaishuBui,
+              kojiNaiyoShosai: typeof e.workDetail === "string" ? e.workDetail : "",
             }));
 
             const ashibaActive = !!e.ashibaEnabled && e.ashibaSetsuchiNeed === "必要";
@@ -824,7 +838,7 @@ export default function MitsumoriIraishoPage() {
   const navBack = () => nav(formRecordId ? `/form/${formRecordId}` : "/form", { replace: true });
 
   const handleBack = () => {
-    if (!isDirty) {
+    if (!isEditable || !isDirty) {
       navBack();
       return;
     }
@@ -1202,11 +1216,26 @@ export default function MitsumoriIraishoPage() {
               <tr className="h-[22px]">
                 <td className={`${blueCell} text-[12px]`}>提出方法</td>
                 <td className={tdBase}>
-                    <input
-                      value={form.teishutsuMethod}
-                      onChange={(e) => updateForm("teishutsuMethod", e.target.value)}
-                      className={inputClass}
-                    />
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={form.teishutsuMethod}
+                        onChange={(e) => updateForm("teishutsuMethod", e.target.value)}
+                        className={inputClass}
+                        style={{ width: "120px" }}
+                      >
+                        <option value="">-- 選択 --</option>
+                        <option value="メール">メール</option>
+                        <option value="郵送">郵送</option>
+                        <option value="手渡し">手渡し</option>
+                      </select>
+                      <input
+                        value={form.teishutsuMethodDetail}
+                        onChange={(e) => updateForm("teishutsuMethodDetail", e.target.value)}
+                        className={inputClass}
+                        placeholder="詳細を入力"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
                 </td>
               </tr>
             </tbody>
@@ -1293,6 +1322,7 @@ export default function MitsumoriIraishoPage() {
                     <input
                       value={form.mitsumoriIraiNaiyo}
                       onChange={(e) => updateForm("mitsumoriIraiNaiyo", e.target.value)}
+                      maxLength={100}
                       className={inputClass}
                     />
                   </div>
@@ -1307,6 +1337,7 @@ export default function MitsumoriIraishoPage() {
                       <input
                         value={form[key]}
                         onChange={(e) => updateForm(key, e.target.value)}
+                        maxLength={100}
                         className={inputClass}
                       />
                     </td>

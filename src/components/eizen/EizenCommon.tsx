@@ -135,6 +135,8 @@ export function MatrixRow({
     fileUpload,
     sonotaFileUpload,
     remarkFileUpload,
+    disableDapConfirmAndRemark,
+    disableMainContent,
 }: {
     index: number;
     type: number;
@@ -144,6 +146,8 @@ export function MatrixRow({
     fileUpload?: MatrixRowFileUpload;
     sonotaFileUpload?: MatrixRowFileUpload;
     remarkFileUpload?: RemarkFileUploadContext;
+    disableDapConfirmAndRemark?: boolean;
+    disableMainContent?: boolean;
 }) {
   const optionEntries = Object.entries(row.checks);
 
@@ -175,7 +179,8 @@ export function MatrixRow({
 
       {row.variant === "betsuto" ? (
         <>
-          <div className="col-span-11 border border-slate-300 px-3 py-3 text-sm text-slate-900">
+          <fieldset disabled={disableMainContent} className="contents">
+          <div className={`col-span-11 border border-slate-300 px-3 py-3 text-sm text-slate-900${disableMainContent ? " opacity-50" : ""}`}>
             <div className="flex items-center gap-2">
               <span className="whitespace-nowrap">{row.item}</span>
               <input
@@ -186,22 +191,25 @@ export function MatrixRow({
               />
             </div>
           </div>
+          </fieldset>
           <div className="col-span-1 border border-slate-300 px-3 py-3 text-center">
             <input
               type="checkbox"
               checked={row.managerConfirm}
               onChange={(e) => onChange({ ...row, managerConfirm: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
+              disabled={disableDapConfirmAndRemark}
+              className={`mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`}
             />
           </div>
         </>
       ) : row.variant === "noRadioTwoLine" ? (
         <>
-          <div className="col-span-3 border border-slate-300 px-3 py-3 text-sm text-slate-900">
+          <fieldset disabled={disableMainContent} className="contents">
+          <div className={`col-span-3 border border-slate-300 px-3 py-3 text-sm text-slate-900${disableMainContent ? " opacity-50" : ""}`}>
             {row.item}
           </div>
 
-          <div className="col-span-2 border border-slate-300 px-3 py-3">
+          <div className={`col-span-2 border border-slate-300 px-3 py-3${disableMainContent ? " opacity-50" : ""}`}>
             {row.radioColKeys && (
               <div className="flex flex-col gap-2">
                 {row.radioColAsRadio ? (
@@ -260,23 +268,26 @@ export function MatrixRow({
               ))}
             </div>
           </div>
+          </fieldset>
 
           <div className="col-span-1 border border-slate-300 px-3 py-3 text-center">
             <input
               type="checkbox"
               checked={row.managerConfirm}
               onChange={(e) => onChange({ ...row, managerConfirm: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
+              disabled={disableDapConfirmAndRemark}
+              className={`mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`}
             />
           </div>
         </>
       ) : (
         <>
-          <div className="col-span-3 border border-slate-300 px-3 py-3 text-sm text-slate-900">
+          <fieldset disabled={disableMainContent} className="contents">
+          <div className={`col-span-3 border border-slate-300 px-3 py-3 text-sm text-slate-900${disableMainContent ? " opacity-50" : ""}`}>
             {row.item}
           </div>
 
-          <div className="col-span-2 border border-slate-300 px-3 py-3">
+          <div className={`col-span-2 border border-slate-300 px-3 py-3${disableMainContent ? " opacity-50" : ""}`}>
             <div className="flex flex-col gap-2">
               <label className="inline-flex items-center gap-2 text-sm">
                 <input
@@ -301,7 +312,7 @@ export function MatrixRow({
             </div>
           </div>
 
-          <div className={`col-span-6 border border-slate-300 px-3 py-3 ${row.need === "不要" ? "opacity-50 pointer-events-none" : ""}`}>
+          <div className={`col-span-6 border border-slate-300 px-3 py-3 ${row.need === "不要" ? "opacity-50 pointer-events-none" : ""}${disableMainContent ? " opacity-50" : ""}`}>
             {row.variant === "fullInput" ? (
               <textarea
                 value={row.amount || ""}
@@ -697,10 +708,11 @@ export function MatrixRow({
             </div>
             )}
           </div>
+          </fieldset>
 
           <div className="col-span-1 border border-slate-300 px-3 py-3 text-center">
             {row.variant === "checksInConfirm" ? (
-              <div className="flex flex-col gap-2">
+              <div className={`flex flex-col gap-2${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed pointer-events-none" : ""}`}>
                 {optionEntries.map(([key, val]) => (
                   <Check
                     key={key}
@@ -723,7 +735,8 @@ export function MatrixRow({
                 type="checkbox"
                 checked={row.managerConfirm}
                 onChange={(e) => onChange({ ...row, managerConfirm: e.target.checked })}
-                className="mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
+                disabled={disableDapConfirmAndRemark}
+                className={`mt-1 h-4 w-4 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`}
               />
             )}
           </div>
@@ -732,7 +745,7 @@ export function MatrixRow({
 
       <div className="col-span-11 border border-slate-300 bg-white px-2 py-2">
         {!row.remarkExtra && (
-          <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} maxLength={100} className={textareaClass} />
+          <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} maxLength={100} disabled={disableDapConfirmAndRemark} className={`${textareaClass}${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`} />
         )}
         {row.remarkExtra && row.remarkExtra.map((extra, i) => {
           const updateEntry = (patch: Partial<typeof extra>) => {
@@ -764,7 +777,8 @@ export function MatrixRow({
                 value={extra.value}
                 onChange={(e) => updateEntry({ value: e.target.value })}
                 maxLength={300}
-                className={inputClass}
+                disabled={disableDapConfirmAndRemark}
+                className={`${inputClass}${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`}
               />
               {hasFileUpload && (
                 <input

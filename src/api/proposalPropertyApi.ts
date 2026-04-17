@@ -1,16 +1,17 @@
 import { formApi } from "../form/api";
-import { ProposalRow, ProposalSearchParams } from "../types";
+import { PagedResponse, ProposalRow } from "../types";
 
-export async function fetchProposals(
-  params: ProposalSearchParams
-): Promise<ProposalRow[]> {
-  const data = await formApi.list({
-    salesOffice: params.salesOffice,
-    keyword: params.keyword,
-    status: params.status === "すべて" ? undefined : params.status,
-  });
+export type FetchProposalsParams = {
+  salesOffice: string;
+  page: number;
+  size: number;
+  sortKey: string | null;
+  sortDir: "asc" | "desc";
+  filters: Record<string, string[]>;
+};
 
-  return data.map((row: any) => ({
+function toProposalRow(row: any): ProposalRow {
+  return {
     id: String(row.id ?? ""),
     propertyCode: row.propertyCode ?? "",
     propertyCode2: row.propertyCode2 ?? "",
@@ -45,7 +46,37 @@ export async function fetchProposals(
     designManager2: row.designManager2 ?? "",
     designManager2Date: row.designManager2Date ?? "",
 
+    daipaKacho3: row.daipaKacho3 ?? "",
+    daipaKacho3Date: row.daipaKacho3Date ?? "",
+
     gyomukaConfirmUser: row.gyomukaConfirmUser ?? "",
     confirmDate: row.confirmDate ?? "",
-  }));
+  };
+}
+
+export async function fetchProposals(
+  params: FetchProposalsParams
+): Promise<PagedResponse<ProposalRow>> {
+  const result = await formApi.list({
+    salesOffice: params.salesOffice,
+    page: params.page,
+    size: params.size,
+    sortKey: params.sortKey,
+    sortDir: params.sortDir,
+    filters: params.filters,
+  });
+  return {
+    rows: (result.rows ?? []).map(toProposalRow),
+    totalCount: result.totalCount ?? 0,
+    page: result.page ?? params.page,
+    hasMore: !!result.hasMore,
+  };
+}
+
+export async function fetchProposalColumnValues(
+  salesOffice: string,
+  column: string
+): Promise<string[]> {
+  const result = await formApi.columnValues({ salesOffice, column });
+  return result.values ?? [];
 }

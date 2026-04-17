@@ -96,16 +96,48 @@ export async function putMultipart(url: string, fd: FormData) {
   return res.json();
 }
 
+export type PagedApiResponse<T> = {
+  rows: T[];
+  totalCount: number;
+  page: number;
+  hasMore: boolean;
+};
+
+export type ListApiParams = {
+  salesOffice?: string;
+  page?: number;
+  size?: number;
+  sortKey?: string | null;
+  sortDir?: "asc" | "desc";
+  filters?: Record<string, string[]>;
+};
+
+function buildListQuery(params: ListApiParams): URLSearchParams {
+  const q = new URLSearchParams();
+  if (params.salesOffice) q.set("salesOffice", params.salesOffice);
+  q.set("page", String(params.page ?? 0));
+  q.set("size", String(params.size ?? 100));
+  if (params.sortKey) q.set("sortKey", params.sortKey);
+  if (params.sortDir) q.set("sortDir", params.sortDir);
+  if (params.filters && Object.keys(params.filters).length > 0) {
+    q.set("filters", JSON.stringify(params.filters));
+  }
+  return q;
+}
+
 export const formApi = {
   create: (fd: FormData) => postMultipart("/api/forms", fd),
   update: (id: number, fd: FormData) => putMultipart(`/api/forms/${id}`, fd),
   get: (id: number) => request<any>(`/api/forms/${id}`),
-  list: (params?: { salesOffice?: string; keyword?: string; status?: string }) => {
+  list: (params: ListApiParams) => {
+    const q = buildListQuery(params);
+    return request<PagedApiResponse<any>>(`/api/forms/list?${q}`);
+  },
+  columnValues: (params: { salesOffice?: string; column: string }) => {
     const q = new URLSearchParams();
-    if (params?.salesOffice) q.set("salesOffice", params.salesOffice);
-    if (params?.keyword) q.set("keyword", params.keyword);
-    if (params?.status) q.set("status", params.status);
-    return request<any[]>(`/api/forms/list?${q}`);
+    if (params.salesOffice) q.set("salesOffice", params.salesOffice);
+    q.set("column", params.column);
+    return request<{ values: string[] }>(`/api/forms/column-values?${q}`);
   },
   delete: (id: number) => request<void>(`/api/forms/${id}`, { method: "DELETE" }),
   downloadUrl: (id: number, fieldKey: string) =>
@@ -145,17 +177,30 @@ export const workflowApi = {
     }),
 };
 
+export type JudgmentListApiParams = ListApiParams & { judgment?: string };
+
+function buildJudgmentListQuery(params: JudgmentListApiParams): URLSearchParams {
+  const q = buildListQuery(params);
+  if (params.judgment) q.set("judgment", params.judgment);
+  return q;
+}
+
 export const judgmentApi = {
   set: (formId: number, body: { judgment: string; contractDate?: string; lostDate?: string }) =>
     request<any>(`/api/forms/${formId}/judgment`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  list: (params?: { salesOffice?: string; judgment?: string }) => {
+  list: (params: JudgmentListApiParams) => {
+    const q = buildJudgmentListQuery(params);
+    return request<PagedApiResponse<any>>(`/api/judgment/list?${q}`);
+  },
+  columnValues: (params: { salesOffice?: string; judgment?: string; column: string }) => {
     const q = new URLSearchParams();
-    if (params?.salesOffice) q.set("salesOffice", params.salesOffice);
-    if (params?.judgment) q.set("judgment", params.judgment);
-    return request<any[]>(`/api/judgment/list?${q}`);
+    if (params.salesOffice) q.set("salesOffice", params.salesOffice);
+    if (params.judgment) q.set("judgment", params.judgment);
+    q.set("column", params.column);
+    return request<{ values: string[] }>(`/api/judgment/column-values?${q}`);
   },
 };
 

@@ -16,6 +16,8 @@ type Props = {
   danshinSonotaFileUpload?: MatrixRowFileUpload;
   shitajiFileUpload?: MatrixRowFileUpload;
   remarkFileUpload?: RemarkFileUploadContext;
+  disableDapConfirmAndRemark?: boolean;
+  disableMainContent?: boolean;
 };
 
 export default function TemporaryConfirmSection(props: Props) {
@@ -47,6 +49,8 @@ export default function TemporaryConfirmSection(props: Props) {
             row={row}
             onChange={(next) => props.updateRow(row.id, next)}
             categoryCheckbox={categoryCheckboxMap[i]}
+            disableDapConfirmAndRemark={props.disableDapConfirmAndRemark}
+            disableMainContent={props.disableMainContent}
             sonotaFileUpload={row.id === "p2r6" ? props.danshinSonotaFileUpload : undefined}
             fileUpload={row.id === "p2r7" ? props.shitajiFileUpload : undefined}
             remarkFileUpload={row.id === "p2r8" ? props.remarkFileUpload : undefined}
@@ -60,11 +64,11 @@ export default function TemporaryConfirmSection(props: Props) {
         const dimChildrenExceptFirst = "[&>div>*:not(:first-child)]:opacity-50 [&>div>*:not(:first-child)]:pointer-events-none";
         return groups.map((g, gi) => (
           <div key={gi}>
-            <div className={!g.enabled ? dimChildrenExceptFirst : ""}>
+            <div className={!props.disableMainContent && !g.enabled ? dimChildrenExceptFirst : ""}>
               {renderRow(props.rows[g.masterIdx], g.masterIdx)}
             </div>
             {g.range[1] > g.masterIdx && (
-              <div className={!g.enabled ? "opacity-50 pointer-events-none" : ""}>
+              <div className={!props.disableMainContent && !g.enabled ? "opacity-50 pointer-events-none" : ""}>
                 {props.rows.slice(g.masterIdx + 1, g.range[1] + 1).map((row, j) => renderRow(row, g.masterIdx + 1 + j))}
               </div>
             )}

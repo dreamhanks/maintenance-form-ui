@@ -18,6 +18,8 @@ type Props = {
   densenbogokanFileUpload?: MatrixRowFileUpload;
   ashibaPlanFileUpload?: MatrixRowFileUpload;
   plantingPlanFileUpload?: MatrixRowFileUpload;
+  disableDapConfirmAndRemark?: boolean;
+  disableMainContent?: boolean;
 };
 
 export default function TemporaryCheckSection(props: Props) {
@@ -50,6 +52,8 @@ export default function TemporaryCheckSection(props: Props) {
             row={row}
             onChange={(next) => props.updateRow(row.id, next)}
             categoryCheckbox={categoryCheckboxMap[i]}
+            disableDapConfirmAndRemark={props.disableDapConfirmAndRemark}
+            disableMainContent={props.disableMainContent}
             fileUpload={row.id === "r5" ? props.densenbogokanFileUpload : row.id === "r7" ? props.ashibaPlanFileUpload : row.id === "r12" ? props.plantingPlanFileUpload : undefined}
           />
         );
@@ -62,11 +66,11 @@ export default function TemporaryCheckSection(props: Props) {
         const dimChildrenExceptFirst = "[&>div>*:not(:first-child)]:opacity-50 [&>div>*:not(:first-child)]:pointer-events-none";
         return groups.map((g, gi) => (
           <div key={gi}>
-            <div className={!g.enabled ? dimChildrenExceptFirst : ""}>
+            <div className={!props.disableMainContent && !g.enabled ? dimChildrenExceptFirst : ""}>
               {renderRow(props.rows[g.masterIdx], g.masterIdx)}
             </div>
             {g.range[1] > g.masterIdx && (
-              <div className={!g.enabled ? "opacity-50 pointer-events-none" : ""}>
+              <div className={!props.disableMainContent && !g.enabled ? "opacity-50 pointer-events-none" : ""}>
                 {props.rows.slice(g.masterIdx + 1, g.range[1] + 1).map((row, j) => renderRow(row, g.masterIdx + 1 + j))}
               </div>
             )}

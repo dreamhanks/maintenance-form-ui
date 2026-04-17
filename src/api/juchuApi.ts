@@ -1,36 +1,56 @@
 import { judgmentApi } from "../form/api";
-import { JuchuRow, JuchuSearchParams } from "../types";
+import { JuchuRow, PagedResponse } from "../types";
 
-export async function fetchJuchuRows(
-  params: JuchuSearchParams
-): Promise<JuchuRow[]> {
-  const status = params.status ?? "すべて";
-  const keyword = (params.keyword ?? "").trim().toLowerCase();
+const JUCHU_JUDGMENT = "未契約,保留";
 
-  // Fetch 未契約 and 保留 rows for the 受注判定 list
-  const [mikeiyaku, horyu] = await Promise.all([
-    judgmentApi.list({ salesOffice: params.salesOffice, judgment: "未契約" }),
-    judgmentApi.list({ salesOffice: params.salesOffice, judgment: "保留" }),
-  ]);
+export type FetchJuchuParams = {
+  salesOffice: string;
+  page: number;
+  size: number;
+  sortKey: string | null;
+  sortDir: "asc" | "desc";
+  filters: Record<string, string[]>;
+};
 
-  const all: JuchuRow[] = [...mikeiyaku, ...horyu].map((row: any) => ({
+function toJuchuRow(row: any): JuchuRow {
+  return {
     id: row.id ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
     salesOffice: row.salesOffice ?? "",
     status: row.status ?? row.judgment ?? "未契約",
     daipaTanto: row.daipaTanto ?? "",
-  }));
+  };
+}
 
-  return all.filter((row) => {
-    const matchKeyword =
-      keyword.length === 0 ||
-      row.id.toLowerCase().includes(keyword) ||
-      row.ownerName.toLowerCase().includes(keyword) ||
-      row.buildingName.toLowerCase().includes(keyword);
-
-    const matchStatus = status === "すべて" || row.status === status;
-
-    return matchKeyword && matchStatus;
+export async function fetchJuchuRows(
+  params: FetchJuchuParams
+): Promise<PagedResponse<JuchuRow>> {
+  const result = await judgmentApi.list({
+    salesOffice: params.salesOffice,
+    judgment: JUCHU_JUDGMENT,
+    page: params.page,
+    size: params.size,
+    sortKey: params.sortKey,
+    sortDir: params.sortDir,
+    filters: params.filters,
   });
+  return {
+    rows: (result.rows ?? []).map(toJuchuRow),
+    totalCount: result.totalCount ?? 0,
+    page: result.page ?? params.page,
+    hasMore: !!result.hasMore,
+  };
+}
+
+export async function fetchJuchuColumnValues(
+  salesOffice: string,
+  column: string
+): Promise<string[]> {
+  const result = await judgmentApi.columnValues({
+    salesOffice,
+    judgment: JUCHU_JUDGMENT,
+    column,
+  });
+  return result.values ?? [];
 }

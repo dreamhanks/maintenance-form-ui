@@ -1,31 +1,55 @@
 import { judgmentApi } from "../form/api";
-import { KeiyakuRow, KeiyakuSearchParams } from "../types";
+import { KeiyakuRow, PagedResponse } from "../types";
 
-export async function fetchKeiyakuRows(
-  params: KeiyakuSearchParams
-): Promise<KeiyakuRow[]> {
-  const keyword = (params.keyword ?? "").trim().toLowerCase();
+const KEIYAKU_JUDGMENT = "契約";
 
-  const data = await judgmentApi.list({
-    salesOffice: params.salesOffice,
-    judgment: "契約",
-  });
+export type FetchKeiyakuParams = {
+  salesOffice: string;
+  page: number;
+  size: number;
+  sortKey: string | null;
+  sortDir: "asc" | "desc";
+  filters: Record<string, string[]>;
+};
 
-  const rows: KeiyakuRow[] = data.map((row: any) => ({
+function toKeiyakuRow(row: any): KeiyakuRow {
+  return {
     id: row.id ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
     salesOffice: row.salesOffice ?? "",
     contractDate: row.contractDate ?? "",
-  }));
+  };
+}
 
-  return rows.filter((row) => {
-    const matchKeyword =
-      keyword.length === 0 ||
-      row.id.toLowerCase().includes(keyword) ||
-      row.ownerName.toLowerCase().includes(keyword) ||
-      row.buildingName.toLowerCase().includes(keyword);
-
-    return matchKeyword;
+export async function fetchKeiyakuRows(
+  params: FetchKeiyakuParams
+): Promise<PagedResponse<KeiyakuRow>> {
+  const result = await judgmentApi.list({
+    salesOffice: params.salesOffice,
+    judgment: KEIYAKU_JUDGMENT,
+    page: params.page,
+    size: params.size,
+    sortKey: params.sortKey,
+    sortDir: params.sortDir,
+    filters: params.filters,
   });
+  return {
+    rows: (result.rows ?? []).map(toKeiyakuRow),
+    totalCount: result.totalCount ?? 0,
+    page: result.page ?? params.page,
+    hasMore: !!result.hasMore,
+  };
+}
+
+export async function fetchKeiyakuColumnValues(
+  salesOffice: string,
+  column: string
+): Promise<string[]> {
+  const result = await judgmentApi.columnValues({
+    salesOffice,
+    judgment: KEIYAKU_JUDGMENT,
+    column,
+  });
+  return result.values ?? [];
 }

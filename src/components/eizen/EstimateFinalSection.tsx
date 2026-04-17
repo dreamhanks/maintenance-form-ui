@@ -35,6 +35,13 @@ type Props = {
   onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
   getAttachmentUrl: (fieldKey: string) => string | null;
   onOpenMitsumori: () => void;
+  showOnlyMaintenanceConfirm?: boolean;
+  showOnlyDaipaFinal?: boolean;
+  showOnlyDaipaMitsumori?: boolean;
+  showOnlyDaipaManagerConfirm?: boolean;
+  showOnlyDaipaFinalAndRequest?: boolean;
+  disableDaipaManagerConfirm?: boolean;
+  canOpenMitsumori?: boolean;
 };
 
 function FileLink({ fieldKey, attachments, getAttachmentUrl }: {
@@ -99,6 +106,7 @@ export default function EstimateFinalSection(props: Props) {
           ◆大パ最終確認欄
         </div>
 
+        <fieldset disabled={props.showOnlyDaipaFinal || props.showOnlyDaipaManagerConfirm || props.showOnlyDaipaFinalAndRequest} className="contents">
         <LabelCell>見積書</LabelCell>
         <div className="col-span-3 grid grid-cols-12">
           <a
@@ -106,7 +114,7 @@ export default function EstimateFinalSection(props: Props) {
             tabIndex={0}
             onClick={props.onOpenMitsumori}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); props.onOpenMitsumori(); } }}
-            className="col-span-8 border border-slate-400 px-3 py-2 underline text-left cursor-pointer select-none"
+            className={`col-span-8 border border-slate-400 px-3 py-2 underline text-left cursor-pointer select-none${props.canOpenMitsumori === false ? " opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
           >業者見積依頼書出力</a>
           <ValueCell className="col-span-4 flex flex-col items-center justify-center border border-slate-400">
             <div className="flex items-center gap-2">
@@ -127,7 +135,9 @@ export default function EstimateFinalSection(props: Props) {
             <textarea value={props.estimateRemark} onChange={(e) => props.setEstimateRemark(e.target.value)} rows={2} maxLength={200} className={textareaClass} placeholder="備考" />
           </ValueCell>
         </div>
+        </fieldset>
 
+        <fieldset disabled={props.showOnlyDaipaFinal || props.showOnlyDaipaMitsumori || props.showOnlyDaipaManagerConfirm || props.showOnlyDaipaFinalAndRequest} className="contents">
         <LabelCell>見積書</LabelCell>
         <div className="col-span-2 grid grid-cols-12">
           <div className="col-span-6 border border-slate-400 px-3 pt-3">見積書添付</div>
@@ -143,9 +153,12 @@ export default function EstimateFinalSection(props: Props) {
             <input value={props.maintenanceEstimateRemark} onChange={(e) => props.setMaintenanceEstimateRemark(e.target.value)} maxLength={100} className={inputClass} placeholder="備考" />
           </ValueCell>
         </div>
+        </fieldset>
 
+        <fieldset disabled={props.showOnlyMaintenanceConfirm || props.showOnlyDaipaMitsumori} className="contents">
         <div className="col-span-5 grid grid-cols-12">
           {/* <LabelCell>受注</LabelCell> */}
+          <fieldset disabled={props.showOnlyDaipaManagerConfirm} className="contents">
           <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
             <label className="inline-flex items-center gap-2">
               <input type="radio" name="order-result" checked={props.orderResult === "受注"} onChange={() => props.setOrderResult("受注")} className="h-5 w-5 border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
@@ -158,15 +171,17 @@ export default function EstimateFinalSection(props: Props) {
               失注
             </label>
           </ValueCell>
+          </fieldset>
           <div className="col-span-4 border border-slate-400 flex items-center justify-center">大パ管理職確認</div>
           <ValueCell className="col-span-2 flex items-center justify-center">
-            <input type="checkbox" checked={props.daipaFinalConfirm} onChange={(e) => props.setDaipaFinalConfirm(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
+            <input type="checkbox" checked={props.daipaFinalConfirm} onChange={(e) => props.setDaipaFinalConfirm(e.target.checked)} disabled={props.disableDaipaManagerConfirm} className={`h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${props.disableDaipaManagerConfirm ? " opacity-50 cursor-not-allowed" : ""}`} />
           </ValueCell>
+          <fieldset disabled={props.showOnlyDaipaManagerConfirm} className="contents">
           <div className="col-span-3 border border-slate-400 flex items-center justify-center">一般申請</div>
           {/* <ValueCell className="col-span-3 flex items-center justify-center">
             <input type="checkbox" checked={props.generalApplyAttach} onChange={(e) => props.setGeneralApplyAttach(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
           </ValueCell> */}
-            
+
           <ValueCell className="col-span-3 flex flex-col items-center justify-center border border-slate-400">
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={props.lostOrder} onChange={(e) => props.onFileCheckChange("daipa_saishuu_tenpu", e.target.checked, props.setLostOrder)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
@@ -185,7 +200,9 @@ export default function EstimateFinalSection(props: Props) {
           <textarea value={props.finalReason} onChange={(e) => props.setFinalReason(e.target.value)} rows={2} maxLength={500} className={textareaClass} />
         </ValueCell>
         )}
+          </fieldset>
         </div>
+        </fieldset>
 
         {/* <LabelCell>理由</LabelCell> */}
         {/* <ValueCell className="col-span-11">

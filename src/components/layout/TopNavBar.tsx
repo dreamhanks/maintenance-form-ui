@@ -94,24 +94,24 @@ export default function TopNavBar({
         >
           ログアウト
         </button>
-        <button
-          type="button"
-          onClick={onNewCreate}
-          disabled={!canCreate}
-          className={!canCreate ? "opacity-50" : ""}
-          style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#fff",
-            background: "#2a9d5c",
-            border: "none",
-            borderRadius: 6,
-            padding: "6px 16px",
-            cursor: canCreate ? "pointer" : "not-allowed",
-          }}
-        >
-          ＋ 新規作成
-        </button>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={onNewCreate}
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#fff",
+              background: "#2a9d5c",
+              border: "none",
+              borderRadius: 6,
+              padding: "6px 16px",
+              cursor: "pointer",
+            }}
+          >
+            ＋ 新規作成
+          </button>
+        )}
       </div>
     </div>
   );

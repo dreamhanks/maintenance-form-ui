@@ -33,6 +33,9 @@ export type ProposalRow = {
   designManager2: string;
   designManager2Date: string;
 
+  daipaKacho3: string;
+  daipaKacho3Date: string;
+
   gyomukaConfirmUser: string;
   confirmDate: string;
 };
@@ -42,12 +45,21 @@ export type SalesOfficeOption = {
   value: string;
 };
 
-export type ProposalSearchParams = {
-  salesOffice: string;
-  keyword?: string;
-  status?: string;
+export type PagedResponse<T> = {
+  rows: T[];
+  totalCount: number;
+  page: number;
+  hasMore: boolean;
 };
 
+export type ListQueryParams = {
+  salesOffice: string;
+  page: number;
+  size: number;
+  sortKey: string | null;
+  sortDir: "asc" | "desc";
+  filters: Record<string, string[]>;
+};
 
 export type JuchuStatus = "未契約" | "契約" | "失注" | "保留";
 
@@ -59,13 +71,6 @@ export type JuchuRow = {
   status: JuchuStatus; // ステータス
   daipaTanto: string; // 大パ担当
 };
-
-export type JuchuSearchParams = {
-  salesOffice: string;
-  keyword?: string;
-  status?: string;
-};
-
 
 export type ContractConfirmRequest = {
   ids: string[];
@@ -81,12 +86,6 @@ export type ShichuRow = {
   lostDate: string; // 失注日
 };
 
-export type ShichuSearchParams = {
-  salesOffice: string;
-  keyword?: string;
-};
-
-
 export type KeiyakuRow = {
   id: string;
   ownerName: string;
@@ -94,14 +93,6 @@ export type KeiyakuRow = {
   salesOffice: string;
   contractDate: string;
 };
-
-export type KeiyakuSearchParams = {
-  salesOffice: string;
-  keyword?: string;
-};
-
-
-
 
 
 

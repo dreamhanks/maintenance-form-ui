@@ -53,7 +53,7 @@ export default function ListToolbar({
     <div className="space-y-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-slate-600">
+          <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-[#17375E]/70">
             {typeof totalCount === "number" && <span>表示件数: {totalCount}件</span>}
             {typeof selectedCount === "number" && <span>選択件数: {selectedCount}件</span>}
           </div>
@@ -104,11 +104,11 @@ export default function ListToolbar({
         }`}
       >
         <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-700">営業所名</label>
+          <label className="text-sm font-semibold text-[#17375E]">営業所名</label>
           <select
             value={salesOffice}
             onChange={(e) => onSalesOfficeChange(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-blue-500"
+            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-[#17375E] outline-none focus:border-blue-500"
           >
             {officeOptions.map((office) => (
               <option key={office.value} value={office.value}>
@@ -154,7 +154,7 @@ export default function ListToolbar({
             <button
               type="button"
               onClick={onClearFilters}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 xl:w-auto"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#17375E] transition hover:bg-slate-100 xl:w-auto"
             >
               条件クリア
             </button>

@@ -38,10 +38,12 @@ export default function AppPageLayout({
       <div className={`mx-auto ${maxWidthClassName} px-4 py-6`}>
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-800">
-              {title}
-            </h1>
-            <div className="mt-4">{headerContent}</div>
+            {title && (
+              <h1 className="text-2xl font-bold tracking-tight text-[#17375E]">
+                {title}
+              </h1>
+            )}
+            <div className={title ? "mt-4" : ""}>{headerContent}</div>
           </div>
 
           <div className="flex gap-5 p-5">

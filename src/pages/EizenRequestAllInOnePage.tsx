@@ -520,7 +520,6 @@ export default function EizenRequestAllInOnePage() {
   const [submitting, setSubmitting] = useState(false);
   const savedSnapshotRef = useRef<string | null>(null);
   const isInitialLoad = useRef(true);
-  const captureSnapshotOnNextRender = useRef(false);
   const [showMitsumoriDialog, setShowMitsumoriDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
 
@@ -568,14 +567,11 @@ export default function EizenRequestAllInOnePage() {
     if (d.proposalDate) setProposalDate(d.proposalDate);
     if (d.contractDate) setContractDate(d.contractDate);
     if (d.startDate) setStartDate(d.startDate);
-    if (d.drawing != null) setDrawing(d.drawing);
-    if (d.otherMaterial != null) setOtherMaterial(d.otherMaterial);
     if (d.photo4side != null) setPhoto4side(d.photo4side);
     if (d.photoPart != null) setPhotoPart(d.photoPart);
     if (d.photoOther != null) setPhotoOther(d.photoOther);
     if (d.photoOtherText) setPhotoOtherText(d.photoOtherText);
     if (d.attachRemark) setAttachRemark(d.attachRemark);
-    if (d.dapManagerConfirmDrawing != null) setDapManagerConfirmDrawing(d.dapManagerConfirmDrawing);
     if (d.dapManagerConfirmPhoto != null) setDapManagerConfirmPhoto(d.dapManagerConfirmPhoto);
     // Merge saved row state with current factory definitions so structural
     // fields (variant, fileUploadFieldKey, line2Check, etc.) added after
@@ -668,7 +664,10 @@ export default function EizenRequestAllInOnePage() {
       if (data.creatorRole) setCreatorRole(data.creatorRole);
 
       if (!data.payloadJson) {
-        captureSnapshotOnNextRender.current = true;
+        setTimeout(() => {
+          savedSnapshotRef.current = JSON.stringify(buildDraftRef.current());
+          isInitialLoad.current = false;
+        }, 0);
         return;
       }
       try {
@@ -676,7 +675,10 @@ export default function EizenRequestAllInOnePage() {
         // Restore from uiState (complete round-trip of all fields)
         if (p?.uiState) {
           restoreFromDraft(p.uiState);
-          captureSnapshotOnNextRender.current = true;
+          setTimeout(() => {
+            savedSnapshotRef.current = JSON.stringify(buildDraftRef.current());
+            isInitialLoad.current = false;
+          }, 0);
           return;
         }
         // Fallback: restore from structured FullForm fields (legacy payloads)
@@ -741,11 +743,12 @@ export default function EizenRequestAllInOnePage() {
 
       if (data.workflowSteps) setWorkflowSteps(data.workflowSteps);
 
-      // Defer the clean-snapshot capture to the next render after
-      // restoreFromDraft's setState calls have been committed. The flag is
-      // consumed by a render-driven effect (see below) so the snapshot is
-      // taken from the same render that already reflects the loaded data.
-      captureSnapshotOnNextRender.current = true;
+      // Defer the clean-snapshot capture until after React has committed all
+      // batched setState calls from this .then() callback.
+      setTimeout(() => {
+        savedSnapshotRef.current = JSON.stringify(buildDraftRef.current());
+        isInitialLoad.current = false;
+      }, 0);
     }).catch(() => {
       // Even on failure, release the initial-load gate so the user isn't stuck
       isInitialLoad.current = false;
@@ -873,14 +876,11 @@ export default function EizenRequestAllInOnePage() {
   const [contractDate, setContractDate] = useState("");
   const [startDate, setStartDate] = useState("");
 
-  const [drawing, setDrawing] = useState(false);
-  const [otherMaterial, setOtherMaterial] = useState(false);
   const [photo4side, setPhoto4side] = useState(false);
   const [photoPart, setPhotoPart] = useState(false);
   const [photoOther, setPhotoOther] = useState(false);
   const [photoOtherText, setPhotoOtherText] = useState("");
   const [attachRemark, setAttachRemark] = useState("");
-  const [dapManagerConfirmDrawing, setDapManagerConfirmDrawing] = useState(false);
   const [dapManagerConfirmPhoto, setDapManagerConfirmPhoto] = useState(false);
 
   const [page1Rows, setPage1Rows] = useState<CheckRow[]>(makeRowsPage1());
@@ -953,6 +953,112 @@ export default function EizenRequestAllInOnePage() {
     ? `現在 ${pendingStep.stepLabel} が確認中です。編集できません。`
     : null;
 
+  // Per-section edit gating: at the early workflow steps (1: 大パ担当者①, 2: 大パ管理職①)
+  // only 物件概要 + 事前確認時 添付資料 are editable. Admin bypasses this.
+  const pendingStepNumber = pendingStep?.stepNumber ?? 0;
+  const isAdmin = user?.role === "admin";
+  const isNewForm = !editId;
+  const createdByDapaTanto = creatorRole === "大パ担当者";
+  const createdByDapaKacho = creatorRole === "大パ管理職";
+
+  const canEditBasicAndAttachment =
+    isAdmin ||
+    isNewForm ||
+    (isEditable && pendingStepNumber === 1) ||
+    (isEditable && pendingStepNumber === 2 && createdByDapaKacho);
+
+  const canEditDapManagerConfirm =
+    isAdmin ||
+    (isNewForm && user?.role === "大パ管理職") ||
+    (isEditable && pendingStepNumber === 2);
+
+  const canEditTemporarySections =
+    isAdmin ||
+    (isEditable && pendingStepNumber === 3) ||
+    (isEditable && pendingStepNumber === 5 && createdByDapaTanto) ||
+    (isEditable && pendingStepNumber === 6 && createdByDapaKacho);
+
+  const canEditMaintenanceSection =
+    isAdmin || (isEditable && pendingStepNumber === 3);
+
+  const disableDapConfirmAndRemark =
+    !isAdmin && isEditable && pendingStepNumber === 3;
+
+  const disableMainContent =
+    !isAdmin && (
+      (pendingStepNumber === 5 && createdByDapaTanto) ||
+      (pendingStepNumber === 6 && createdByDapaKacho)
+    );
+
+  // DEBUG: step 5 permission flags
+  console.log("DEBUG step5:", {
+    userRole: user?.role,
+    pendingStepNumber,
+    creatorRole,
+    createdByDapaTanto,
+    isEditable,
+    workflowLoading,
+    disableMainContent,
+    canEditTemporarySections,
+    disableDapConfirmAndRemark,
+    sectionKasetsu,
+    sectionAshiba,
+    sectionBouhan,
+    sectionYosan,
+    grpTodokede,
+    grpChosa,
+    grpKakunin,
+  });
+
+  const canEditDesignNeedRow =
+    isAdmin || (isEditable && pendingStepNumber === 3);
+
+  const canEditDesignConfirmSection =
+    isAdmin || (isEditable && pendingStepNumber === 4);
+
+  const disableDesignDapConfirm =
+    !isAdmin && isEditable && pendingStepNumber === 4;
+
+  const disableDesignRemark =
+    !isAdmin && isEditable && pendingStepNumber === 4;
+
+  const isStep9 = !isAdmin && isEditable && pendingStepNumber === 9;
+  const isStep9CreatedByTanto = isStep9 && createdByDapaTanto;
+  const isStep9CreatedByKacho = isStep9 && createdByDapaKacho;
+
+  const showOnlyDaipaManagerConfirm = isStep9CreatedByTanto;
+  const showOnlyDaipaFinalAndRequest = isStep9CreatedByKacho;
+
+  const canEditEstimateSection =
+    isAdmin ||
+    (isEditable && pendingStepNumber === 5 && createdByDapaTanto) ||
+    (isEditable && pendingStepNumber === 6 && createdByDapaKacho) ||
+    (isEditable && pendingStepNumber === 7) ||
+    (isEditable && pendingStepNumber === 8 && createdByDapaTanto) ||
+    (isEditable && pendingStepNumber === 9);
+
+  const showOnlyDaipaMitsumori =
+    !isAdmin && isEditable && (
+      (pendingStepNumber === 5 && createdByDapaTanto) ||
+      (pendingStepNumber === 6 && createdByDapaKacho)
+    );
+
+  const showOnlyMaintenanceConfirm =
+    !isAdmin && isEditable && pendingStepNumber === 7;
+
+  const showOnlyDaipaFinal =
+    !isAdmin && isEditable && pendingStepNumber === 8 && createdByDapaTanto;
+
+  const disableDaipaFinalManagerConfirm =
+    !isAdmin && pendingStepNumber === 8 && createdByDapaTanto;
+
+  const canEditRequestSection =
+    isAdmin ||
+    (isEditable && pendingStepNumber === 8 && createdByDapaTanto) ||
+    (isEditable && pendingStepNumber === 9 && createdByDapaKacho);
+
+  const canOpenMitsumori = !isNewForm && (isAdmin || pendingStepNumber >= 5);
+
   // Fetch workflow state when editing an existing form
   useEffect(() => {
     if (!editId) {
@@ -977,8 +1083,8 @@ export default function EizenRequestAllInOnePage() {
     ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
     plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
     proposalDate, contractDate, startDate,
-    drawing, otherMaterial, photo4side, photoPart, photoOther, photoOtherText,
-    attachRemark, dapManagerConfirmDrawing, dapManagerConfirmPhoto,
+    photo4side, photoPart, photoOther, photoOtherText,
+    attachRemark, dapManagerConfirmPhoto,
     page1Rows, page2Rows, siteInstruction1, siteInstruction2,
     sectionKasetsu, sectionAshiba, sectionBouhan, sectionYosan,
     grpTodokede, grpChosa, grpKakunin,
@@ -996,8 +1102,8 @@ export default function EizenRequestAllInOnePage() {
     ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
     plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
     proposalDate, contractDate, startDate,
-    drawing, otherMaterial, photo4side, photoPart, photoOther, photoOtherText,
-    attachRemark, dapManagerConfirmDrawing, dapManagerConfirmPhoto,
+    photo4side, photoPart, photoOther, photoOtherText,
+    attachRemark, dapManagerConfirmPhoto,
     page1Rows, page2Rows, siteInstruction1, siteInstruction2,
     sectionKasetsu, sectionAshiba, sectionBouhan, sectionYosan,
     grpTodokede, grpChosa, grpKakunin,
@@ -1010,15 +1116,9 @@ export default function EizenRequestAllInOnePage() {
     gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
   ]);
 
-  // Keep ref in sync with the latest buildDraft on every render, and capture
-  // the post-load snapshot on the first render after restoreFromDraft runs.
+  // Keep ref in sync with the latest buildDraft on every render.
   useEffect(() => {
     buildDraftRef.current = buildDraft;
-    if (captureSnapshotOnNextRender.current) {
-      captureSnapshotOnNextRender.current = false;
-      savedSnapshotRef.current = JSON.stringify(buildDraft());
-      isInitialLoad.current = false;
-    }
   });
 
   const handleSubmit = async (skipNavigate = false): Promise<number | null> => {
@@ -1139,18 +1239,7 @@ export default function EizenRequestAllInOnePage() {
   const isFormDirty = () => {
     if (isInitialLoad.current) return false;
     if (savedSnapshotRef.current == null) return true;
-    const current = JSON.stringify(buildDraft());
-    if (savedSnapshotRef.current !== current) {
-      // DEBUG: find first difference
-      const snap = JSON.parse(savedSnapshotRef.current);
-      const curr = JSON.parse(current);
-      for (const key of new Set([...Object.keys(snap), ...Object.keys(curr)])) {
-        const a = JSON.stringify(snap[key]);
-        const b = JSON.stringify(curr[key]);
-        if (a !== b) console.log("DIRTY KEY:", key, "\n  snapshot:", a?.substring(0, 100), "\n  current:", b?.substring(0, 100));
-      }
-    }
-    return savedSnapshotRef.current !== current;
+    return savedSnapshotRef.current !== JSON.stringify(buildDraft());
   };
 
   const handleOpenMitsumori = async () => {
@@ -1200,7 +1289,7 @@ export default function EizenRequestAllInOnePage() {
         </div>
       </div>
 
-      <main className="mx-auto flex max-w-[1700px] flex-col gap-6 px-4 py-6">
+      <main className="mx-auto flex max-w-[1700px] flex-col gap-6 px-4 py-6" style={{ paddingBottom: "80px" }}>
         {workflowLoading && editId && (
           <div className="text-sm text-gray-400">権限を確認中...</div>
         )}
@@ -1209,7 +1298,7 @@ export default function EizenRequestAllInOnePage() {
             {readOnlyNotice}
           </div>
         )}
-        <fieldset disabled={!isEditable} className="contents">
+        <fieldset disabled={!canEditBasicAndAttachment} className="contents">
         <BasicInfoSection
           furigana={furigana}
           setFurigana={setFurigana}
@@ -1279,11 +1368,9 @@ export default function EizenRequestAllInOnePage() {
           setStartDate={setStartDate}
         />
 
+        </fieldset>
+
         <AttachmentSection
-          drawing={drawing}
-          setDrawing={setDrawing}
-          otherMaterial={otherMaterial}
-          setOtherMaterial={setOtherMaterial}
           photo4side={photo4side}
           setPhoto4side={setPhoto4side}
           photoPart={photoPart}
@@ -1294,10 +1381,10 @@ export default function EizenRequestAllInOnePage() {
           setPhotoOtherText={setPhotoOtherText}
           attachRemark={attachRemark}
           setAttachRemark={setAttachRemark}
-          dapManagerConfirmDrawing={dapManagerConfirmDrawing}
-          setDapManagerConfirmDrawing={setDapManagerConfirmDrawing}
           dapManagerConfirmPhoto={dapManagerConfirmPhoto}
           setDapManagerConfirmPhoto={setDapManagerConfirmPhoto}
+          contentDisabled={!canEditBasicAndAttachment}
+          confirmCheckboxDisabled={!canEditDapManagerConfirm}
           attachments={attachments}
           fileInputRefs={fileInputRefs}
           onFileCheckChange={handleFileCheckChange}
@@ -1305,6 +1392,7 @@ export default function EizenRequestAllInOnePage() {
           getAttachmentUrl={getAttachmentUrl}
         />
 
+        <fieldset disabled={!canEditTemporarySections} className="contents">
         <TemporaryCheckSection
           rows={page1Rows}
           updateRow={updatePage1Row}
@@ -1318,6 +1406,8 @@ export default function EizenRequestAllInOnePage() {
           setSectionBouhan={setSectionBouhan}
           sectionYosan={sectionYosan}
           setSectionYosan={setSectionYosan}
+          disableDapConfirmAndRemark={disableDapConfirmAndRemark}
+          disableMainContent={disableMainContent}
           densenbogokanFileUpload={{
             matchKey: "設置部分図面添付",
             fieldKey: "densenbogokan_zumen",
@@ -1358,6 +1448,8 @@ export default function EizenRequestAllInOnePage() {
           setGrpChosa={setGrpChosa}
           grpKakunin={grpKakunin}
           setGrpKakunin={setGrpKakunin}
+          disableDapConfirmAndRemark={disableDapConfirmAndRemark}
+          disableMainContent={disableMainContent}
           danshinSonotaFileUpload={{
             matchKey: "その他",
             fieldKey: "danshin_sonota",
@@ -1384,7 +1476,9 @@ export default function EizenRequestAllInOnePage() {
             getAttachmentUrl,
           }}
         />
+        </fieldset>
 
+        <fieldset disabled={!canEditMaintenanceSection} className="contents">
         <MaintenanceAttachmentSection
           requiredDrawing={requiredDrawing}
           setRequiredDrawing={setRequiredDrawing}
@@ -1400,7 +1494,9 @@ export default function EizenRequestAllInOnePage() {
           onFileSelected={handleFileSelected}
           getAttachmentUrl={getAttachmentUrl}
         />
+        </fieldset>
 
+        <fieldset disabled={!canEditDesignNeedRow} className="contents">
         <DesignConfirmSection
           designNeed={designNeed}
           setDesignNeed={setDesignNeed}
@@ -1423,8 +1519,40 @@ export default function EizenRequestAllInOnePage() {
           onFileCheckChange={handleFileCheckChange}
           onFileSelected={handleFileSelected}
           getAttachmentUrl={getAttachmentUrl}
+          showOnlyDesignNeedRow={true}
         />
+        </fieldset>
 
+        <fieldset disabled={!canEditDesignConfirmSection} className="contents">
+        <DesignConfirmSection
+          designNeed={designNeed}
+          setDesignNeed={setDesignNeed}
+          employeeCd={employeeCd}
+          setEmployeeCd={setEmployeeCd}
+          employeeName={employeeName}
+          setEmployeeName={setEmployeeName}
+          confirmApplicationNeed={confirmApplicationNeed}
+          setConfirmApplicationNeed={setConfirmApplicationNeed}
+          designInstruction={designInstruction}
+          setDesignInstruction={setDesignInstruction}
+          designAttachment={designAttachment}
+          setDesignAttachment={setDesignAttachment}
+          designDapConfirm={designDapConfirm}
+          setDesignDapConfirm={setDesignDapConfirm}
+          designRemark={designRemark}
+          setDesignRemark={setDesignRemark}
+          attachments={attachments}
+          fileInputRefs={fileInputRefs}
+          onFileCheckChange={handleFileCheckChange}
+          onFileSelected={handleFileSelected}
+          getAttachmentUrl={getAttachmentUrl}
+          showOnlyDesignConfirmSection={true}
+          disableDesignDapConfirm={disableDesignDapConfirm}
+          disableDesignRemark={disableDesignRemark}
+        />
+        </fieldset>
+
+        <fieldset disabled={!canEditEstimateSection} className="contents">
         <EstimateFinalSection
           estimateOutput={estimateOutput}
           setEstimateOutput={setEstimateOutput}
@@ -1454,8 +1582,17 @@ export default function EizenRequestAllInOnePage() {
           onFileSelected={handleFileSelected}
           getAttachmentUrl={getAttachmentUrl}
           onOpenMitsumori={handleOpenMitsumori}
+          showOnlyMaintenanceConfirm={showOnlyMaintenanceConfirm}
+          showOnlyDaipaFinal={showOnlyDaipaFinal}
+          showOnlyDaipaMitsumori={showOnlyDaipaMitsumori}
+          showOnlyDaipaManagerConfirm={showOnlyDaipaManagerConfirm}
+          showOnlyDaipaFinalAndRequest={showOnlyDaipaFinalAndRequest}
+          disableDaipaManagerConfirm={disableDaipaFinalManagerConfirm}
+          canOpenMitsumori={canOpenMitsumori}
         />
+        </fieldset>
 
+        <fieldset disabled={!canEditRequestSection} className="contents">
         <RequestSection
           gyomuItakuCd={gyomuItakuCd}
           setGyomuItakuCd={setGyomuItakuCd}
@@ -1466,7 +1603,6 @@ export default function EizenRequestAllInOnePage() {
           partnerName={partnerName}
           setPartnerName={setPartnerName}
         />
-
         </fieldset>
 
         <ApprovalFlowSection
@@ -1479,7 +1615,15 @@ export default function EizenRequestAllInOnePage() {
           onSaveForm={() => handleSubmit(true)}
         />
 
-        <div className="flex justify-end gap-3 pb-10">
+        <div style={{
+          position: "fixed",
+          bottom: "24px",
+          right: "24px",
+          zIndex: 40,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}>
           <button type="button" onClick={() => { if (isFormDirty()) { setShowLeaveDialog(true); } else { nav("/", { replace: true }); } }} className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
             提案物件一覧
           </button>

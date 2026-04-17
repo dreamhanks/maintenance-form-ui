@@ -160,6 +160,9 @@ function createStepFlow(index: number) {
     designManager2: currentStep >= 8 ? p8 : "",
     designManager2Date: currentStep >= 8 ? makeDate(index + 8) : "",
 
+    daipaKacho3: "",
+    daipaKacho3Date: "",
+
     gyomukaConfirmUser: currentStep >= 9 ? p9 : "",
     confirmDate: currentStep >= 9 ? makeDate(index + 9) : "",
   };
@@ -202,6 +205,9 @@ function createRow(index: number, salesOffice: string): ProposalRow {
 
     designManager2: flow.designManager2,
     designManager2Date: flow.designManager2Date,
+
+    daipaKacho3: flow.daipaKacho3,
+    daipaKacho3Date: flow.daipaKacho3Date,
 
     gyomukaConfirmUser: flow.gyomukaConfirmUser,
     confirmDate: flow.confirmDate,
