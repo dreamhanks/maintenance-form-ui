@@ -23,5 +23,6 @@ export type CheckRow = {
   amountInteger?: boolean;
   amountMaxLength?: number;
   amountFirst?: boolean;
+  amountPrefix?: string;
   remarkExtra?: { label: string; value: string; fileUploadFieldKey?: string; fileCheckboxValue?: boolean }[];
 };

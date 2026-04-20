@@ -26,6 +26,7 @@ type Props = {
   onStepsChange: (steps: WorkflowStepDto[]) => void;
   isFormDirty?: () => boolean;
   onSaveForm?: () => Promise<number | null>;
+  validateConfirm?: (stepNumber: number) => string | null;
 };
 
 function StepBox({
@@ -117,7 +118,7 @@ type PendingAction = {
   stepLabel: string;
 } | null;
 
-export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, onStepsChange, isFormDirty, onSaveForm }: Props) {
+export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, onStepsChange, isFormDirty, onSaveForm, validateConfirm }: Props) {
   const effectiveSteps = steps.length > 0 ? steps : DEFAULT_STEPS;
   // Dirty-check dialog state (existing: "保存して確認")
   const [pendingConfirmStep, setPendingConfirmStep] = useState<number | null>(null);
@@ -155,8 +156,15 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
     setPendingAction({ type, stepNumber, stepLabel: getLabel(stepNumber) });
   };
 
-  // 確認 button clicked: dirty check first, then action dialog
+  // 確認 button clicked: validate, dirty check, then action dialog
   const handleRequestConfirm = (stepNumber: number) => {
+    if (validateConfirm) {
+      const errorMsg = validateConfirm(stepNumber);
+      if (errorMsg) {
+        toast.error(errorMsg);
+        return;
+      }
+    }
     if (isFormDirty && isFormDirty()) {
       setPendingConfirmStep(stepNumber);
       return;

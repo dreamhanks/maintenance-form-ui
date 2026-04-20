@@ -120,17 +120,17 @@ const makeRowsPage1 = (): CheckRow[] => [
     need: "",
     checks: {
       全周: false,
-      新築時: false,
       一部: false,
       "仮設図面添付": false,
     },
     amount: "",
     amountNumeric: true,
     unit: "㎡",
+    amountPrefix: "新築時",
     remark: "",
     managerConfirm: false,
     variant: "twoLine",
-    splitAt: 2,
+    splitAt: 1,
   },
   {
     id: "r8",
@@ -138,7 +138,7 @@ const makeRowsPage1 = (): CheckRow[] => [
     item: "足場届出（機械設置届）",
     need: "",
     checks: {
-      "建設準備届出実施": false,
+      "建託準備届出実施": false,
     },
     amount: "",
     amountNumeric: true,
@@ -450,9 +450,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     item: "契約支店の建設業許可確認",
     need: "",
     checks: {
-      問題なし: false,
       一般申請起票: false,
-      許可未取得: false,
       その他: false,
     },
     otherText: "",
@@ -460,6 +458,7 @@ const makeRowsPage2 = (): CheckRow[] => [
     managerConfirm: false,
     variant: "noRadioTwoLine",
     radioColKeys: ["問題なし", "許可未取得"],
+    radioColAsRadio: true,
   },
   {
     id: "p2r11",
@@ -598,6 +597,7 @@ export default function EizenRequestAllInOnePage() {
           amountFirst: factoryRow.amountFirst,
           amountNumeric: factoryRow.amountNumeric,
           amountInteger: factoryRow.amountInteger,
+          amountPrefix: factoryRow.amountPrefix,
           remarkExtra: mergedRemarkExtra,
         };
       });
@@ -1123,6 +1123,16 @@ export default function EizenRequestAllInOnePage() {
 
   const handleSubmit = async (skipNavigate = false): Promise<number | null> => {
     if (submitting) return null;
+    const shouldValidatePropertyCd =
+      !editId ||
+      pendingStepNumber === 1 ||
+      (pendingStepNumber === 2 && createdByDapaKacho);
+    if (shouldValidatePropertyCd) {
+      if (!propertyCd?.trim() || !propertyCd2?.trim() || !propertyCd3?.trim()) {
+        toast.error("物件CDを入力してください。\n受注コード・追加コード・棟番号は必須です。");
+        return null;
+      }
+    }
     setSubmitting(true);
     try {
       const form: FullForm = {
@@ -1613,6 +1623,587 @@ export default function EizenRequestAllInOnePage() {
           onStepsChange={setWorkflowSteps}
           isFormDirty={isFormDirty}
           onSaveForm={() => handleSubmit(true)}
+          validateConfirm={(stepNumber) => {
+            const isFirstActiveStep =
+              stepNumber === 1 ||
+              (stepNumber === 2 && creatorRole === "大パ管理職");
+            if (isFirstActiveStep) {
+              if (!propertyCd?.trim() || !propertyCd2?.trim() || !propertyCd3?.trim()) {
+                return "物件CDを入力してください。\n受注コード・追加コード・棟番号は必須です。";
+              }
+              const hasKaishuChecked =
+                roof || outsideWall || balcony || commonArea || privateArea || otherWork;
+              if (!hasKaishuChecked) {
+                return "改修工事内容を選択してください。\n少なくとも1つのチェックが必要です。";
+              }
+              const youboRows = [
+                { label: "オーナー様", flag: ownerFlag, text: ownerText },
+                { label: "入居者様", flag: residentFlag, text: residentText },
+                { label: "近隣様", flag: neighborFlag, text: neighborText },
+              ];
+              for (const row of youboRows) {
+                if (!row.flag) {
+                  return `要望注意点等の${row.label}を\n「なし」または「あり」で選択してください。`;
+                }
+                if (row.flag === "あり" && !row.text?.trim()) {
+                  return `要望注意点等の${row.label}の\n内容を入力してください。`;
+                }
+              }
+              if (!plannedVendorName?.trim()) {
+                return "主要業者情報の予定業者名を入力してください。";
+              }
+              if (!plannedVendorCd?.trim() || !plannedVendorCd2?.trim()) {
+                return "主要業者情報の予定業者CDを入力してください。\n6桁・3桁両方の入力が必要です。";
+              }
+              if (!fixedVendorName?.trim()) {
+                return "主要業者情報の確定業者名を入力してください。";
+              }
+              if (!fixedVendorCd?.trim() || !fixedVendorCd2?.trim()) {
+                return "主要業者情報の確定業者CDを入力してください。\n6桁・3桁両方の入力が必要です。";
+              }
+              if (!proposalDate?.trim()) {
+                return "営繕提案予定日を入力してください。";
+              }
+              if (!contractDate?.trim()) {
+                return "契約予定日を入力してください。";
+              }
+              if (!startDate?.trim()) {
+                return "着工予定日を入力してください。";
+              }
+              if (!attachments["photo_exterior"]) {
+                return "事前確認時 添付資料の\n建物外観4面【必須】をアップロードしてください。";
+              }
+              if (!attachments["photo_work"]) {
+                return "事前確認時 添付資料の\n工事部位【必須】をアップロードしてください。";
+              }
+            }
+            if (stepNumber === 2) {
+              if (!dapManagerConfirmPhoto) {
+                return "事前確認時 添付資料の\n現況写真の大パ管理職確認にチェックしてください。";
+              }
+            }
+            if (stepNumber === 3) {
+              const labelMap: Record<string, string> = {
+                r1: "第3者侵入防止策",
+                r2: "仮設電気",
+                r3: "仮設水道",
+                r4: "仮設トイレ",
+                r5: "電線防護管",
+                r6: "工事駐車場",
+                r7: "足場設置",
+                r8: "足場届出",
+                r9: "昇降階段・巾木・中桟等",
+                r10: "飛散防止措置",
+                r11: "エントランス・共用部養生",
+                r12: "足場設置部の植栽剪定",
+                r13: "足場解体後の清掃費用",
+                r14: "夜間照明・防犯カメラ",
+                r15: "産廃費用",
+                r16: "荷揚げ費用",
+                p2r1: "道路使用",
+                p2r2: "道路占用",
+                p2r3: "交通誘導員",
+                p2r4: "アスベスト含有調査",
+                p2r5: "景観条例対象届出",
+                p2r6: "打診（タイル・塗装）",
+                p2r7: "下地調整",
+                p2r9: "施工業者の建設業許可確認",
+                p2r13: "防水工事等保証の確認",
+              };
+              const validateNormalRow = (row: CheckRow, label: string): string | null => {
+                if (!row.need) {
+                  return `${label}を「必要」または「不要」で選択してください。`;
+                }
+                if (row.need === "必要") {
+                  const hasCheck = Object.values(row.checks).some((v) => v === true);
+                  if (!hasCheck) {
+                    return `${label}の必要項目を選択してください。`;
+                  }
+                }
+                return null;
+              };
+              const validateAmountRow = (row: CheckRow, label: string): string | null => {
+                if (!row.need) {
+                  return `${label}を「必要」または「不要」で選択してください。`;
+                }
+                if (row.need === "必要") {
+                  if (!row.amount?.trim()) {
+                    return `${label}の数量・金額を入力してください。`;
+                  }
+                }
+                return null;
+              };
+              const validateR5 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "電線防護管を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.amount?.trim()) {
+                    return "電線防護管の必要ｍ数を入力してください。";
+                  }
+                  if (!attachments["densenbogokan_zumen"]) {
+                    return "電線防護管の設置部分図面を\n添付してください。";
+                  }
+                }
+                return null;
+              };
+              const validateR7 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "足場設置を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasZenshu = row.checks["全周"] === true;
+                  const hasIchibu = row.checks["一部"] === true;
+                  if (!hasZenshu && !hasIchibu) {
+                    return "足場設置の「全周」または「一部」を選択してください。";
+                  }
+                  if (hasZenshu && !row.amount?.trim()) {
+                    return "足場設置の新築時㎡数を入力してください。";
+                  }
+                  if (!attachments["ashiba_plan"]) {
+                    return "足場設置の仮設図面を\n添付してください。";
+                  }
+                }
+                return null;
+              };
+              const validateR10 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "飛散防止措置を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasRequired =
+                    row.checks["朝顔"] === true ||
+                    row.checks["防音シート"] === true ||
+                    row.checks["防音パネル"] === true;
+                  if (!hasRequired) {
+                    return "飛散防止措置の「朝顔」「防音シート」「防音パネル」のいずれかを\n選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateR11 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "エントランス・共用部養生を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasRequired =
+                    row.checks["柱養生材"] === true ||
+                    row.checks["床養生材"] === true;
+                  if (!hasRequired) {
+                    return "エントランス・共用部養生の\n「柱養生材」または「床養生材」を選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateR12 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "足場設置部の植栽剪定を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasSentei = row.checks["剪定"] === true;
+                  const hasSonota = row.checks["その他"] === true;
+                  if (!hasSentei && !hasSonota) {
+                    return "足場設置部の植栽剪定の\n「剪定」または「その他」を選択してください。";
+                  }
+                  if (hasSentei && !attachments["planting_plan"]) {
+                    return "足場設置部の植栽剪定の\n図面を添付してください。";
+                  }
+                }
+                return null;
+              };
+              const validateR13 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "足場解体後の清掃費用を\n「必要」または「不要」で選択してください。";
+                }
+                return null;
+              };
+              const validateR14 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "夜間照明・防犯カメラを\n「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasRequired =
+                    row.checks["夜間灯"] === true ||
+                    row.checks["防犯カメラ"] === true ||
+                    row.checks["チューブライト"] === true;
+                  if (!hasRequired) {
+                    return "防犯の「夜間灯」「防犯カメラ」\n「チューブライト」のいずれかを選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateR15 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "産廃費用を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["金額"]) {
+                    return "産廃費用の「金額」を\n選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "産廃費用の金額を入力してください。";
+                  }
+                }
+                return null;
+              };
+              const validateR16 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "荷揚げ費用を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasRequired =
+                    row.checks["レッカー"] === true ||
+                    row.checks["ユニック"] === true ||
+                    row.checks["手運び（人工）"] === true;
+                  if (!hasRequired) {
+                    return "荷揚げ費用の「レッカー」「ユニック」\n「手運び（人工）」のいずれかを選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r1 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "道路使用を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["必要回数"]) {
+                    return "道路使用の「必要回数」を\n選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "道路使用の必要回数を\n入力してください。";
+                  }
+                  const hasRequired =
+                    row.checks["搬入作業"] === true ||
+                    row.checks["道路占用"] === true;
+                  if (!hasRequired) {
+                    return "道路使用の「搬入作業」または\n「道路占用」を選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r2 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "道路占用を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["必要面積"]) {
+                    return "道路占用の「必要面積」を\n選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "道路占用の必要面積を\n入力してください。";
+                  }
+                  const hasRequired =
+                    row.checks["足場設置"] === true ||
+                    row.checks["仮囲い設置"] === true ||
+                    row.checks["その他"] === true;
+                  if (!hasRequired) {
+                    return "道路占用の「足場設置」「仮囲い設置」\n「その他」のいずれかを選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r3 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "交通誘導員を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["必要金額"]) {
+                    return "交通誘導員の「必要金額」を\n選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "交通誘導員の必要金額を\n入力してください。";
+                  }
+                  const hasRequired =
+                    row.checks["道路使用"] === true ||
+                    row.checks["道路占用"] === true ||
+                    row.checks["その他"] === true;
+                  if (!hasRequired) {
+                    return "交通誘導員の「道路使用」「道路占用」\n「その他」のいずれかを選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r4 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "アスベスト含有調査を\n「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["必要金額"]) {
+                    return "アスベスト含有調査の「必要金額」を\n選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "アスベスト含有調査の金額を\n入力してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r5 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "景観条例対象届出を\n「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["必要金額"]) {
+                    return "景観条例対象届出の「必要金額」を\n選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "景観条例対象届出の金額を\n入力してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r6 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "打診（タイル・塗装）を\n「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasRequired =
+                    row.checks["タイル面"] === true ||
+                    row.checks["塗装面"] === true ||
+                    row.checks["素地面"] === true ||
+                    row.checks["その他"] === true;
+                  if (!hasRequired) {
+                    return "打診（タイル・塗装）の\n「タイル面」「塗装面」「素地面」\n「その他」のいずれかを選択してください。";
+                  }
+                  if (!row.line2Checked) {
+                    return "打診（タイル・塗装）の\n「必要金額」を選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "打診（タイル・塗装）の\n金額を入力してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r7 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "下地調整を「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["必要箇所"]) {
+                    return "下地調整の「必要箇所」を\n選択してください。";
+                  }
+                  if (!row.line2Checked) {
+                    return "下地調整の「必要金額」を\n選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "下地調整の金額を\n入力してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r9 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "施工業者の建設業許可確認を\n「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  const hasRequired =
+                    row.checks["問題なし"] === true ||
+                    row.checks["期限切れ"] === true ||
+                    row.checks["要更新"] === true;
+                  if (!hasRequired) {
+                    return "施工業者の建設業許可確認の\n「問題なし」「期限切れ」「要更新」\nのいずれかを選択してください。";
+                  }
+                }
+                return null;
+              };
+              const validateP2r13 = (row: CheckRow): string | null => {
+                if (!row.need) {
+                  return "防水工事等保証の確認を\n「必要」または「不要」で選択してください。";
+                }
+                if (row.need === "必要") {
+                  if (!row.checks["保証年数"]) {
+                    return "防水工事等保証の確認の\n「保証年数」を選択してください。";
+                  }
+                  if (!row.amount?.trim()) {
+                    return "防水工事等保証の確認の\n保証年数を入力してください。";
+                  }
+                }
+                return null;
+              };
+              const amountRowIds = new Set([
+                "r6","r8",
+              ]);
+              const dispatchRow = (row: CheckRow, label: string) => {
+                if (row.id === "r5") return validateR5(row);
+                if (row.id === "r7") return validateR7(row);
+                if (row.id === "r10") return validateR10(row);
+                if (row.id === "r11") return validateR11(row);
+                if (row.id === "r12") return validateR12(row);
+                if (row.id === "r13") return validateR13(row);
+                if (row.id === "r14") return validateR14(row);
+                if (row.id === "r15") return validateR15(row);
+                if (row.id === "r16") return validateR16(row);
+                if (row.id === "p2r1") return validateP2r1(row);
+                if (row.id === "p2r2") return validateP2r2(row);
+                if (row.id === "p2r3") return validateP2r3(row);
+                if (row.id === "p2r4") return validateP2r4(row);
+                if (row.id === "p2r5") return validateP2r5(row);
+                if (row.id === "p2r6") return validateP2r6(row);
+                if (row.id === "p2r7") return validateP2r7(row);
+                if (row.id === "p2r9") return validateP2r9(row);
+                return amountRowIds.has(row.id)
+                  ? validateAmountRow(row, label)
+                  : validateNormalRow(row, label);
+              };
+              const page1Ids = [
+                "r1","r2","r3","r4","r5","r6",
+                "r7","r8","r9","r10","r11","r12","r13",
+                "r14","r15","r16",
+              ];
+              for (const id of page1Ids) {
+                const row = page1Rows.find((r) => r.id === id);
+                if (!row) continue;
+                const err = dispatchRow(row, labelMap[id]);
+                if (err) return err;
+              }
+              const page2NormalIds = ["p2r1","p2r2","p2r3","p2r4","p2r5","p2r6","p2r7","p2r9"];
+              for (const id of page2NormalIds) {
+                const row = page2Rows.find((r) => r.id === id);
+                if (!row) continue;
+                const err = dispatchRow(row, labelMap[id]);
+                if (err) return err;
+              }
+              const p2r10row = page2Rows.find((r) => r.id === "p2r10");
+              if (p2r10row) {
+                if (!p2r10row.need) {
+                  return "契約支店の建設業許可確認を\n「問題なし」または「許可未取得」で選択してください。";
+                }
+                if (p2r10row.need === "許可未取得") {
+                  const hasRequired =
+                    p2r10row.checks["一般申請起票"] === true ||
+                    p2r10row.checks["その他"] === true;
+                  if (!hasRequired) {
+                    return "契約支店の建設業許可確認の\n「一般申請起票」または「その他」を\n選択してください。";
+                  }
+                }
+              }
+              const validateRadioRow = (row: CheckRow, label: string): string | null => {
+                if (!row.need) {
+                  return `${label}を「対象あり」または「対象なし」で選択してください。`;
+                }
+                if (row.need === "対象あり") {
+                  const hasCheck = !!row.checks["お客様処分"] || !!row.checks["その他"];
+                  if (!hasCheck) {
+                    return `${label}の対象あり内容を\n選択してください。`;
+                  }
+                }
+                return null;
+              };
+              const p2r11row = page2Rows.find((r) => r.id === "p2r11");
+              if (p2r11row) {
+                const err = validateRadioRow(p2r11row, "家電リサイクル法");
+                if (err) return err;
+              }
+              const p2r12row = page2Rows.find((r) => r.id === "p2r12");
+              if (p2r12row) {
+                const err = validateRadioRow(p2r12row, "フロン排出抑制法");
+                if (err) return err;
+              }
+              const p2r13row = page2Rows.find((r) => r.id === "p2r13");
+              if (p2r13row) {
+                const err = validateP2r13(p2r13row);
+                if (err) return err;
+              }
+              if (!designNeed) {
+                return "設計管理職確認可否を\n「必要」または「不要」で選択してください。";
+              }
+              if (designNeed === "必要") {
+                if (!employeeCd?.trim()) {
+                  return "設計管理職確認可否の\n社員CDを入力してください。";
+                }
+              }
+            }
+            if (stepNumber === 4) {
+              if (!confirmApplicationNeed) {
+                return "建築基準法の確認申請の有無を\n「必要」または「不要」で選択してください。";
+              }
+              if (confirmApplicationNeed === "必要") {
+                if (!designInstruction?.trim()) {
+                  return "建築基準法の設計指示を\n入力してください。";
+                }
+              }
+            }
+            if (stepNumber === 5) {
+              if (!attachments["estimate_output_pdf"]) {
+                return "業者見積依頼書のPDF出力を\n実施してください。";
+              }
+              const step5LabelMap: Record<string, string> = {
+                r1: "第3者侵入防止策",
+                r2: "仮設電気",
+                r3: "仮設水道",
+                r4: "仮設トイレ",
+                r5: "電線防護管",
+                r6: "工事駐車場",
+                r6b: "別途指示事項(仮設)",
+                r7: "足場設置",
+                r8: "足場届出",
+                r9: "昇降階段・巾木・中桟等",
+                r10: "飛散防止措置",
+                r11: "エントランス・共用部養生",
+                r12: "足場設置部の植栽剪定",
+                r13: "足場解体後の清掃費用",
+                r13b: "別途指示事項(足場)",
+                r14: "夜間照明・防犯カメラ",
+                r15: "産廃費用",
+                r16: "荷揚げ費用",
+                p2r1: "道路使用",
+                p2r2: "道路占用",
+                p2r3: "交通誘導員",
+                p2r4: "アスベスト含有調査",
+                p2r5: "景観条例対象届出",
+                p2r5b: "別途指示事項(届出)",
+                p2r6: "打診(タイル・塗装)",
+                p2r7: "下地調整",
+                p2r8: "新築時タイル等保存資料",
+                p2r9: "施工業者の建設業許可確認",
+                p2r10: "契約支店の建設業許可確認",
+                p2r11: "家電リサイクル法",
+                p2r12: "フロン排出抑制法",
+                p2r13: "防水工事等保証の確認",
+              };
+              for (const row of page1Rows) {
+                if (row.id === "r6") {
+                  if (row.need === "不要") continue;
+                  const hasRequired =
+                    row.checks["外部"] === true ||
+                    row.checks["場内"] === true;
+                  if (!hasRequired) {
+                    return "工事駐車場の「外部」または\n「場内」を選択してください。";
+                  }
+                  continue;
+                }
+                if (!row.managerConfirm) {
+                  const label = step5LabelMap[row.id] ?? row.item;
+                  return `${label}の大パ確認に\nチェックしてください。`;
+                }
+              }
+              for (const row of page2Rows) {
+                if (row.id === "p2r8") continue;
+                if (!row.managerConfirm) {
+                  const label = step5LabelMap[row.id] ?? row.item;
+                  return `${label}の大パ確認に\nチェックしてください。`;
+                }
+              }
+              const p2r8row = page2Rows.find((r) => r.id === "p2r8");
+              if (p2r8row && p2r8row.need === "必要") {
+                const hokanText = p2r8row.remarkExtra?.[0]?.value;
+                if (!hokanText?.trim()) {
+                  return "新築時タイル等保存資料の\n保管先を入力してください。";
+                }
+                const jotaiChecked = p2r8row.remarkExtra?.[1]?.fileCheckboxValue;
+                if (!jotaiChecked) {
+                  return "新築時タイル等保存資料の\n状態確証及び枚数添付を\n選択してください。";
+                }
+                const jotaiText = p2r8row.remarkExtra?.[1]?.value;
+                if (!jotaiText?.trim()) {
+                  return "新築時タイル等保存資料の\n状態確証及び枚数添付の\n内容を入力してください。";
+                }
+                if (!attachments["jotai_kakunin_tenpu"]) {
+                  return "新築時タイル等保存資料の\n状態確証及び枚数添付ファイルを\nアップロードしてください。";
+                }
+              }
+            }
+            return null;
+          }}
         />
 
         <div style={{

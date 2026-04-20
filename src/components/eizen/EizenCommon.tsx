@@ -241,7 +241,7 @@ export function MatrixRow({
             )}
           </div>
 
-          <div className={`col-span-6 border border-slate-300 px-3 py-3 ${row.radioColAsRadio && row.radioColKeys?.includes("対象なし") && row.need === "対象なし" ? "opacity-50 pointer-events-none" : !row.radioColAsRadio && row.radioColKeys?.includes("対象なし") && row.checks["対象なし"] ? "opacity-50 pointer-events-none" : ""}`}>
+          <div className={`col-span-6 border border-slate-300 px-3 py-3 ${((row.radioColAsRadio && (row.need === "対象なし" || row.need === "問題なし")) || (!row.radioColAsRadio && row.radioColKeys?.includes("対象なし") && row.checks["対象なし"])) ? "opacity-50 pointer-events-none" : ""}`}>
             <div className={`grid gap-2 ${row.radioColKeys ? "grid-cols-1" : "grid-cols-2"}`}>
               {optionEntries.filter(([key]) => !row.radioColKeys?.includes(key)).map(([key, val]) => (
                 <div key={key} className="flex items-center gap-1">
@@ -336,6 +336,9 @@ export function MatrixRow({
                   ))}
                   {row.unit && (
                     <div className="inline-flex items-center gap-2">
+                      {row.amountPrefix && (
+                        <span className="text-sm text-slate-700">{row.amountPrefix}</span>
+                      )}
                       <input
                         value={row.amount || ""}
                         onChange={(e) => { const v = row.amountNumeric ? e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1") : e.target.value; onChange({ ...row, amount: v }); }}
@@ -710,9 +713,9 @@ export function MatrixRow({
           </div>
           </fieldset>
 
-          <div className="col-span-1 border border-slate-300 px-3 py-3 text-center">
+          <div className={`col-span-1 border border-slate-300 px-3 py-3 text-center${(row.id === "r6" || row.id === "p2r8") && row.need === "不要" && disableMainContent ? " opacity-50 pointer-events-none" : ""}`}>
             {row.variant === "checksInConfirm" ? (
-              <div className={`flex flex-col gap-2${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed pointer-events-none" : ""}`}>
+              <div className={`flex flex-col items-center gap-2${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed pointer-events-none" : ""}`}>
                 {optionEntries.map(([key, val]) => (
                   <Check
                     key={key}
@@ -743,7 +746,7 @@ export function MatrixRow({
         </>
       )}
 
-      <div className="col-span-11 border border-slate-300 bg-white px-2 py-2">
+      <div className={`col-span-11 border border-slate-300 bg-white px-2 py-2${row.need === "不要" ? " opacity-50 pointer-events-none" : ""}`}>
         {!row.remarkExtra && (
           <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} maxLength={100} disabled={disableDapConfirmAndRemark} className={`${textareaClass}${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`} />
         )}
@@ -769,7 +772,8 @@ export function MatrixRow({
                     const checked = e.target.checked;
                     remarkFileUpload!.onFileCheckChange(fk!, checked, setCheckboxChecked);
                   }}
-                  className="h-4 w-4 shrink-0 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
+                  disabled={disableDapConfirmAndRemark}
+                  className={`h-4 w-4 shrink-0 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`}
                 />
               )}
               <span className="whitespace-nowrap text-sm text-slate-700">{extra.label}</span>
