@@ -64,7 +64,8 @@ export type ListQueryParams = {
 export type JuchuStatus = "未契約" | "契約" | "失注" | "保留";
 
 export type JuchuRow = {
-  id: string; // 物件CD
+  id: string;
+  propertyCodeDisplay: string; // 物件CD
   ownerName: string; // お施主様名
   buildingName: string; // 建物名称
   salesOffice: string; // 営業所
@@ -79,7 +80,8 @@ export type ContractConfirmRequest = {
 
 
 export type ShichuRow = {
-  id: string; // 物件CD
+  id: string;
+  propertyCodeDisplay: string; // 物件CD
   ownerName: string; // お施主様名
   buildingName: string; // 建物名称
   salesOffice: string; // 営業所

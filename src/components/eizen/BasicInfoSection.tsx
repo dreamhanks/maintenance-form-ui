@@ -165,11 +165,41 @@ export default function BasicInfoSection(props: Props) {
           <LabelCell>物件CD</LabelCell>
           <ValueCell className="col-span-3">
             <div className="flex items-center justify-center gap-1" >
-                <input value={props.propertyCd} onChange={(e) => props.setPropertyCd(e.target.value)} className={inputClass} />
+                <input
+                  type="text"
+                  value={props.propertyCd}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "");
+                    if (v.length <= 7) props.setPropertyCd(v);
+                  }}
+                  maxLength={7}
+                  placeholder="7桁"
+                  className={inputClass}
+                />
                 <div>ー</div>
-                <input value={props.propertyCd2} onChange={(e) => props.setPropertyCd2(e.target.value)} className={inputClass} />
+                <input
+                  type="text"
+                  value={props.propertyCd2}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "");
+                    if (v.length <= 3) props.setPropertyCd2(v);
+                  }}
+                  maxLength={3}
+                  placeholder="3桁"
+                  className={inputClass}
+                />
                 <div>ー</div>
-                <input value={props.propertyCd3} onChange={(e) => props.setPropertyCd3(e.target.value)} className={inputClass} />
+                <input
+                  type="text"
+                  value={props.propertyCd3}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "");
+                    if (v.length <= 2) props.setPropertyCd3(v);
+                  }}
+                  maxLength={2}
+                  placeholder="2桁"
+                  className={inputClass}
+                />
             </div>
           </ValueCell>
           <LabelCell>建物名称</LabelCell>

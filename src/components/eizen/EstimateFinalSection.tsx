@@ -20,8 +20,10 @@ type Props = {
   setOrderResult: (v: OrderResult) => void;
   generalApplyAttach: boolean;
   setGeneralApplyAttach: (v: boolean) => void;
-  generalApplyNotNeed: boolean;
-  setGeneralApplyNotNeed: (v: boolean) => void;
+  okyakusamaMitsumoriAttach: boolean;
+  setOkyakusamaMitsumoriAttach: (v: boolean) => void;
+  keiyakushoSakuseiAttach: boolean;
+  setKeiyakushoSakuseiAttach: (v: boolean) => void;
   daipaFinalConfirm: boolean;
   setDaipaFinalConfirm: (v: boolean) => void;
   lostOrder: boolean;
@@ -159,30 +161,30 @@ export default function EstimateFinalSection(props: Props) {
         <div className="col-span-5 grid grid-cols-12">
           {/* <LabelCell>受注</LabelCell> */}
           <fieldset disabled={props.showOnlyDaipaManagerConfirm} className="contents">
-          <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
+          <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 border-r-0 gap-2">
             <label className="inline-flex items-center gap-2">
               <input type="radio" name="order-result" checked={props.orderResult === "受注"} onChange={() => props.setOrderResult("受注")} className="h-5 w-5 border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
               受注
             </label>
           </ValueCell>
-          <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 gap-2">
+          <ValueCell className="col-span-3 flex items-center justify-center border border-slate-400 border-l-0 gap-2">
             <label className="inline-flex items-center gap-2">
               <input type="radio" name="order-result" checked={props.orderResult === "失注"} onChange={() => props.setOrderResult("失注")} className="h-5 w-5 border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
               失注
             </label>
           </ValueCell>
           </fieldset>
-          <div className="col-span-4 border border-slate-400 flex items-center justify-center">大パ管理職確認</div>
-          <ValueCell className="col-span-2 flex items-center justify-center">
+          <div className="col-span-4 border border-slate-400 border-r-0 flex items-center justify-center">大パ管理職確認</div>
+          <ValueCell className="col-span-2 flex items-center justify-center border-l-0">
             <input type="checkbox" checked={props.daipaFinalConfirm} onChange={(e) => props.setDaipaFinalConfirm(e.target.checked)} disabled={props.disableDaipaManagerConfirm} className={`h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${props.disableDaipaManagerConfirm ? " opacity-50 cursor-not-allowed" : ""}`} />
           </ValueCell>
           <fieldset disabled={props.showOnlyDaipaManagerConfirm} className="contents">
-          <div className="col-span-3 border border-slate-400 flex items-center justify-center">一般申請</div>
+          <div className="col-span-2 border border-slate-400 border-r-0 flex items-center justify-center">一般申請</div>
           {/* <ValueCell className="col-span-3 flex items-center justify-center">
             <input type="checkbox" checked={props.generalApplyAttach} onChange={(e) => props.setGeneralApplyAttach(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
           </ValueCell> */}
 
-          <ValueCell className="col-span-3 flex flex-col items-center justify-center border border-slate-400">
+          <ValueCell className="col-span-2 flex flex-col items-center justify-center border border-slate-400 border-l-0">
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={props.lostOrder} onChange={(e) => props.onFileCheckChange("daipa_saishuu_tenpu", e.target.checked, props.setLostOrder)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
               <div>添付</div>
@@ -190,9 +192,33 @@ export default function EstimateFinalSection(props: Props) {
             </div>
             <FileLink fieldKey="daipa_saishuu_tenpu" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
           </ValueCell>
-          <ValueCell className="col-span-6 flex items-center justify-center border border-slate-400 gap-2">
-            <input type="checkbox" checked={props.generalApplyNotNeed} onChange={(e) => props.setGeneralApplyNotNeed(e.target.checked)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
-            <div>一般申請不要</div>
+          <ValueCell className="col-span-8 flex flex-row items-center justify-center gap-6 border border-slate-400 px-3 py-2">
+            <div className="flex flex-col items-start gap-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={props.okyakusamaMitsumoriAttach}
+                  onChange={(e) => props.onFileCheckChange("okyakusama_mitsumori", e.target.checked, props.setOkyakusamaMitsumoriAttach)}
+                  className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
+                />
+                <span>お客様提案見積書</span>
+                <HiddenFileInput fieldKey="okyakusama_mitsumori" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setOkyakusamaMitsumoriAttach} />
+              </div>
+              <FileLink fieldKey="okyakusama_mitsumori" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
+            </div>
+            <div className="flex flex-col items-start gap-1">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={props.keiyakushoSakuseiAttach}
+                  onChange={(e) => props.onFileCheckChange("keiyakusho_sakusei", e.target.checked, props.setKeiyakushoSakuseiAttach)}
+                  className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]"
+                />
+                <span>契約書作成依頼書</span>
+                <HiddenFileInput fieldKey="keiyakusho_sakusei" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setKeiyakushoSakuseiAttach} />
+              </div>
+              <FileLink fieldKey="keiyakusho_sakusei" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
+            </div>
           </ValueCell>
         {props.orderResult === "失注" && (
         <ValueCell className="col-span-12 flex items-start justify-center border border-slate-400 gap-2">

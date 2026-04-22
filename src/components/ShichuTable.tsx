@@ -19,7 +19,7 @@ type ShichuTableProps = {
 };
 
 const headers: { label: string; key: string }[] = [
-  { label: "物件CD", key: "id" },
+  { label: "物件CD", key: "propertyCodeDisplay" },
   { label: "お施主様名", key: "ownerName" },
   { label: "建物名称", key: "buildingName" },
   { label: "営業所", key: "salesOffice" },
@@ -324,7 +324,7 @@ export default function ShichuTable({
                       />
                     </td>
                     <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
-                      {row.id}
+                      {row.propertyCodeDisplay}
                     </td>
                     <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
                       {row.ownerName}

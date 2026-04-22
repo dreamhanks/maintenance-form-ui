@@ -289,6 +289,7 @@ function makeStatus(index: number): JuchuStatus {
 function createJuchuRow(index: number, salesOffice: string): JuchuRow {
   return {
     id: makeCode(index),
+    propertyCodeDisplay: makeCode(index),
     ownerName: pick(juchuOwnerNames, index),
     buildingName: pick(juchuBuildingNames, index + 3),
     salesOffice,
@@ -352,6 +353,7 @@ function makeLostDate(seed: number) {
 function shichuCreateRow(index: number, salesOffice: string): ShichuRow {
   return {
     id: makeCode(index),
+    propertyCodeDisplay: makeCode(index),
     ownerName: pick(shichuOwnerNames, index),
     buildingName: pick(shichuBuildingNames, index + 2),
     salesOffice,

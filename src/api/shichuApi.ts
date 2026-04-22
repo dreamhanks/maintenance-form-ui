@@ -14,7 +14,8 @@ export type FetchShichuParams = {
 
 function toShichuRow(row: any): ShichuRow {
   return {
-    id: row.id ?? row.propertyCode ?? "",
+    id: row.id,
+    propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
     salesOffice: row.salesOffice ?? "",

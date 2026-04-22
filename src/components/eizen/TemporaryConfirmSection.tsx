@@ -18,13 +18,15 @@ type Props = {
   remarkFileUpload?: RemarkFileUploadContext;
   disableDapConfirmAndRemark?: boolean;
   disableMainContent?: boolean;
+  disableCategoryCheckbox?: boolean;
+  onNeedChange?: (rowId: string, need: string) => void;
 };
 
 export default function TemporaryConfirmSection(props: Props) {
-  const categoryCheckboxMap: Record<number, { checked: boolean; onChange: (v: boolean) => void }> = {
-    0: { checked: props.grpTodokede, onChange: props.setGrpTodokede },
-    6: { checked: props.grpChosa, onChange: props.setGrpChosa },
-    8: { checked: props.grpKakunin, onChange: props.setGrpKakunin },
+  const categoryCheckboxMap: Record<number, { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }> = {
+    0: { checked: props.grpTodokede, onChange: props.setGrpTodokede, disabled: props.disableCategoryCheckbox },
+    6: { checked: props.grpChosa, onChange: props.setGrpChosa, disabled: props.disableCategoryCheckbox },
+    8: { checked: props.grpKakunin, onChange: props.setGrpKakunin, disabled: props.disableCategoryCheckbox },
   };
 
   return (
@@ -48,6 +50,7 @@ export default function TemporaryConfirmSection(props: Props) {
             type={2}
             row={row}
             onChange={(next) => props.updateRow(row.id, next)}
+            onNeedChange={props.onNeedChange ? (need) => props.onNeedChange!(row.id, need) : undefined}
             categoryCheckbox={categoryCheckboxMap[i]}
             disableDapConfirmAndRemark={props.disableDapConfirmAndRemark}
             disableMainContent={props.disableMainContent}

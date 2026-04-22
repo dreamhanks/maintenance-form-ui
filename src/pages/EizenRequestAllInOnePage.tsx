@@ -639,7 +639,8 @@ export default function EizenRequestAllInOnePage() {
     if (d.daipaFinalConfirm != null) setDaipaFinalConfirm(d.daipaFinalConfirm);
     if (d.lostOrder != null) setLostOrder(d.lostOrder);
     if (d.generalApplyAttach != null) setGeneralApplyAttach(d.generalApplyAttach);
-    if (d.generalApplyNotNeed != null) setGeneralApplyNotNeed(d.generalApplyNotNeed);
+    if (d.okyakusamaMitsumoriAttach != null) setOkyakusamaMitsumoriAttach(d.okyakusamaMitsumoriAttach);
+    if (d.keiyakushoSakuseiAttach != null) setKeiyakushoSakuseiAttach(d.keiyakushoSakuseiAttach);
     if (d.finalReason) setFinalReason(d.finalReason);
     if (d.gyomuItakuCd) setGyomuItakuCd(d.gyomuItakuCd);
     if (d.gyomuItakuName) setGyomuItakuName(d.gyomuItakuName);
@@ -921,7 +922,8 @@ export default function EizenRequestAllInOnePage() {
   const [daipaFinalConfirm, setDaipaFinalConfirm] = useState(false);
   const [lostOrder, setLostOrder] = useState(false);
   const [generalApplyAttach, setGeneralApplyAttach] = useState(false);
-  const [generalApplyNotNeed, setGeneralApplyNotNeed] = useState(false);
+  const [okyakusamaMitsumoriAttach, setOkyakusamaMitsumoriAttach] = useState(false);
+  const [keiyakushoSakuseiAttach, setKeiyakushoSakuseiAttach] = useState(false);
   const [finalReason, setFinalReason] = useState("");
 
   const [gyomuItakuCd, setGyomuItakuCd] = useState("");
@@ -985,6 +987,12 @@ export default function EizenRequestAllInOnePage() {
     !isAdmin && isEditable && pendingStepNumber === 3;
 
   const disableMainContent =
+    !isAdmin && (
+      (pendingStepNumber === 5 && createdByDapaTanto) ||
+      (pendingStepNumber === 6 && createdByDapaKacho)
+    );
+
+  const disableCategoryCheckbox =
     !isAdmin && (
       (pendingStepNumber === 5 && createdByDapaTanto) ||
       (pendingStepNumber === 6 && createdByDapaKacho)
@@ -1093,7 +1101,7 @@ export default function EizenRequestAllInOnePage() {
     designInstruction, designAttachment, designDapConfirm, designRemark,
     estimateOutput, estimateAttach, estimateRemark,
     maintenanceEstimateAttach, maintenanceEstimateRemark,
-    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, generalApplyNotNeed, finalReason,
+    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, okyakusamaMitsumoriAttach, keiyakushoSakuseiAttach, finalReason,
     gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
   }), [
     documentNo, issueDate, furigana, customerName, address, propertyCd, propertyCd2, propertyCd3, buildingName,
@@ -1112,7 +1120,7 @@ export default function EizenRequestAllInOnePage() {
     designInstruction, designAttachment, designDapConfirm, designRemark,
     estimateOutput, estimateAttach, estimateRemark,
     maintenanceEstimateAttach, maintenanceEstimateRemark,
-    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, generalApplyNotNeed, finalReason,
+    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, okyakusamaMitsumoriAttach, keiyakushoSakuseiAttach, finalReason,
     gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
   ]);
 
@@ -1128,8 +1136,12 @@ export default function EizenRequestAllInOnePage() {
       pendingStepNumber === 1 ||
       (pendingStepNumber === 2 && createdByDapaKacho);
     if (shouldValidatePropertyCd) {
-      if (!propertyCd?.trim() || !propertyCd2?.trim() || !propertyCd3?.trim()) {
-        toast.error("物件CDを入力してください。\n受注コード・追加コード・棟番号は必須です。");
+      const isValidPropertyCd =
+        propertyCd?.length === 7 &&
+        propertyCd2?.length === 3 &&
+        propertyCd3?.length === 2;
+      if (!isValidPropertyCd) {
+        toast.error("物件CDを正しく入力してください。\n受注コード7桁・追加コード3桁・棟番号2桁");
         return null;
       }
     }
@@ -1274,6 +1286,69 @@ export default function EizenRequestAllInOnePage() {
     setPage2Rows((prev) => prev.map((r) => (r.id === id ? next : r)));
   };
 
+  const clearRowFiles = (fieldKeys: string[]) => {
+    setAttachments((prev) => {
+      const next = { ...prev };
+      fieldKeys.forEach((fk) => {
+        delete pendingFilesRef.current[fk];
+        if (editId && prev[fk]) {
+          deletedFieldKeysRef.current.add(fk);
+        }
+        delete next[fk];
+      });
+      return next;
+    });
+  };
+
+  const rowFileKeyMap: Record<string, string[]> = {
+    r5: ["densenbogokan_zumen"],
+    r7: ["ashiba_plan"],
+    r12: ["planting_plan"],
+    p2r6: ["danshin_sonota"],
+    p2r7: ["shitaji_hitsuyokasho"],
+    p2r8: ["jotai_kakunin_tenpu"],
+  };
+
+  const handleNeedChange = (rowId: string, newNeed: string) => {
+    const page1Row = page1Rows.find((r) => r.id === rowId);
+    const page2Row = page2Rows.find((r) => r.id === rowId);
+    const row = page1Row ?? page2Row;
+    if (!row) return;
+
+    if (newNeed !== "不要") {
+      const updated: CheckRow = { ...row, need: newNeed };
+      if (page1Row) updatePage1Row(rowId, updated);
+      else updatePage2Row(rowId, updated);
+      return;
+    }
+
+    const clearedChecks: Record<string, boolean> = {};
+    Object.keys(row.checks).forEach((k) => { clearedChecks[k] = false; });
+
+    const cleared: CheckRow = {
+      ...row,
+      need: "不要",
+      checks: clearedChecks,
+      ...(row.amount !== undefined ? { amount: "" } : {}),
+      ...(row.otherText !== undefined ? { otherText: "" } : {}),
+      ...(row.remarkExtra
+        ? {
+            remarkExtra: row.remarkExtra.map((e) => ({
+              ...e,
+              value: "",
+              ...(e.fileCheckboxValue !== undefined ? { fileCheckboxValue: false } : {}),
+            })),
+          }
+        : {}),
+    };
+
+    if (page1Row) updatePage1Row(rowId, cleared);
+    else updatePage2Row(rowId, cleared);
+
+    const keys = rowFileKeyMap[rowId] ?? [];
+    if (keys.length > 0) clearRowFiles(keys);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="sticky top-0 z-30 border-b border-slate-300 bg-white/95 backdrop-blur">
@@ -1406,6 +1481,7 @@ export default function EizenRequestAllInOnePage() {
         <TemporaryCheckSection
           rows={page1Rows}
           updateRow={updatePage1Row}
+          onNeedChange={handleNeedChange}
           siteInstruction={siteInstruction1}
           setSiteInstruction={setSiteInstruction1}
           sectionKasetsu={sectionKasetsu}
@@ -1418,6 +1494,7 @@ export default function EizenRequestAllInOnePage() {
           setSectionYosan={setSectionYosan}
           disableDapConfirmAndRemark={disableDapConfirmAndRemark}
           disableMainContent={disableMainContent}
+          disableCategoryCheckbox={disableCategoryCheckbox}
           densenbogokanFileUpload={{
             matchKey: "設置部分図面添付",
             fieldKey: "densenbogokan_zumen",
@@ -1450,6 +1527,7 @@ export default function EizenRequestAllInOnePage() {
         <TemporaryConfirmSection
           rows={page2Rows}
           updateRow={updatePage2Row}
+          onNeedChange={handleNeedChange}
           siteInstruction={siteInstruction2}
           setSiteInstruction={setSiteInstruction2}
           grpTodokede={grpTodokede}
@@ -1460,6 +1538,7 @@ export default function EizenRequestAllInOnePage() {
           setGrpKakunin={setGrpKakunin}
           disableDapConfirmAndRemark={disableDapConfirmAndRemark}
           disableMainContent={disableMainContent}
+          disableCategoryCheckbox={disableCategoryCheckbox}
           danshinSonotaFileUpload={{
             matchKey: "その他",
             fieldKey: "danshin_sonota",
@@ -1580,8 +1659,10 @@ export default function EizenRequestAllInOnePage() {
           setDaipaFinalConfirm={setDaipaFinalConfirm}
           generalApplyAttach={generalApplyAttach}
           setGeneralApplyAttach={setGeneralApplyAttach}
-          generalApplyNotNeed={generalApplyNotNeed}
-          setGeneralApplyNotNeed={setGeneralApplyNotNeed}
+          okyakusamaMitsumoriAttach={okyakusamaMitsumoriAttach}
+          setOkyakusamaMitsumoriAttach={setOkyakusamaMitsumoriAttach}
+          keiyakushoSakuseiAttach={keiyakushoSakuseiAttach}
+          setKeiyakushoSakuseiAttach={setKeiyakushoSakuseiAttach}
           lostOrder={lostOrder}
           setLostOrder={setLostOrder}
           finalReason={finalReason}
@@ -1602,6 +1683,7 @@ export default function EizenRequestAllInOnePage() {
         />
         </fieldset>
 
+        {orderResult !== "失注" && (
         <fieldset disabled={!canEditRequestSection} className="contents">
         <RequestSection
           gyomuItakuCd={gyomuItakuCd}
@@ -1614,12 +1696,14 @@ export default function EizenRequestAllInOnePage() {
           setPartnerName={setPartnerName}
         />
         </fieldset>
+        )}
 
         <ApprovalFlowSection
           formId={editId}
           steps={workflowSteps}
           userRole={user?.role}
           creatorRole={creatorRole}
+          orderResult={orderResult}
           onStepsChange={setWorkflowSteps}
           isFormDirty={isFormDirty}
           onSaveForm={() => handleSubmit(true)}
@@ -1628,8 +1712,12 @@ export default function EizenRequestAllInOnePage() {
               stepNumber === 1 ||
               (stepNumber === 2 && creatorRole === "大パ管理職");
             if (isFirstActiveStep) {
-              if (!propertyCd?.trim() || !propertyCd2?.trim() || !propertyCd3?.trim()) {
-                return "物件CDを入力してください。\n受注コード・追加コード・棟番号は必須です。";
+              const isValidPropertyCd =
+                propertyCd?.length === 7 &&
+                propertyCd2?.length === 3 &&
+                propertyCd3?.length === 2;
+              if (!isValidPropertyCd) {
+                return "物件CDを正しく入力してください。\n受注コード7桁・追加コード3桁・棟番号2桁";
               }
               const hasKaishuChecked =
                 roof || outsideWall || balcony || commonArea || privateArea || otherWork;
@@ -2200,6 +2288,130 @@ export default function EizenRequestAllInOnePage() {
                 if (!attachments["jotai_kakunin_tenpu"]) {
                   return "新築時タイル等保存資料の\n状態確証及び枚数添付ファイルを\nアップロードしてください。";
                 }
+              }
+            }
+            if (stepNumber === 6) {
+              if (createdByDapaTanto) return null;
+              if (!attachments["estimate_output_pdf"]) {
+                return "業者見積依頼書のPDF出力を\n実施してください。";
+              }
+              const step6LabelMap: Record<string, string> = {
+                r1: "第3者侵入防止策",
+                r2: "仮設電気",
+                r3: "仮設水道",
+                r4: "仮設トイレ",
+                r5: "電線防護管",
+                r6: "工事駐車場",
+                r6b: "別途指示事項(仮設)",
+                r7: "足場設置",
+                r8: "足場届出",
+                r9: "昇降階段・巾木・中桟等",
+                r10: "飛散防止措置",
+                r11: "エントランス・共用部養生",
+                r12: "足場設置部の植栽剪定",
+                r13: "足場解体後の清掃費用",
+                r13b: "別途指示事項(足場)",
+                r14: "夜間照明・防犯カメラ",
+                r15: "産廃費用",
+                r16: "荷揚げ費用",
+                p2r1: "道路使用",
+                p2r2: "道路占用",
+                p2r3: "交通誘導員",
+                p2r4: "アスベスト含有調査",
+                p2r5: "景観条例対象届出",
+                p2r5b: "別途指示事項(届出)",
+                p2r6: "打診(タイル・塗装)",
+                p2r7: "下地調整",
+                p2r8: "新築時タイル等保存資料",
+                p2r9: "施工業者の建設業許可確認",
+                p2r10: "契約支店の建設業許可確認",
+                p2r11: "家電リサイクル法",
+                p2r12: "フロン排出抑制法",
+                p2r13: "防水工事等保証の確認",
+              };
+              for (const row of page1Rows) {
+                if (row.id === "r6") {
+                  if (row.need === "不要") continue;
+                  const hasRequired =
+                    row.checks["外部"] === true ||
+                    row.checks["場内"] === true;
+                  if (!hasRequired) {
+                    return "工事駐車場の「外部」または\n「場内」を選択してください。";
+                  }
+                  continue;
+                }
+                if (!row.managerConfirm) {
+                  const label = step6LabelMap[row.id] ?? row.item;
+                  return `${label}の大パ確認に\nチェックしてください。`;
+                }
+              }
+              for (const row of page2Rows) {
+                if (row.id === "p2r8") continue;
+                if (!row.managerConfirm) {
+                  const label = step6LabelMap[row.id] ?? row.item;
+                  return `${label}の大パ確認に\nチェックしてください。`;
+                }
+              }
+              const p2r8row = page2Rows.find((r) => r.id === "p2r8");
+              if (p2r8row && p2r8row.need === "必要") {
+                const hokanText = p2r8row.remarkExtra?.[0]?.value;
+                if (!hokanText?.trim()) {
+                  return "新築時タイル等保存資料の\n保管先を入力してください。";
+                }
+                const jotaiChecked = p2r8row.remarkExtra?.[1]?.fileCheckboxValue;
+                if (!jotaiChecked) {
+                  return "新築時タイル等保存資料の\n状態確証及び枚数添付を\n選択してください。";
+                }
+                const jotaiText = p2r8row.remarkExtra?.[1]?.value;
+                if (!jotaiText?.trim()) {
+                  return "新築時タイル等保存資料の\n状態確証及び枚数添付の\n内容を入力してください。";
+                }
+                if (!attachments["jotai_kakunin_tenpu"]) {
+                  return "新築時タイル等保存資料の\n状態確証及び枚数添付ファイルを\nアップロードしてください。";
+                }
+              }
+            }
+            if (stepNumber === 8) {
+              if (!orderResult) {
+                return "大パ最終確認欄の\n「受注」または「失注」を\n選択してください。";
+              }
+              if (orderResult === "失注" && !finalReason.trim()) {
+                return "失注の理由を入力してください。";
+              }
+              if (!attachments["okyakusama_mitsumori"]) {
+                return "お客様提案見積書を\n添付してください。";
+              }
+              if (orderResult === "受注") {
+                if (!attachments["keiyakusho_sakusei"]) {
+                  return "契約書作成依頼書を\n添付してください。";
+                }
+              }
+              if (orderResult !== "失注" && !gyomuItakuCd?.trim() && !partnerCd?.trim()) {
+                return "業務課依頼欄の\n建託またはパートナーズの\n社員CDを入力してください。";
+              }
+            }
+            if (stepNumber === 9) {
+              if (createdByDapaKacho) {
+                if (!orderResult) {
+                  return "大パ最終確認欄の\n「受注」または「失注」を\n選択してください。";
+                }
+                if (orderResult === "失注" && !finalReason?.trim()) {
+                  return "失注の理由を入力してください。";
+                }
+                if (!attachments["okyakusama_mitsumori"]) {
+                  return "お客様提案見積書を\n添付してください。";
+                }
+                if (orderResult === "受注") {
+                  if (!attachments["keiyakusho_sakusei"]) {
+                    return "契約書作成依頼書を\n添付してください。";
+                  }
+                }
+                if (orderResult !== "失注" && !gyomuItakuCd?.trim() && !partnerCd?.trim()) {
+                  return "業務課依頼欄の\n建託またはパートナーズの\n社員CDを入力してください。";
+                }
+              }
+              if (!daipaFinalConfirm) {
+                return "大パ最終確認欄の\n大パ管理職確認にチェックしてください。";
               }
             }
             return null;

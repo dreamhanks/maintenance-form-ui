@@ -20,14 +20,16 @@ type Props = {
   plantingPlanFileUpload?: MatrixRowFileUpload;
   disableDapConfirmAndRemark?: boolean;
   disableMainContent?: boolean;
+  disableCategoryCheckbox?: boolean;
+  onNeedChange?: (rowId: string, need: string) => void;
 };
 
 export default function TemporaryCheckSection(props: Props) {
-  const categoryCheckboxMap: Record<number, { checked: boolean; onChange: (v: boolean) => void }> = {
-    0: { checked: props.sectionKasetsu, onChange: props.setSectionKasetsu },
-    7: { checked: props.sectionAshiba, onChange: props.setSectionAshiba },
-    15: { checked: props.sectionBouhan, onChange: props.setSectionBouhan },
-    16: { checked: props.sectionYosan, onChange: props.setSectionYosan },
+  const categoryCheckboxMap: Record<number, { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }> = {
+    0: { checked: props.sectionKasetsu, onChange: props.setSectionKasetsu, disabled: props.disableCategoryCheckbox },
+    7: { checked: props.sectionAshiba, onChange: props.setSectionAshiba, disabled: props.disableCategoryCheckbox },
+    15: { checked: props.sectionBouhan, onChange: props.setSectionBouhan, disabled: props.disableCategoryCheckbox },
+    16: { checked: props.sectionYosan, onChange: props.setSectionYosan, disabled: props.disableCategoryCheckbox },
   };
 
   return (
@@ -51,6 +53,7 @@ export default function TemporaryCheckSection(props: Props) {
             type={1}
             row={row}
             onChange={(next) => props.updateRow(row.id, next)}
+            onNeedChange={props.onNeedChange ? (need) => props.onNeedChange!(row.id, need) : undefined}
             categoryCheckbox={categoryCheckboxMap[i]}
             disableDapConfirmAndRemark={props.disableDapConfirmAndRemark}
             disableMainContent={props.disableMainContent}

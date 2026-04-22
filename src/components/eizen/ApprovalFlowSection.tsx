@@ -23,6 +23,7 @@ type Props = {
   steps: WorkflowStepDto[];
   userRole: string | null | undefined;
   creatorRole?: string | null;
+  orderResult?: string;
   onStepsChange: (steps: WorkflowStepDto[]) => void;
   isFormDirty?: () => boolean;
   onSaveForm?: () => Promise<number | null>;
@@ -118,7 +119,7 @@ type PendingAction = {
   stepLabel: string;
 } | null;
 
-export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, onStepsChange, isFormDirty, onSaveForm, validateConfirm }: Props) {
+export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, orderResult, onStepsChange, isFormDirty, onSaveForm, validateConfirm }: Props) {
   const effectiveSteps = steps.length > 0 ? steps : DEFAULT_STEPS;
   // Dirty-check dialog state (existing: "保存して確認")
   const [pendingConfirmStep, setPendingConfirmStep] = useState<number | null>(null);
@@ -208,8 +209,13 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
   };
 
   // Hide 大パ担当者 steps (1, 5, 8) when the form was created by 大パ管理職.
+  // Hide step 10 (業務管理職) when the form is a 失注 — workflow auto-completes at step 9.
   const skipDaipaTanto = creatorRole === "大パ管理職";
-  const isHidden = (n: number) => skipDaipaTanto && (n === 1 || n === 5 || n === 8);
+  const isHidden = (n: number) => {
+    if (skipDaipaTanto && (n === 1 || n === 5 || n === 8)) return true;
+    if (n === 10 && orderResult === "失注") return true;
+    return false;
+  };
 
   const getStep = (n: number) => effectiveSteps.find((s) => s.stepNumber === n);
   const isPrevConfirmed = (n: number) => {

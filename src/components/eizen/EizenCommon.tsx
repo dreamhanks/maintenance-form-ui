@@ -131,6 +131,7 @@ export function MatrixRow({
     type,
     row,
     onChange,
+    onNeedChange,
     categoryCheckbox,
     fileUpload,
     sonotaFileUpload,
@@ -142,7 +143,8 @@ export function MatrixRow({
     type: number;
     row: CheckRow;
     onChange: (next: CheckRow) => void;
-    categoryCheckbox?: { checked: boolean; onChange: (v: boolean) => void };
+    onNeedChange?: (need: string) => void;
+    categoryCheckbox?: { checked: boolean; onChange: (v: boolean) => void; disabled?: boolean };
     fileUpload?: MatrixRowFileUpload;
     sonotaFileUpload?: MatrixRowFileUpload;
     remarkFileUpload?: RemarkFileUploadContext;
@@ -152,8 +154,14 @@ export function MatrixRow({
   const optionEntries = Object.entries(row.checks);
 
   const categoryContent = categoryCheckbox ? (
-    <label className="inline-flex items-center gap-1 whitespace-nowrap cursor-pointer">
-      <input type="checkbox" checked={categoryCheckbox.checked} onChange={(e) => categoryCheckbox.onChange(e.target.checked)} className="h-4 w-4 shrink-0 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
+    <label className={`inline-flex items-center gap-1 whitespace-nowrap${categoryCheckbox.disabled ? " cursor-not-allowed" : " cursor-pointer"}`}>
+      <input
+        type="checkbox"
+        checked={categoryCheckbox.checked}
+        onChange={(e) => categoryCheckbox.onChange(e.target.checked)}
+        disabled={categoryCheckbox.disabled}
+        className={`h-4 w-4 shrink-0 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${categoryCheckbox.disabled ? " opacity-50 cursor-not-allowed" : ""}`}
+      />
       <span>{row.category}</span>
     </label>
   ) : row.category;
@@ -304,7 +312,13 @@ export function MatrixRow({
                   type="radio"
                   name={`${row.id}-need`}
                   checked={row.need === "不要"}
-                  onChange={() => onChange({ ...row, need: "不要" })}
+                  onChange={() => {
+                    if (onNeedChange) {
+                      onNeedChange("不要");
+                    } else {
+                      onChange({ ...row, need: "不要" });
+                    }
+                  }}
                   className="h-4 w-4 border-slate-400 text-[#17375E] focus:ring-[#17375E]"
                 />
                 不要
@@ -746,7 +760,7 @@ export function MatrixRow({
         </>
       )}
 
-      <div className={`col-span-11 border border-slate-300 bg-white px-2 py-2${row.need === "不要" ? " opacity-50 pointer-events-none" : ""}`}>
+      <div className={`col-span-11 border border-slate-300 bg-white px-2 py-2${row.need === "不要" && (!disableMainContent || row.id === "r6" || row.id === "p2r8") ? " opacity-50 pointer-events-none" : ""}`}>
         {!row.remarkExtra && (
           <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} maxLength={100} disabled={disableDapConfirmAndRemark} className={`${textareaClass}${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`} />
         )}
