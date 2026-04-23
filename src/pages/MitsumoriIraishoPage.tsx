@@ -289,7 +289,7 @@ function YesNoRadio({
 }) {
   return (
     <>
-      <td className={`${whiteCell} w-[44px]`}>
+      <td className={`${whiteCell} w-[28px] border-r-0`}>
         <label className="flex cursor-pointer items-center justify-center gap-1 text-[12px]">
           <input
             type="radio"
@@ -299,7 +299,7 @@ function YesNoRadio({
           <span>有</span>
         </label>
       </td>
-      <td className={`${whiteCell} w-[44px]`}>
+      <td className={`${whiteCell} w-[28px] border-l-0`}>
         <label className="flex cursor-pointer items-center justify-center gap-1 text-[12px]">
           <input
             type="radio"
@@ -430,7 +430,7 @@ export default function MitsumoriIraishoPage() {
     month: "",
     day: "",
 
-    companyName: "大東建託株式会社",
+    companyName: "大東建託パートナーズ株式会社",
     requestYear: "",
     requestMonth: "",
     requestDay: "",
@@ -477,6 +477,10 @@ export default function MitsumoriIraishoPage() {
   });
 
   const [specRows, setSpecRows] = useState<SpecRow[]>(createInitialRows());
+  const [photoFieldKeys, setPhotoFieldKeys] = useState<string[]>([]);
+
+  const getPublicAttachmentUrl = (fieldKey: string) =>
+    `${API_BASE}/api/forms/${formRecordId}/files/${fieldKey}/public`;
 
   const { user } = useAuth();
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStepDto[]>([]);
@@ -597,6 +601,7 @@ export default function MitsumoriIraishoPage() {
         if (Array.isArray(d.specRows) && d.specRows.length > 0) {
           setSpecRows(d.specRows as SpecRow[]);
         }
+        setPhotoFieldKeys(dto.attachmentFieldKeys ?? []);
 
         // ALWAYS re-sync auto-populated rows (足場設置 row 0 and 飛散防止 row)
         // from the latest Eizen form data on every page load — regardless of any
@@ -1001,11 +1006,9 @@ export default function MitsumoriIraishoPage() {
               <tr className="h-[22px]">
                 <td className={`${blueCell} text-[12px]`}>社名</td>
                 <td className={tdBase}>
-                  <input
-                    value={form.companyName}
-                    onChange={(e) => updateForm("companyName", e.target.value)}
-                    className={inputClass}
-                  />
+                  <span className="text-sm text-slate-900">
+                    大東建託パートナーズ株式会社
+                  </span>
                 </td>
 
                 <td className={`${blueCell} text-[12px]`}>依頼日</td>
@@ -1269,16 +1272,16 @@ export default function MitsumoriIraishoPage() {
           <div className="mt-3 text-[14px] font-bold">5．工事内容</div>
           <table className="mt-1 w-full border-collapse table-fixed">
             <colgroup>
-              <col className="w-[60px]" />
-              <col className="w-[60px]" />
-              <col />
-              <col className="w-[52px]" />
-              <col className="w-[44px]" />
-              <col className="w-[44px]" />
-              <col className="w-[72px]" />
-              <col className="w-[44px]" />
-              <col className="w-[44px]" />
-              <col />
+              <col className="w-[8%]" />
+              <col className="w-[8%]" />
+              <col className="w-[20%]" />
+              <col className="w-[20%]" />
+              <col className="w-[6%]" />
+              <col className="w-[5%]" />
+              <col className="w-[5%]" />
+              <col className="w-[4%]" />
+              <col className="w-[4%]" />
+              <col className="w-[20%]" />
             </colgroup>
 
             <tbody>
@@ -1352,26 +1355,25 @@ export default function MitsumoriIraishoPage() {
                   有無
                 </td>
 
-                <td className={`${whiteCell} text-[12px]`}>
-                  <label className="flex cursor-pointer items-center justify-center gap-1">
-                    <input
-                      type="radio"
-                      checked={form.kouishoSagyo === "有"}
-                      onChange={() => updateForm("kouishoSagyo", "有")}
-                    />
-                    <span>有</span>
-                  </label>
-                </td>
-
-                <td className={`${whiteCell} text-[12px]`}>
-                  <label className="flex cursor-pointer items-center justify-center gap-1">
-                    <input
-                      type="radio"
-                      checked={form.kouishoSagyo === "無"}
-                      onChange={() => updateForm("kouishoSagyo", "無")}
-                    />
-                    <span>無</span>
-                  </label>
+                <td className={`${whiteCell} text-[12px]`} colSpan={2}>
+                  <div className="flex items-center justify-start gap-2 px-2">
+                    <label className="flex cursor-pointer items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={form.kouishoSagyo === "有"}
+                        onChange={() => updateForm("kouishoSagyo", "有")}
+                      />
+                      <span>有</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={form.kouishoSagyo === "無"}
+                        onChange={() => updateForm("kouishoSagyo", "無")}
+                      />
+                      <span>無</span>
+                    </label>
+                  </div>
                 </td>
 
                 <td className={`${blueCell} text-[12px]`}>仕様</td>
@@ -1390,10 +1392,56 @@ export default function MitsumoriIraishoPage() {
                 </td>
 
                 <td className={`${whiteCell} text-[12px]`}>現況写真</td>
-                <YesNoRadio
-                  value={form.genkyoShashin}
-                  onChange={(v) => updateForm("genkyoShashin", v)}
-                />
+                <td className={`${whiteCell} text-[12px]`} colSpan={2}>
+                  <div className="flex items-center justify-start gap-2 flex-wrap px-2">
+                    <label className="flex cursor-pointer items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={form.genkyoShashin === "有"}
+                        onChange={() => updateForm("genkyoShashin", "有")}
+                      />
+                      <span>有</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={form.genkyoShashin === "無"}
+                        onChange={() => updateForm("genkyoShashin", "無")}
+                      />
+                      <span>無</span>
+                    </label>
+                    {photoFieldKeys.includes("photo_exterior") && (
+                      <a
+                        href={getPublicAttachmentUrl("photo_exterior")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-blue-600 underline cursor-pointer"
+                      >
+                        添付①
+                      </a>
+                    )}
+                    {photoFieldKeys.includes("photo_work") && (
+                      <a
+                        href={getPublicAttachmentUrl("photo_work")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-blue-600 underline cursor-pointer"
+                      >
+                        添付②
+                      </a>
+                    )}
+                    {photoFieldKeys.includes("photo_other") && (
+                      <a
+                        href={getPublicAttachmentUrl("photo_other")}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-blue-600 underline cursor-pointer"
+                      >
+                        添付③
+                      </a>
+                    )}
+                  </div>
+                </td>
 
                 <td className={`${whiteCell} text-[12px]`}>案内図</td>
                 <YesNoRadio
@@ -1416,10 +1464,26 @@ export default function MitsumoriIraishoPage() {
 
               <tr className="h-[42px]">
                 <td className={`${whiteCell} text-[12px]`}>図面</td>
-                <YesNoRadio
-                  value={form.zumen}
-                  onChange={(v) => updateForm("zumen", v)}
-                />
+                <td className={`${whiteCell} text-[12px]`} colSpan={2}>
+                  <div className="flex items-center justify-start gap-2 px-2">
+                    <label className="flex cursor-pointer items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={form.zumen === "有"}
+                        onChange={() => updateForm("zumen", "有")}
+                      />
+                      <span>有</span>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-1">
+                      <input
+                        type="radio"
+                        checked={form.zumen === "無"}
+                        onChange={() => updateForm("zumen", "無")}
+                      />
+                      <span>無</span>
+                    </label>
+                  </div>
+                </td>
 
                 <td className={`${whiteCell} text-[12px]`}>工事部位写真</td>
                 <YesNoRadio

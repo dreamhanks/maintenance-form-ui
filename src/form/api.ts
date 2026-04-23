@@ -218,6 +218,7 @@ export type MitsumoriIraishoDto = {
   id: number;
   formRecordId: number;
   formData: Record<string, any>;
+  attachmentFieldKeys?: string[];
 };
 
 export const mitsumoriApi = {

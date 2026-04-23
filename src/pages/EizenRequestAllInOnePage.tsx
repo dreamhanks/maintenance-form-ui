@@ -11,6 +11,8 @@ import BasicInfoSection from "../components/eizen/BasicInfoSection";
 import AttachmentSection from "../components/eizen/AttachmentSection";
 import TemporaryCheckSection from "../components/eizen/TemporaryCheckSection";
 import TemporaryConfirmSection from "../components/eizen/TemporaryConfirmSection";
+import TemporaryCheckSummary from "../components/eizen/TemporaryCheckSummary";
+import TemporaryConfirmSummary from "../components/eizen/TemporaryConfirmSummary";
 import MaintenanceAttachmentSection from "../components/eizen/MaintenanceAttachmentSection";
 import DesignConfirmSection from "../components/eizen/DesignConfirmSection";
 import EstimateFinalSection from "../components/eizen/EstimateFinalSection";
@@ -1523,7 +1525,11 @@ export default function EizenRequestAllInOnePage() {
             getAttachmentUrl,
           }}
         />
+        </fieldset>
 
+        <TemporaryCheckSummary rows={page1Rows} />
+
+        <fieldset disabled={!canEditTemporarySections} className="contents">
         <TemporaryConfirmSection
           rows={page2Rows}
           updateRow={updatePage2Row}
@@ -1566,6 +1572,8 @@ export default function EizenRequestAllInOnePage() {
           }}
         />
         </fieldset>
+
+        <TemporaryConfirmSummary rows={page2Rows} />
 
         <fieldset disabled={!canEditMaintenanceSection} className="contents">
         <MaintenanceAttachmentSection
