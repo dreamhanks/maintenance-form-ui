@@ -115,6 +115,7 @@ export default function ProposalTable({
   const [uniqueValuesLoading, setUniqueValuesLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLTableRowElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const DROPDOWN_WIDTH = 240;
   const DROPDOWN_EST_HEIGHT = 360;
@@ -131,7 +132,9 @@ export default function ProposalTable({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [openFilterCol]);
 
-  // Infinite scroll: observe the sentinel row and trigger loadMore when it enters the viewport.
+  // Infinite scroll: observe the sentinel row and trigger loadMore when it enters
+  // the scroll container (not the viewport, since the table now scrolls inside a
+  // bounded container with its own height).
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return;
@@ -141,7 +144,7 @@ export default function ProposalTable({
           onLoadMore();
         }
       },
-      { threshold: 0.1 }
+      { root: scrollContainerRef.current, threshold: 0.1 }
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -182,7 +185,11 @@ export default function ProposalTable({
   return (
     <section className="min-w-0">
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="overflow-x-auto w-full">
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto overflow-y-auto w-full"
+          style={{ height: "calc(100vh - 220px)" }}
+        >
           <table className="table-auto w-full border-collapse">
             <thead>
               <tr>

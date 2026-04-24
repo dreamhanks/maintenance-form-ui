@@ -297,7 +297,27 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
             </div>
             <div className="mt-3 text-sm text-slate-700">
               {pendingAction.type === "confirm"
-                ? `${pendingAction.stepLabel} を確認しますか？`
+                ? (
+                  <>
+                    {`${pendingAction.stepLabel} を確認しますか？`}
+                    {(() => {
+                      const msg =
+                        pendingAction.stepNumber === 5 && creatorRole === "大パ担当者"
+                          ? "複数見積がある場合どこを指定したいか、グロスの物件があるか等を記載"
+                          : pendingAction.stepNumber === 6 && creatorRole === "大パ管理職"
+                          ? "複数見積がある場合どこを指定したいか、グロスの物件があるか等を記載"
+                          : null;
+                      return msg ? (
+                        <>
+                          <br />
+                          <span className="mt-1 block text-slate-600">
+                            {msg}
+                          </span>
+                        </>
+                      ) : null;
+                    })()}
+                  </>
+                )
                 : (
                   <>
                     {pendingAction.stepLabel} を差戻しますか？

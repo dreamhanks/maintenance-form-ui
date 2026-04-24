@@ -4,8 +4,7 @@ import { toast } from "react-toastify";
 import { mitsumoriApi, workflowApi, type WorkflowStepDto } from "../form/api";
 import { useAuth } from "../auth/AuthContext";
 import DatePicker, { registerLocale } from "react-datepicker";
-
-const API_BASE = "http://localhost:8080";
+import { API_BASE } from "../config";
 import { ja } from "date-fns/locale/ja";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -77,6 +76,9 @@ type SpecRow = {
   suuryo: string;
   tani: string;
   shosai: string;
+  shosaiUser?: string;
+  isAutoCopied?: boolean;
+  slotKey?: string;
 };
 
 const LINES_PER_PAGE = 20;
@@ -113,6 +115,7 @@ function createInitialRows(): SpecRow[] {
     suuryo: "",
     tani: "m2",
     shosai: "昇降階段　巾木　中桟　安全ブロック\n朝顔　防音シート　防音パネル",
+    slotKey: "ashiba",
   };
   rows[1] = {
     no: 2,
@@ -120,6 +123,7 @@ function createInitialRows(): SpecRow[] {
     suuryo: "",
     tani: "式",
     shosai: "柱養生　床養生",
+    slotKey: "entrance",
   };
   rows[2] = {
     no: 3,
@@ -127,6 +131,7 @@ function createInitialRows(): SpecRow[] {
     suuryo: "",
     tani: "式",
     shosai: "足場下部高圧洗浄費用",
+    slotKey: "clean",
   };
   rows[3] = {
     no: 4,
@@ -134,6 +139,7 @@ function createInitialRows(): SpecRow[] {
     suuryo: "",
     tani: "式",
     shosai: "夜間灯　防犯カメラ　チューブライト",
+    slotKey: "bouhan",
   };
   rows[4] = {
     no: 5,
@@ -141,6 +147,7 @@ function createInitialRows(): SpecRow[] {
     suuryo: "",
     tani: "式",
     shosai: "レッカー　ユニック　手運び（人工）",
+    slotKey: "niageki",
   };
 
   return rows;
@@ -322,7 +329,7 @@ function SpecSheetPage({
   pageIndex: number;
   updateRow: (
     globalIndex: number,
-    key: keyof Omit<SpecRow, "no">,
+    key: keyof Omit<SpecRow, "no" | "isAutoCopied">,
     value: string
   ) => void;
 }) {
@@ -352,49 +359,86 @@ function SpecSheetPage({
         <tbody>
           {rows.map((row, localIndex) => {
             const globalIndex = pageIndex * LINES_PER_PAGE + localIndex;
+            const isReadOnly = !!row.isAutoCopied;
 
             return (
-              <tr key={row.no} className="h-[34px]">
+              <tr key={row.no} className={isReadOnly ? "h-[64px]" : "h-[34px]"}>
                 <td className={`${whiteCell} text-[11px]`}>{row.no}</td>
 
                 <td className={tdBase}>
-                  <textarea
-                    value={row.gyomuNaiyo}
-                    onChange={(e) =>
-                      updateRow(globalIndex, "gyomuNaiyo", e.target.value)
-                    }
-                    className={`${textareaClass} h-[32px]`}
-                  />
+                  {isReadOnly ? (
+                    <span className="block px-1 py-0.5 text-[12px]">
+                      {row.gyomuNaiyo}
+                    </span>
+                  ) : (
+                    <textarea
+                      value={row.gyomuNaiyo}
+                      onChange={(e) =>
+                        updateRow(globalIndex, "gyomuNaiyo", e.target.value)
+                      }
+                      className={`${textareaClass} h-[32px]`}
+                    />
+                  )}
                 </td>
 
                 <td className={tdBase}>
-                  <input
-                    value={row.suuryo}
-                    onChange={(e) =>
-                      updateRow(globalIndex, "suuryo", e.target.value)
-                    }
-                    className={inputClass}
-                  />
+                  {isReadOnly ? (
+                    <span className="block px-1 py-0.5 text-[12px] text-center">
+                      {row.suuryo}
+                    </span>
+                  ) : (
+                    <input
+                      value={row.suuryo}
+                      onChange={(e) =>
+                        updateRow(globalIndex, "suuryo", e.target.value)
+                      }
+                      className={inputClass}
+                    />
+                  )}
                 </td>
 
                 <td className={tdBase}>
-                  <input
-                    value={row.tani}
-                    onChange={(e) =>
-                      updateRow(globalIndex, "tani", e.target.value)
-                    }
-                    className={inputClass}
-                  />
+                  {isReadOnly ? (
+                    <span className="block px-1 py-0.5 text-[12px] text-center">
+                      {row.tani}
+                    </span>
+                  ) : (
+                    <input
+                      value={row.tani}
+                      onChange={(e) =>
+                        updateRow(globalIndex, "tani", e.target.value)
+                      }
+                      className={inputClass}
+                    />
+                  )}
                 </td>
 
                 <td className={tdBase}>
-                  <textarea
-                    value={row.shosai}
-                    onChange={(e) =>
-                      updateRow(globalIndex, "shosai", e.target.value)
-                    }
-                    className={`${textareaClass} h-[32px]`}
-                  />
+                  {isReadOnly ? (
+                    <div className="flex flex-col gap-1">
+                      {row.shosai && (
+                        <span className="block px-1 py-0.5 text-[12px]">
+                          {row.shosai}
+                        </span>
+                      )}
+                      <textarea
+                        value={row.shosaiUser ?? ""}
+                        onChange={(e) =>
+                          updateRow(globalIndex, "shosaiUser", e.target.value)
+                        }
+                        className={`${textareaClass} h-[32px]`}
+                        placeholder="追記..."
+                      />
+                    </div>
+                  ) : (
+                    <textarea
+                      value={row.shosai}
+                      onChange={(e) =>
+                        updateRow(globalIndex, "shosai", e.target.value)
+                      }
+                      className={`${textareaClass} h-[32px]`}
+                    />
+                  )}
                 </td>
               </tr>
             );
@@ -529,7 +573,7 @@ export default function MitsumoriIraishoPage() {
 
   const updateSpecRow = (
     index: number,
-    key: keyof Omit<SpecRow, "no">,
+    key: keyof Omit<SpecRow, "no" | "isAutoCopied">,
     value: string
   ) => {
     setSpecRows((prev) =>
@@ -748,12 +792,26 @@ export default function MitsumoriIraishoPage() {
             setSpecRows((prev) => {
               const next = prev.map((r) => ({ ...r }));
 
+              // Carry shosaiUser notes across reshuffles by stable slotKey,
+              // so a note saved against 清掃 stays with 清掃 even if the
+              // pre-sync array index points at a different category.
+              const userNotesBySlot: Record<string, string> = {};
+              prev.forEach((r) => {
+                if (r.slotKey && r.shosaiUser) {
+                  userNotesBySlot[r.slotKey] = r.shosaiUser;
+                }
+              });
+
               // Row 0 — always overwrite with the latest 足場設置 values (or clear).
               if (next[0]) {
                 next[0].gyomuNaiyo = row0Gyomu;
                 next[0].suuryo = row0Suuryo;
                 next[0].tani = row0Tani;
                 next[0].shosai = row0Shosai;
+                next[0].isAutoCopied = ashibaActive;
+                next[0].slotKey = "ashiba";
+                next[0].shosaiUser =
+                  userNotesBySlot["ashiba"] ?? next[0].shosaiUser ?? "";
               }
 
               // Row 1 — always overwrite with the latest エントランス・共用部養生 values (or clear).
@@ -762,6 +820,10 @@ export default function MitsumoriIraishoPage() {
                 next[1].suuryo = "";
                 next[1].tani = row1Tani;
                 next[1].shosai = row1Shosai;
+                next[1].isAutoCopied = entranceActive;
+                next[1].slotKey = "entrance";
+                next[1].shosaiUser =
+                  userNotesBySlot["entrance"] ?? next[1].shosaiUser ?? "";
               }
 
               // Row 2 — always overwrite with the latest 足場解体後の清掃費用 values (or clear).
@@ -770,6 +832,10 @@ export default function MitsumoriIraishoPage() {
                 next[2].suuryo = "";
                 next[2].tani = row2Tani;
                 next[2].shosai = row2Shosai;
+                next[2].isAutoCopied = cleanActive;
+                next[2].slotKey = "clean";
+                next[2].shosaiUser =
+                  userNotesBySlot["clean"] ?? next[2].shosaiUser ?? "";
               }
 
               // Row 3 — always overwrite with the latest 夜間照明・防犯カメラ values (or clear).
@@ -778,6 +844,10 @@ export default function MitsumoriIraishoPage() {
                 next[3].suuryo = "";
                 next[3].tani = row3Tani;
                 next[3].shosai = row3Shosai;
+                next[3].isAutoCopied = bouhanActive;
+                next[3].slotKey = "bouhan";
+                next[3].shosaiUser =
+                  userNotesBySlot["bouhan"] ?? next[3].shosaiUser ?? "";
               }
 
               // Row 4 — always overwrite with the latest 荷揚げ費用 values (or clear).
@@ -786,6 +856,10 @@ export default function MitsumoriIraishoPage() {
                 next[4].suuryo = "";
                 next[4].tani = row4Tani;
                 next[4].shosai = row4Shosai;
+                next[4].isAutoCopied = niagekiActive;
+                next[4].slotKey = "niageki";
+                next[4].shosaiUser =
+                  userNotesBySlot["niageki"] ?? next[4].shosaiUser ?? "";
               }
 
               // Clean up any leftover stand-alone 飛散防止措置 row from a prior
@@ -801,7 +875,21 @@ export default function MitsumoriIraishoPage() {
                 next[hisanIdx].tani = "";
               }
 
-              return next;
+              // Compact: active auto-copied rows first, then inactive (cleared)
+              // auto-copy slots, then all user rows (index 5+). Renumber sequentially.
+              const autoCopiedRows = next.slice(0, 5).filter(
+                (r) => r.isAutoCopied && r.gyomuNaiyo !== "",
+              );
+              const inactiveRows = next.slice(0, 5).filter(
+                (r) => !r.isAutoCopied || r.gyomuNaiyo === "",
+              );
+              const userRows = next.slice(5);
+              const compacted = [...autoCopiedRows, ...inactiveRows, ...userRows];
+              compacted.forEach((r, i) => {
+                r.no = i + 1;
+              });
+
+              return compacted;
             });
           })
           .catch(() => { /* ignore — keep whatever was loaded */ });

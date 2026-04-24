@@ -9,6 +9,7 @@ import { fetchKeiyakuColumnValues, fetchKeiyakuRows } from "../api/keiyakuApi";
 import { useUserOffices } from "../hooks/useUserOffices";
 import { useAuth } from "../auth/AuthContext";
 import { KeiyakuRow } from "../types";
+import { API_BASE } from "../config";
 
 const PAGE_SIZE = 100;
 
@@ -35,7 +36,7 @@ export default function KeiyakuListPage() {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:8080/api/auth/logout", {
+      const res = await fetch(`${API_BASE}/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

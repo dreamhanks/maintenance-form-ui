@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8080";
+import { API_BASE } from "../config";
 
 // Centralized auth-failure handler. Any 401/403 from the backend means the
 // session is gone — bounce the user to /login. Skip when the failing call

@@ -521,8 +521,15 @@ export default function EizenRequestAllInOnePage() {
   const [submitting, setSubmitting] = useState(false);
   const savedSnapshotRef = useRef<string | null>(null);
   const isInitialLoad = useRef(true);
+  const needsSnapshotRef = useRef(false);
   const [showMitsumoriDialog, setShowMitsumoriDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [showP2r10ConfirmDialog, setShowP2r10ConfirmDialog] = useState(false);
+  const [p2r10PendingRow, setP2r10PendingRow] = useState<CheckRow | null>(null);
+  const [showP2r11ConfirmDialog, setShowP2r11ConfirmDialog] = useState(false);
+  const [p2r11PendingRow, setP2r11PendingRow] = useState<CheckRow | null>(null);
+  const [showP2r12ConfirmDialog, setShowP2r12ConfirmDialog] = useState(false);
+  const [p2r12PendingRow, setP2r12PendingRow] = useState<CheckRow | null>(null);
 
   // Attachment state: fieldKey → { filename, uploading }
   const [attachments, setAttachments] = useState<Record<string, { filename: string; uploading: boolean }>>({});
@@ -533,14 +540,22 @@ export default function EizenRequestAllInOnePage() {
   // Hidden file input refs per fieldKey
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Restore all form fields from a draft-format object (used by API load only)
-  const restoreFromDraft = useCallback((d: any) => {
+  // Restore all form fields from a draft-format object (used by API load only).
+  // 物件CD is sourced from DB columns passed in as extra args (single source of
+  // truth), not from the uiState draft — kept in the same batched call so the
+  // post-load savedSnapshotRef capture sees all 58 fields consistently.
+  const restoreFromDraft = useCallback((
+    d: any,
+    buildingCode?: string,
+    buildingCode2?: string,
+    buildingCode3?: string,
+  ) => {
+    if (buildingCode) setPropertyCd(buildingCode);
+    if (buildingCode2) setPropertyCd2(buildingCode2);
+    if (buildingCode3) setPropertyCd3(buildingCode3);
     if (d.furigana) setFurigana(d.furigana);
     if (d.customerName) setCustomerName(d.customerName);
     if (d.address) setAddress(d.address);
-    if (d.propertyCd) setPropertyCd(d.propertyCd);
-    if (d.propertyCd2) setPropertyCd2(d.propertyCd2);
-    if (d.propertyCd3) setPropertyCd3(d.propertyCd3);
     if (d.buildingName) setBuildingName(d.buildingName);
     if (d.completionDate) setCompletionDate(d.completionDate);
     if (d.productName) setProductName(d.productName);
@@ -667,21 +682,23 @@ export default function EizenRequestAllInOnePage() {
       if (data.creatorRole) setCreatorRole(data.creatorRole);
 
       if (!data.payloadJson) {
-        setTimeout(() => {
-          savedSnapshotRef.current = JSON.stringify(buildDraftRef.current());
-          isInitialLoad.current = false;
-        }, 0);
+        if (data.buildingCode) setPropertyCd(data.buildingCode);
+        if (data.buildingCode2) setPropertyCd2(data.buildingCode2);
+        if (data.buildingCode3) setPropertyCd3(data.buildingCode3);
+        needsSnapshotRef.current = true;
         return;
       }
       try {
         const p = typeof data.payloadJson === "string" ? JSON.parse(data.payloadJson) : data.payloadJson;
         // Restore from uiState (complete round-trip of all fields)
         if (p?.uiState) {
-          restoreFromDraft(p.uiState);
-          setTimeout(() => {
-            savedSnapshotRef.current = JSON.stringify(buildDraftRef.current());
-            isInitialLoad.current = false;
-          }, 0);
+          restoreFromDraft(
+            p.uiState,
+            data.buildingCode,
+            data.buildingCode2,
+            data.buildingCode3,
+          );
+          needsSnapshotRef.current = true;
           return;
         }
         // Fallback: restore from structured FullForm fields (legacy payloads)
@@ -692,9 +709,9 @@ export default function EizenRequestAllInOnePage() {
           const b = prop.building;
           if (b) {
             if (b.address) setAddress(b.address);
-            if (b.propertyCode) setPropertyCd(b.propertyCode);
-            if (b.propertyCode2) setPropertyCd2(b.propertyCode2);
-            if (b.propertyCode3) setPropertyCd3(b.propertyCode3);
+            if (data.buildingCode) setPropertyCd(data.buildingCode);
+            if (data.buildingCode2) setPropertyCd2(data.buildingCode2);
+            if (data.buildingCode3) setPropertyCd3(data.buildingCode3);
             if (b.buildingName) setBuildingName(b.buildingName);
             if (b.completionYm) setCompletionDate(b.completionYm);
             if (b.branchName) setProductName(b.branchName);
@@ -746,12 +763,7 @@ export default function EizenRequestAllInOnePage() {
 
       if (data.workflowSteps) setWorkflowSteps(data.workflowSteps);
 
-      // Defer the clean-snapshot capture until after React has committed all
-      // batched setState calls from this .then() callback.
-      setTimeout(() => {
-        savedSnapshotRef.current = JSON.stringify(buildDraftRef.current());
-        isInitialLoad.current = false;
-      }, 0);
+      needsSnapshotRef.current = true;
     }).catch(() => {
       // Even on failure, release the initial-load gate so the user isn't stuck
       isInitialLoad.current = false;
@@ -1000,26 +1012,6 @@ export default function EizenRequestAllInOnePage() {
       (pendingStepNumber === 6 && createdByDapaKacho)
     );
 
-  // DEBUG: step 5 permission flags
-  console.log("DEBUG step5:", {
-    userRole: user?.role,
-    pendingStepNumber,
-    creatorRole,
-    createdByDapaTanto,
-    isEditable,
-    workflowLoading,
-    disableMainContent,
-    canEditTemporarySections,
-    disableDapConfirmAndRemark,
-    sectionKasetsu,
-    sectionAshiba,
-    sectionBouhan,
-    sectionYosan,
-    grpTodokede,
-    grpChosa,
-    grpKakunin,
-  });
-
   const canEditDesignNeedRow =
     isAdmin || (isEditable && pendingStepNumber === 3);
 
@@ -1127,8 +1119,18 @@ export default function EizenRequestAllInOnePage() {
   ]);
 
   // Keep ref in sync with the latest buildDraft on every render.
+  // Also handles the post-hydration snapshot capture: when hydration sets
+  // needsSnapshotRef=true, we wait for the next render (which reflects all
+  // batched setState calls from the load callback) and then snapshot off the
+  // fresh buildDraft. This avoids the setTimeout(0) vs useEffect race where
+  // the snapshot could capture pre-commit state.
   useEffect(() => {
     buildDraftRef.current = buildDraft;
+    if (needsSnapshotRef.current) {
+      needsSnapshotRef.current = false;
+      savedSnapshotRef.current = JSON.stringify(buildDraft());
+      isInitialLoad.current = false;
+    }
   });
 
   const handleSubmit = async (skipNavigate = false): Promise<number | null> => {
@@ -1285,6 +1287,36 @@ export default function EizenRequestAllInOnePage() {
   };
 
   const updatePage2Row = (id: string, next: CheckRow) => {
+    // Intercept p2r10 (契約支店の建設業許可確認) 大パ確認 toggle:
+    // require a confirmation dialog when checking (false → true). Unchecking
+    // and all other field updates pass through unchanged.
+    if (
+      id === "p2r10" &&
+      next.managerConfirm === true &&
+      !page2Rows.find((r) => r.id === "p2r10")?.managerConfirm
+    ) {
+      setP2r10PendingRow(next);
+      setShowP2r10ConfirmDialog(true);
+      return;
+    }
+    if (
+      id === "p2r11" &&
+      next.managerConfirm === true &&
+      !page2Rows.find((r) => r.id === "p2r11")?.managerConfirm
+    ) {
+      setP2r11PendingRow(next);
+      setShowP2r11ConfirmDialog(true);
+      return;
+    }
+    if (
+      id === "p2r12" &&
+      next.managerConfirm === true &&
+      !page2Rows.find((r) => r.id === "p2r12")?.managerConfirm
+    ) {
+      setP2r12PendingRow(next);
+      setShowP2r12ConfirmDialog(true);
+      return;
+    }
     setPage2Rows((prev) => prev.map((r) => (r.id === id ? next : r)));
   };
 
@@ -2461,6 +2493,117 @@ export default function EizenRequestAllInOnePage() {
               </button>
               <button type="button" onClick={() => setShowLeaveDialog(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
                 キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showP2r10ConfirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">大パ確認</div>
+            <div className="mt-3 text-sm text-slate-700">
+              契約支店の許可業種が未取得の場合、一般申請が必要
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowP2r10ConfirmDialog(false);
+                  setP2r10PendingRow(null);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (p2r10PendingRow) {
+                    setPage2Rows((prev) =>
+                      prev.map((r) => (r.id === "p2r10" ? p2r10PendingRow : r))
+                    );
+                  }
+                  setShowP2r10ConfirmDialog(false);
+                  setP2r10PendingRow(null);
+                }}
+                className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90"
+              >
+                確認
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showP2r11ConfirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">大パ確認</div>
+            <div className="mt-3 text-sm text-slate-700">
+              お客様処分可否確認し、対応不可の場合は、見積書に金額を含める
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowP2r11ConfirmDialog(false);
+                  setP2r11PendingRow(null);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (p2r11PendingRow) {
+                    setPage2Rows((prev) =>
+                      prev.map((r) => (r.id === "p2r11" ? p2r11PendingRow : r))
+                    );
+                  }
+                  setShowP2r11ConfirmDialog(false);
+                  setP2r11PendingRow(null);
+                }}
+                className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90"
+              >
+                確認
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showP2r12ConfirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">大パ確認</div>
+            <div className="mt-3 text-sm text-slate-700">
+              お客様処分可否確認し、対応不可の場合は、見積書に金額を含める
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowP2r12ConfirmDialog(false);
+                  setP2r12PendingRow(null);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (p2r12PendingRow) {
+                    setPage2Rows((prev) =>
+                      prev.map((r) => (r.id === "p2r12" ? p2r12PendingRow : r))
+                    );
+                  }
+                  setShowP2r12ConfirmDialog(false);
+                  setP2r12PendingRow(null);
+                }}
+                className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90"
+              >
+                確認
               </button>
             </div>
           </div>
