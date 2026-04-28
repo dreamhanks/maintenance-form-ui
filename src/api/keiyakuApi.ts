@@ -14,7 +14,9 @@ export type FetchKeiyakuParams = {
 
 function toKeiyakuRow(row: any): KeiyakuRow {
   return {
-    id: row.id ?? row.propertyCode ?? "",
+    id: String(row.id),
+    formId: String(row.formId ?? row.id),
+    propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
     salesOffice: row.salesOffice ?? "",

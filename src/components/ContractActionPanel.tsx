@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
+import JaDatePicker from "./JaDatePicker";
 
 type ContractActionPanelProps = {
   selectedCount: number;
@@ -18,7 +20,7 @@ export default function ContractActionPanel({
 
   const handleClickContract = () => {
     if (selectedCount === 0) {
-      alert("先に対象データを選択してください。");
+      toast.warning("先に対象データを選択してください。");
       return;
     }
     setShowContractDateArea(true);
@@ -31,7 +33,7 @@ export default function ContractActionPanel({
 
   const handleConfirmContract = () => {
     if (!contractDate) {
-      alert("契約日を入力してください。");
+      toast.warning("契約日を入力してください。");
       return;
     }
     onContractConfirm(contractDate);
@@ -85,10 +87,9 @@ export default function ContractActionPanel({
               <label className="mb-1 block text-sm font-medium text-slate-700">
                 契約日
               </label>
-              <input
-                type="date"
+              <JaDatePicker
                 value={contractDate}
-                onChange={(e) => setContractDate(e.target.value)}
+                onChange={setContractDate}
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-500"
               />
             </div>

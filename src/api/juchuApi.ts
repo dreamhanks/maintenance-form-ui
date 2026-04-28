@@ -15,6 +15,7 @@ export type FetchJuchuParams = {
 function toJuchuRow(row: any): JuchuRow {
   return {
     id: row.id,
+    formId: String(row.formId ?? row.id),
     propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",

@@ -64,7 +64,8 @@ export type ListQueryParams = {
 export type JuchuStatus = "未契約" | "契約" | "失注" | "保留";
 
 export type JuchuRow = {
-  id: string;
+  id: string; // OrderJudgment.id (used for selection)
+  formId: string; // form_records.id (used for navigation to /form/:id)
   propertyCodeDisplay: string; // 物件CD
   ownerName: string; // お施主様名
   buildingName: string; // 建物名称
@@ -80,7 +81,8 @@ export type ContractConfirmRequest = {
 
 
 export type ShichuRow = {
-  id: string;
+  id: string; // OrderJudgment.id (used for selection)
+  formId: string; // form_records.id (used for navigation to /form/:id)
   propertyCodeDisplay: string; // 物件CD
   ownerName: string; // お施主様名
   buildingName: string; // 建物名称
@@ -89,7 +91,9 @@ export type ShichuRow = {
 };
 
 export type KeiyakuRow = {
-  id: string;
+  id: string; // OrderJudgment.id
+  formId: string; // form_records.id (used for navigation to /form/:id)
+  propertyCodeDisplay: string; // 物件CD
   ownerName: string;
   buildingName: string;
   salesOffice: string;

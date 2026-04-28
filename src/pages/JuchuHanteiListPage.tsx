@@ -7,6 +7,7 @@ import ContractActionPanel from "../components/ContractActionPanel";
 import LoadingSpinner from "../components/LoadingSpinner";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchJuchuColumnValues, fetchJuchuRows } from "../api/juchuApi";
+import { judgmentApi } from "../form/api";
 import { useUserOffices } from "../hooks/useUserOffices";
 import { useAuth } from "../auth/AuthContext";
 import { JuchuRow } from "../types";
@@ -33,6 +34,10 @@ export default function JuchuHanteiListPage() {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+  const [showLostDialog, setShowLostDialog] = useState(false);
+  const [showHoldDialog, setShowHoldDialog] = useState(false);
+  const [showContractDialog, setShowContractDialog] = useState(false);
+  const [pendingContractDate, setPendingContractDate] = useState("");
 
   const requestIdRef = useRef(0);
 
@@ -151,8 +156,8 @@ export default function JuchuHanteiListPage() {
 
   const toggleAll = () => {
     const allSelected =
-      rows.length > 0 && rows.every((row) => selectedIds.includes(row.id));
-    setSelectedIds(allSelected ? [] : rows.map((row) => row.id));
+      rows.length > 0 && rows.every((row) => selectedIds.includes(row.formId));
+    setSelectedIds(allSelected ? [] : rows.map((row) => row.formId));
   };
 
   const toggleOne = (id: string) => {
@@ -160,6 +165,87 @@ export default function JuchuHanteiListPage() {
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const handleContractConfirm = (contractDate: string) => {
+    setPendingContractDate(contractDate);
+    setShowContractDialog(true);
+  };
+
+  const executeContract = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((formId) =>
+          judgmentApi.setJudgment(Number(formId), {
+            judgment: "契約",
+            contractDate: pendingContractDate,
+            lostDate: null,
+            holdDate: null,
+          })
+        )
+      );
+      setSelectedIds([]);
+      setShowContractDialog(false);
+      setPendingContractDate("");
+      loadInitial();
+    } catch {
+      toast.error("エラーが発生しました");
+    }
+  };
+
+  const handleLost = () => {
+    setShowLostDialog(true);
+  };
+
+  const executeLost = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((formId) =>
+          judgmentApi.setJudgment(Number(formId), {
+            judgment: "失注",
+            contractDate: null,
+            lostDate: today,
+            holdDate: null,
+          })
+        )
+      );
+      setSelectedIds([]);
+      setShowLostDialog(false);
+      loadInitial();
+    } catch {
+      toast.error("エラーが発生しました");
+    }
+  };
+
+  const handleHold = () => {
+    setShowHoldDialog(true);
+  };
+
+  const executeHold = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((formId) =>
+          judgmentApi.setJudgment(Number(formId), {
+            judgment: "保留",
+            contractDate: null,
+            lostDate: null,
+            holdDate: today,
+          })
+        )
+      );
+      setSelectedIds([]);
+      setShowHoldDialog(false);
+      loadInitial();
+    } catch {
+      toast.error("エラーが発生しました");
+    }
+  };
+
+  const canJudge =
+    user?.role === "大パ担当者" ||
+    user?.role === "大パ管理職" ||
+    user?.role === "admin";
 
   return (
     <AppPageLayout
@@ -212,14 +298,14 @@ export default function JuchuHanteiListPage() {
         </div>
       }
       rightPanel={
-        <ContractActionPanel
-          selectedCount={selectedIds.length}
-          onContractConfirm={(contractDate) =>
-            console.log("契約確定", selectedIds, contractDate)
-          }
-          onLost={() => console.log("失注", selectedIds)}
-          onHold={() => console.log("保留", selectedIds)}
-        />
+        canJudge ? (
+          <ContractActionPanel
+            selectedCount={selectedIds.length}
+            onContractConfirm={handleContractConfirm}
+            onLost={handleLost}
+            onHold={handleHold}
+          />
+        ) : undefined
       }
     >
       {displayError && (
@@ -244,7 +330,132 @@ export default function JuchuHanteiListPage() {
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
           onLoadMore={loadMore}
+          onRowClick={(id) => nav(`/form/${id}`, { state: { from: "/juchu", fromLabel: "受注判定リスト" } })}
         />
+      )}
+      {showLostDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">失注</div>
+            <div className="mt-3 text-sm text-slate-700">
+              以下の{selectedIds.length}件を失注にします。
+            </div>
+            <ul className="mt-2 max-h-40 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {rows
+                .filter((r) => selectedIds.includes(r.formId))
+                .map((r) => (
+                  <li
+                    key={r.formId}
+                    className="py-0.5 border-b border-slate-100 last:border-0"
+                  >
+                    {r.propertyCodeDisplay}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-3 text-sm text-slate-500">よろしいですか？</div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLostDialog(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={executeLost}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+              >
+                失注する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showHoldDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">保留</div>
+            <div className="mt-3 text-sm text-slate-700">
+              以下の{selectedIds.length}件を保留にします。
+            </div>
+            <ul className="mt-2 max-h-40 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {rows
+                .filter((r) => selectedIds.includes(r.formId))
+                .map((r) => (
+                  <li
+                    key={r.formId}
+                    className="py-0.5 border-b border-slate-100 last:border-0"
+                  >
+                    {r.propertyCodeDisplay}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-3 text-sm text-slate-500">よろしいですか？</div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowHoldDialog(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={executeHold}
+                className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+              >
+                保留する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showContractDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">契約</div>
+            <div className="mt-3 text-sm text-slate-700">
+              以下の{selectedIds.length}件を契約にします。
+            </div>
+            <ul className="mt-2 max-h-40 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {rows
+                .filter((r) => selectedIds.includes(r.formId))
+                .map((r) => (
+                  <li
+                    key={r.formId}
+                    className="py-0.5 border-b border-slate-100 last:border-0"
+                  >
+                    {r.propertyCodeDisplay}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-3 text-sm text-slate-500">
+              契約日: {pendingContractDate}
+              <br />
+              よろしいですか？
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowContractDialog(false);
+                  setPendingContractDate("");
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={executeContract}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                契約する
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppPageLayout>
   );

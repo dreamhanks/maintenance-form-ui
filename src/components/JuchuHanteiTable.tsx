@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { JuchuRow } from "../types";
 
@@ -16,6 +16,7 @@ type JuchuHanteiTableProps = {
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
+  onRowClick?: (id: string) => void;
 };
 
 const headers: { label: string; key: string }[] = [
@@ -44,7 +45,6 @@ export default function JuchuHanteiTable({
   rows,
   selectedIds,
   onToggleOne,
-  onToggleAll,
   sortKey,
   sortDir,
   onSort,
@@ -54,6 +54,7 @@ export default function JuchuHanteiTable({
   hasMore,
   isLoadingMore,
   onLoadMore,
+  onRowClick,
 }: JuchuHanteiTableProps) {
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const [tempChecked, setTempChecked] = useState<Set<string>>(new Set());
@@ -63,14 +64,10 @@ export default function JuchuHanteiTable({
   const [uniqueValuesLoading, setUniqueValuesLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLTableRowElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const DROPDOWN_WIDTH = 240;
   const DROPDOWN_EST_HEIGHT = 360;
-
-  const isAllSelected = useMemo(() => {
-    if (rows.length === 0) return false;
-    return rows.every((row) => selectedIds.includes(row.id));
-  }, [rows, selectedIds]);
 
   useEffect(() => {
     if (!openFilterCol) return;
@@ -93,7 +90,7 @@ export default function JuchuHanteiTable({
           onLoadMore();
         }
       },
-      { threshold: 0.1 }
+      { root: scrollContainerRef.current, threshold: 0.1 }
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -136,7 +133,11 @@ export default function JuchuHanteiTable({
   return (
     <section className="min-w-0">
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto w-full">
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto overflow-y-auto w-full"
+          style={{ height: "calc(100vh - 220px)" }}
+        >
           <table className="table-auto w-full border-collapse">
             <thead>
               <tr>
@@ -327,13 +328,17 @@ export default function JuchuHanteiTable({
                 rows.map((row, index) => (
                   <tr
                     key={`${row.id}-${index}`}
-                    className="odd:bg-white even:bg-slate-50 hover:bg-blue-50"
+                    className={`odd:bg-white even:bg-slate-50 hover:bg-amber-50${onRowClick ? " cursor-pointer" : ""}`}
+                    onClick={() => onRowClick?.(row.formId)}
                   >
-                    <td className="border-b border-r border-slate-200 px-3 py-2 text-center whitespace-nowrap">
+                    <td
+                      className="border-b border-r border-slate-200 px-3 py-2 text-center whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <input
                         type="checkbox"
-                        checked={selectedIds.includes(row.id)}
-                        onChange={() => onToggleOne(row.id)}
+                        checked={selectedIds.includes(row.formId)}
+                        onChange={() => onToggleOne(row.formId)}
                         className="h-4 w-4 rounded border-slate-300"
                       />
                     </td>
@@ -394,21 +399,6 @@ export default function JuchuHanteiTable({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={isAllSelected}
-            onChange={onToggleAll}
-            className="h-4 w-4 rounded border-slate-300"
-          />
-          表示中の行をすべて選択
-        </label>
-
-        <div className="text-sm text-slate-500">
-          対象物件を選択して判定できます
-        </div>
-      </div>
     </section>
   );
 }

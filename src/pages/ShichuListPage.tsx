@@ -6,6 +6,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ShichuTable from "../components/ShichuTable";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchShichuColumnValues, fetchShichuRows } from "../api/shichuApi";
+import { judgmentApi } from "../form/api";
 import { useUserOffices } from "../hooks/useUserOffices";
 import { useAuth } from "../auth/AuthContext";
 import { ShichuRow } from "../types";
@@ -32,6 +33,7 @@ export default function ShichuListPage() {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
 
   const requestIdRef = useRef(0);
 
@@ -150,14 +152,32 @@ export default function ShichuListPage() {
 
   const toggleAll = () => {
     const allSelected =
-      rows.length > 0 && rows.every((row) => selectedIds.includes(row.id));
-    setSelectedIds(allSelected ? [] : rows.map((row) => row.id));
+      rows.length > 0 && rows.every((row) => selectedIds.includes(row.formId));
+    setSelectedIds(allSelected ? [] : rows.map((row) => row.formId));
   };
 
   const toggleOne = (id: string) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
+  };
+
+  const canRestore =
+    user?.role === "大パ担当者" ||
+    user?.role === "大パ管理職" ||
+    user?.role === "admin";
+
+  const handleRestore = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((formId) => judgmentApi.restore(Number(formId)))
+      );
+      setSelectedIds([]);
+      setShowRestoreDialog(false);
+      loadInitial();
+    } catch {
+      toast.error("エラーが発生しました");
+    }
   };
 
   return (
@@ -195,6 +215,19 @@ export default function ShichuListPage() {
                   ))}
                 </select>
               </>
+            )}
+            {canRestore && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedIds.length === 0) return;
+                  setShowRestoreDialog(true);
+                }}
+                disabled={selectedIds.length === 0}
+                className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                受注判定へ復元
+              </button>
             )}
             <button
               type="button"
@@ -234,7 +267,49 @@ export default function ShichuListPage() {
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
           onLoadMore={loadMore}
+          onRowClick={(id) => nav(`/form/${id}`, { state: { from: "/shichu", fromLabel: "失注リスト" } })}
         />
+      )}
+      {showRestoreDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">受注判定へ復元</div>
+            <div className="mt-3 text-sm text-slate-700">
+              以下の{selectedIds.length}件を受注判定リストへ復元します。
+            </div>
+            <ul className="mt-2 max-h-40 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {rows
+                .filter((r) => selectedIds.includes(r.formId))
+                .map((r) => (
+                  <li
+                    key={r.formId}
+                    className="py-0.5 border-b border-slate-100 last:border-0"
+                  >
+                    {r.propertyCodeDisplay}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-3 text-sm text-slate-500">
+              よろしいですか？
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowRestoreDialog(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleRestore}
+                className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90"
+              >
+                復元する
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppPageLayout>
   );

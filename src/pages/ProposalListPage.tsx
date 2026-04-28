@@ -211,7 +211,7 @@ export default function ProposalListPage() {
       ) : (
         <ProposalTable
           rows={rows}
-          onRowClick={(id) => nav(`/form/${id}`)}
+          onRowClick={(id) => nav(`/form/${id}`, { state: { from: "/", fromLabel: "提案物件一覧" } })}
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={handleSort}

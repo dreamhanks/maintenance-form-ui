@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { CheckRow, NeedFlag, OrderResult, YesNo } from "../components/eizen/EizenFormTypes";
 import { formApi, attachmentApi, workflowApi, mitsumoriApi } from "../form/api";
@@ -516,6 +516,9 @@ const makeRowsPage2 = (): CheckRow[] => [
 
 export default function EizenRequestAllInOnePage() {
  const nav = useNavigate();
+  const location = useLocation();
+  const fromPath = (location.state as any)?.from ?? "/";
+  const fromLabel = (location.state as any)?.fromLabel ?? "提案物件一覧";
   const { id } = useParams<{ id: string }>();
   const editId = id ? Number(id) : null;
   const [submitting, setSubmitting] = useState(false);
@@ -2467,8 +2470,8 @@ export default function EizenRequestAllInOnePage() {
           alignItems: "center",
           gap: "8px"
         }}>
-          <button type="button" onClick={() => { if (isFormDirty()) { setShowLeaveDialog(true); } else { nav("/", { replace: true }); } }} className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
-            提案物件一覧
+          <button type="button" onClick={() => { if (isFormDirty()) { setShowLeaveDialog(true); } else { nav(fromPath, { replace: true }); } }} className="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50">
+            {fromLabel}
           </button>
           <button
             type="button"
@@ -2485,10 +2488,10 @@ export default function EizenRequestAllInOnePage() {
           <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
             <div className="text-base font-semibold text-slate-900">未保存の変更があります。</div>
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" disabled={submitting} onClick={async () => { const targetId = await handleSubmit(true); if (targetId) { setShowLeaveDialog(false); nav("/", { replace: true }); } else { setShowLeaveDialog(false); } }} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
+              <button type="button" disabled={submitting} onClick={async () => { const targetId = await handleSubmit(true); if (targetId) { setShowLeaveDialog(false); nav(fromPath, { replace: true }); } else { setShowLeaveDialog(false); } }} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
                 保存して移動
               </button>
-              <button type="button" onClick={() => { setShowLeaveDialog(false); nav("/", { replace: true }); }} className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
+              <button type="button" onClick={() => { setShowLeaveDialog(false); nav(fromPath, { replace: true }); }} className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600">
                 保存せずに移動
               </button>
               <button type="button" onClick={() => setShowLeaveDialog(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">

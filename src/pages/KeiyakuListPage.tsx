@@ -217,6 +217,7 @@ export default function KeiyakuListPage() {
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
           onLoadMore={loadMore}
+          onRowClick={(id) => nav(`/form/${id}`, { state: { from: "/keiyaku", fromLabel: "契約済みリスト" } })}
         />
       )}
     </AppPageLayout>

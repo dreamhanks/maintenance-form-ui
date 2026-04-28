@@ -13,10 +13,11 @@ type KeiyakuTableProps = {
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
+  onRowClick?: (id: string) => void;
 };
 
 const headers: { label: string; key: string }[] = [
-  { label: "物件CD", key: "id" },
+  { label: "物件CD", key: "propertyCodeDisplay" },
   { label: "お施主様名", key: "ownerName" },
   { label: "建物名称", key: "buildingName" },
   { label: "営業所", key: "salesOffice" },
@@ -34,6 +35,7 @@ export default function KeiyakuTable({
   hasMore,
   isLoadingMore,
   onLoadMore,
+  onRowClick,
 }: KeiyakuTableProps) {
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const [tempChecked, setTempChecked] = useState<Set<string>>(new Set());
@@ -43,6 +45,7 @@ export default function KeiyakuTable({
   const [uniqueValuesLoading, setUniqueValuesLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLTableRowElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const DROPDOWN_WIDTH = 240;
   const DROPDOWN_EST_HEIGHT = 360;
@@ -68,7 +71,7 @@ export default function KeiyakuTable({
           onLoadMore();
         }
       },
-      { threshold: 0.1 }
+      { root: scrollContainerRef.current, threshold: 0.1 }
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -109,7 +112,11 @@ export default function KeiyakuTable({
   return (
     <section className="min-w-0">
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="overflow-x-auto w-full">
+        <div
+          ref={scrollContainerRef}
+          className="overflow-x-auto overflow-y-auto w-full"
+          style={{ height: "calc(100vh - 220px)" }}
+        >
           <table className="table-auto w-full border-collapse">
             <thead>
               <tr>
@@ -289,10 +296,11 @@ export default function KeiyakuTable({
                 rows.map((row, index) => (
                   <tr
                     key={`${row.id}-${index}`}
-                    className="odd:bg-white even:bg-slate-50 hover:bg-emerald-50"
+                    className={`odd:bg-white even:bg-slate-50 hover:bg-amber-50${onRowClick ? " cursor-pointer" : ""}`}
+                    onClick={() => onRowClick?.(row.formId)}
                   >
                     <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
-                      {row.id}
+                      {row.propertyCodeDisplay}
                     </td>
                     <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
                       {row.ownerName}

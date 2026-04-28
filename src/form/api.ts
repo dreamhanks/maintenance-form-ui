@@ -191,6 +191,23 @@ export const judgmentApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  setJudgment: (
+    formId: number,
+    body: {
+      judgment: string;
+      contractDate: string | null;
+      lostDate: string | null;
+      holdDate: string | null;
+    },
+  ) =>
+    request<void>(`/api/forms/${formId}/judgment`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  restore: (formId: number) =>
+    request<void>(`/api/forms/${formId}/judgment/restore`, {
+      method: "POST",
+    }),
   list: (params: JudgmentListApiParams) => {
     const q = buildJudgmentListQuery(params);
     return request<PagedApiResponse<any>>(`/api/judgment/list?${q}`);
