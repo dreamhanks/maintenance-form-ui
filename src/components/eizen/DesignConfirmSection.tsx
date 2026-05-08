@@ -29,6 +29,7 @@ type Props = {
   showOnlyDesignConfirmSection?: boolean;
   disableDesignDapConfirm?: boolean;
   disableDesignRemark?: boolean;
+  disableDesignLeftSide?: boolean;
 };
 
 export default function DesignConfirmSection(props: Props) {
@@ -63,7 +64,7 @@ export default function DesignConfirmSection(props: Props) {
       <LabelCell>建築基準法</LabelCell>
       <LabelCell>確認申請の有無</LabelCell>
       <ValueCell className="col-span-5">
-        <div className="grid grid-cols-12 gap-1">
+        <div className={`grid grid-cols-12 gap-1${props.disableDesignLeftSide ? " opacity-50 pointer-events-none" : ""}`}>
           <div className="col-span-3 ">
             <NeedSwitch name="confirmApplicationNeed" value={props.confirmApplicationNeed} onChange={props.setConfirmApplicationNeed} />
           </div>

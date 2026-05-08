@@ -1019,13 +1019,25 @@ export default function EizenRequestAllInOnePage() {
     isAdmin || (isEditable && pendingStepNumber === 3);
 
   const canEditDesignConfirmSection =
-    isAdmin || (isEditable && pendingStepNumber === 4);
+    isAdmin ||
+    (isEditable && pendingStepNumber === 4) ||
+    (isEditable && pendingStepNumber === 5 && createdByDapaTanto) ||
+    (isEditable && pendingStepNumber === 6 && createdByDapaKacho);
 
   const disableDesignDapConfirm =
-    !isAdmin && isEditable && pendingStepNumber === 4;
+    !isAdmin && !(
+      (isEditable && pendingStepNumber === 5 && createdByDapaTanto) ||
+      (isEditable && pendingStepNumber === 6 && createdByDapaKacho)
+    );
 
   const disableDesignRemark =
-    !isAdmin && isEditable && pendingStepNumber === 4;
+    !isAdmin && !(
+      (isEditable && pendingStepNumber === 5 && createdByDapaTanto) ||
+      (isEditable && pendingStepNumber === 6 && createdByDapaKacho)
+    );
+
+  const disableDesignLeftSide =
+    !isAdmin && !(isEditable && pendingStepNumber === 4);
 
   const isStep9 = !isAdmin && isEditable && pendingStepNumber === 9;
   const isStep9CreatedByTanto = isStep9 && createdByDapaTanto;
@@ -1681,6 +1693,7 @@ export default function EizenRequestAllInOnePage() {
           showOnlyDesignConfirmSection={true}
           disableDesignDapConfirm={disableDesignDapConfirm}
           disableDesignRemark={disableDesignRemark}
+          disableDesignLeftSide={disableDesignLeftSide}
         />
         </fieldset>
 
@@ -1767,6 +1780,9 @@ export default function EizenRequestAllInOnePage() {
               if (!hasKaishuChecked) {
                 return "改修工事内容を選択してください。\n少なくとも1つのチェックが必要です。";
               }
+              if (otherWork && !otherWorkText?.trim()) {
+                return "改修工事内容の「その他」の\n内容を入力してください。";
+              }
               const youboRows = [
                 { label: "オーナー様", flag: ownerFlag, text: ownerText },
                 { label: "入居者様", flag: residentFlag, text: residentText },
@@ -1806,6 +1822,9 @@ export default function EizenRequestAllInOnePage() {
               }
               if (!attachments["photo_work"]) {
                 return "事前確認時 添付資料の\n工事部位【必須】をアップロードしてください。";
+              }
+              if (photoOther && !photoOtherText?.trim()) {
+                return "事前確認時 添付資料の\n現況写真「その他」の\n内容を入力してください。";
               }
             }
             if (stepNumber === 2) {
@@ -1938,6 +1957,9 @@ export default function EizenRequestAllInOnePage() {
                   }
                   if (hasSentei && !attachments["planting_plan"]) {
                     return "足場設置部の植栽剪定の\n図面を添付してください。";
+                  }
+                  if (hasSonota && !row.otherText?.trim()) {
+                    return "足場設置部の植栽剪定の\n「その他」の内容を入力してください。";
                   }
                 }
                 return null;
@@ -2153,27 +2175,39 @@ export default function EizenRequestAllInOnePage() {
               const amountRowIds = new Set([
                 "r6","r8",
               ]);
-              const dispatchRow = (row: CheckRow, label: string) => {
-                if (row.id === "r5") return validateR5(row);
-                if (row.id === "r7") return validateR7(row);
-                if (row.id === "r10") return validateR10(row);
-                if (row.id === "r11") return validateR11(row);
-                if (row.id === "r12") return validateR12(row);
-                if (row.id === "r13") return validateR13(row);
-                if (row.id === "r14") return validateR14(row);
-                if (row.id === "r15") return validateR15(row);
-                if (row.id === "r16") return validateR16(row);
-                if (row.id === "p2r1") return validateP2r1(row);
-                if (row.id === "p2r2") return validateP2r2(row);
-                if (row.id === "p2r3") return validateP2r3(row);
-                if (row.id === "p2r4") return validateP2r4(row);
-                if (row.id === "p2r5") return validateP2r5(row);
-                if (row.id === "p2r6") return validateP2r6(row);
-                if (row.id === "p2r7") return validateP2r7(row);
-                if (row.id === "p2r9") return validateP2r9(row);
-                return amountRowIds.has(row.id)
-                  ? validateAmountRow(row, label)
-                  : validateNormalRow(row, label);
+              const checkSonotaText = (row: CheckRow, label: string): string | null => {
+                if (
+                  row.checks["その他"] === true &&
+                  row.otherText !== undefined &&
+                  !row.otherText.trim()
+                ) {
+                  return `${label}の「その他」の\n内容を入力してください。`;
+                }
+                return null;
+              };
+              const dispatchRow = (row: CheckRow, label: string): string | null => {
+                let result: string | null = null;
+                if (row.id === "r5") result = validateR5(row);
+                else if (row.id === "r7") result = validateR7(row);
+                else if (row.id === "r10") result = validateR10(row);
+                else if (row.id === "r11") result = validateR11(row);
+                else if (row.id === "r12") result = validateR12(row);
+                else if (row.id === "r13") result = validateR13(row);
+                else if (row.id === "r14") result = validateR14(row);
+                else if (row.id === "r15") result = validateR15(row);
+                else if (row.id === "r16") result = validateR16(row);
+                else if (row.id === "p2r1") result = validateP2r1(row);
+                else if (row.id === "p2r2") result = validateP2r2(row);
+                else if (row.id === "p2r3") result = validateP2r3(row);
+                else if (row.id === "p2r4") result = validateP2r4(row);
+                else if (row.id === "p2r5") result = validateP2r5(row);
+                else if (row.id === "p2r6") result = validateP2r6(row);
+                else if (row.id === "p2r7") result = validateP2r7(row);
+                else if (row.id === "p2r9") result = validateP2r9(row);
+                else if (amountRowIds.has(row.id)) result = validateAmountRow(row, label);
+                else result = validateNormalRow(row, label);
+                if (result) return result;
+                return checkSonotaText(row, label);
               };
               const page1Ids = [
                 "r1","r2","r3","r4","r5","r6",
@@ -2205,6 +2239,12 @@ export default function EizenRequestAllInOnePage() {
                   if (!hasRequired) {
                     return "契約支店の建設業許可確認の\n「一般申請起票」または「その他」を\n選択してください。";
                   }
+                  if (
+                    p2r10row.checks["その他"] === true &&
+                    !p2r10row.otherText?.trim()
+                  ) {
+                    return "契約支店の建設業許可確認の\n「その他」の内容を入力してください。";
+                  }
                 }
               }
               const validateRadioRow = (row: CheckRow, label: string): string | null => {
@@ -2215,6 +2255,13 @@ export default function EizenRequestAllInOnePage() {
                   const hasCheck = !!row.checks["お客様処分"] || !!row.checks["その他"];
                   if (!hasCheck) {
                     return `${label}の対象あり内容を\n選択してください。`;
+                  }
+                  if (
+                    row.checks["その他"] === true &&
+                    row.otherText !== undefined &&
+                    !row.otherText.trim()
+                  ) {
+                    return `${label}の「その他」の\n内容を入力してください。`;
                   }
                 }
                 return null;
@@ -2256,6 +2303,9 @@ export default function EizenRequestAllInOnePage() {
             if (stepNumber === 5) {
               if (!attachments["estimate_output_pdf"]) {
                 return "業者見積依頼書のPDF出力を\n実施してください。";
+              }
+              if (!attachments["estimate_attached"]) {
+                return "見積書を添付してください。";
               }
               const step5LabelMap: Record<string, string> = {
                 r1: "第3者侵入防止策",
@@ -2320,23 +2370,18 @@ export default function EizenRequestAllInOnePage() {
                 if (!hokanText?.trim()) {
                   return "新築時タイル等保存資料の\n保管先を入力してください。";
                 }
-                const jotaiChecked = p2r8row.remarkExtra?.[1]?.fileCheckboxValue;
-                if (!jotaiChecked) {
-                  return "新築時タイル等保存資料の\n状態確証及び枚数添付を\n選択してください。";
-                }
-                const jotaiText = p2r8row.remarkExtra?.[1]?.value;
-                if (!jotaiText?.trim()) {
-                  return "新築時タイル等保存資料の\n状態確証及び枚数添付の\n内容を入力してください。";
-                }
-                if (!attachments["jotai_kakunin_tenpu"]) {
-                  return "新築時タイル等保存資料の\n状態確証及び枚数添付ファイルを\nアップロードしてください。";
-                }
+              }
+              if (createdByDapaTanto && !designDapConfirm) {
+                return "設計確認の大パ確認に\nチェックしてください。";
               }
             }
             if (stepNumber === 6) {
               if (createdByDapaTanto) return null;
               if (!attachments["estimate_output_pdf"]) {
                 return "業者見積依頼書のPDF出力を\n実施してください。";
+              }
+              if (!attachments["estimate_attached"]) {
+                return "見積書を添付してください。";
               }
               const step6LabelMap: Record<string, string> = {
                 r1: "第3者侵入防止策",
@@ -2401,17 +2446,9 @@ export default function EizenRequestAllInOnePage() {
                 if (!hokanText?.trim()) {
                   return "新築時タイル等保存資料の\n保管先を入力してください。";
                 }
-                const jotaiChecked = p2r8row.remarkExtra?.[1]?.fileCheckboxValue;
-                if (!jotaiChecked) {
-                  return "新築時タイル等保存資料の\n状態確証及び枚数添付を\n選択してください。";
-                }
-                const jotaiText = p2r8row.remarkExtra?.[1]?.value;
-                if (!jotaiText?.trim()) {
-                  return "新築時タイル等保存資料の\n状態確証及び枚数添付の\n内容を入力してください。";
-                }
-                if (!attachments["jotai_kakunin_tenpu"]) {
-                  return "新築時タイル等保存資料の\n状態確証及び枚数添付ファイルを\nアップロードしてください。";
-                }
+              }
+              if (createdByDapaKacho && !designDapConfirm) {
+                return "設計確認の大パ確認に\nチェックしてください。";
               }
             }
             if (stepNumber === 8) {
@@ -2475,7 +2512,7 @@ export default function EizenRequestAllInOnePage() {
           </button>
           <button
             type="button"
-            onClick={() => handleSubmit(false)}
+            onClick={() => handleSubmit(true)}
             disabled={!isEditable || submitting}
             className={`rounded-xl bg-[#17375E] px-6 py-3 font-semibold text-white hover:bg-[#1e2d40] disabled:opacity-50 ${!isEditable ? "cursor-not-allowed" : ""}`}
           >
