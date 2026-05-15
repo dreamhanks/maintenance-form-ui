@@ -10,6 +10,8 @@ type Props = {
   setPartnerCd: (v: string) => void;
   partnerName: string;
   setPartnerName: (v: string) => void;
+  onGyomuSearch?: () => void;
+  onPartnerSearch?: () => void;
 };
 
 export default function RequestSection(props: Props) {
@@ -31,7 +33,17 @@ export default function RequestSection(props: Props) {
         </ValueCell>
         <LabelCell>氏名</LabelCell>
         <ValueCell className="col-span-2">
-          <input value={props.gyomuItakuName} onChange={(e) => props.setGyomuItakuName(e.target.value)} disabled={kenDisabled} className={`${inputClass}${kenDisabled ? " opacity-50 cursor-not-allowed" : ""}`} />
+          <div className="flex items-center gap-2">
+            <input value={props.gyomuItakuName} readOnly className={`${inputClass} bg-slate-50 cursor-default${kenDisabled ? " opacity-50" : ""}`} />
+            <button
+              type="button"
+              onClick={props.onGyomuSearch}
+              disabled={kenDisabled}
+              className={`rounded-lg bg-[#17375E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90 whitespace-nowrap${kenDisabled ? " opacity-50 cursor-not-allowed" : ""}`}
+            >
+              検索
+            </button>
+          </div>
         </ValueCell>
         <ValueCell className="col-span-5" />
 
@@ -42,7 +54,17 @@ export default function RequestSection(props: Props) {
         </ValueCell>
         <LabelCell>氏名</LabelCell>
         <ValueCell className="col-span-2">
-          <input value={props.partnerName} onChange={(e) => props.setPartnerName(e.target.value)} disabled={partDisabled} className={`${inputClass}${partDisabled ? " opacity-50 cursor-not-allowed" : ""}`} />
+          <div className="flex items-center gap-2">
+            <input value={props.partnerName} readOnly className={`${inputClass} bg-slate-50 cursor-default${partDisabled ? " opacity-50" : ""}`} />
+            <button
+              type="button"
+              onClick={props.onPartnerSearch}
+              disabled={partDisabled}
+              className={`rounded-lg bg-[#17375E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90 whitespace-nowrap${partDisabled ? " opacity-50 cursor-not-allowed" : ""}`}
+            >
+              検索
+            </button>
+          </div>
         </ValueCell>
         <ValueCell className="col-span-5" />
       </div>

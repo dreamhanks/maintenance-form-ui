@@ -20,7 +20,7 @@ const headers: { label: string; key: string }[] = [
   { label: "物件CD", key: "propertyCodeDisplay" },
   { label: "お施主様名", key: "ownerName" },
   { label: "建物名称", key: "buildingName" },
-  { label: "営業所", key: "salesOffice" },
+  { label: "営業所", key: "branchName" },
   { label: "契約日", key: "contractDate" },
 ];
 
@@ -309,7 +309,7 @@ export default function KeiyakuTable({
                       {row.buildingName}
                     </td>
                     <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
-                      {row.salesOffice}
+                      {row.branchName}
                     </td>
                     <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
                       {row.contractDate}

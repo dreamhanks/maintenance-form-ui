@@ -6,7 +6,8 @@ export type ProposalRow = {
   propertyCodeDisplay: string;
   ownerName: string;
   buildingName: string;
-  salesOffice: string;
+  branchCode: string;
+  branchName: string;
   status: string;
 
   daipaTanto: string;
@@ -40,11 +41,6 @@ export type ProposalRow = {
   confirmDate: string;
 };
 
-export type SalesOfficeOption = {
-  label: string;
-  value: string;
-};
-
 export type PagedResponse<T> = {
   rows: T[];
   totalCount: number;
@@ -53,7 +49,6 @@ export type PagedResponse<T> = {
 };
 
 export type ListQueryParams = {
-  salesOffice: string;
   page: number;
   size: number;
   sortKey: string | null;
@@ -69,7 +64,8 @@ export type JuchuRow = {
   propertyCodeDisplay: string; // 物件CD
   ownerName: string; // お施主様名
   buildingName: string; // 建物名称
-  salesOffice: string; // 営業所
+  branchCode: string; // 営業所コード
+  branchName: string; // 営業所名
   status: JuchuStatus; // ステータス
   daipaTanto: string; // 大パ担当
 };
@@ -86,7 +82,8 @@ export type ShichuRow = {
   propertyCodeDisplay: string; // 物件CD
   ownerName: string; // お施主様名
   buildingName: string; // 建物名称
-  salesOffice: string; // 営業所
+  branchCode: string; // 営業所コード
+  branchName: string; // 営業所名
   lostDate: string; // 失注日
 };
 
@@ -96,16 +93,7 @@ export type KeiyakuRow = {
   propertyCodeDisplay: string; // 物件CD
   ownerName: string;
   buildingName: string;
-  salesOffice: string;
+  branchCode: string;
+  branchName: string;
   contractDate: string;
 };
-
-
-
-
-
-
-
-
-
-

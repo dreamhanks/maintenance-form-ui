@@ -8,7 +8,6 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchJuchuColumnValues, fetchJuchuRows } from "../api/juchuApi";
 import { judgmentApi } from "../form/api";
-import { useUserOffices } from "../hooks/useUserOffices";
 import { useAuth } from "../auth/AuthContext";
 import { JuchuRow } from "../types";
 import { API_BASE } from "../config";
@@ -21,8 +20,6 @@ export default function JuchuHanteiListPage() {
   const canCreate =
     user?.role === "大パ担当者" ||
     user?.role === "大パ管理職";
-  const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
-  const [salesOffice, setSalesOffice] = useState("");
   const [rows, setRows] = useState<JuchuRow[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -48,15 +45,11 @@ export default function JuchuHanteiListPage() {
         credentials: "include",
       });
       if (!res.ok) throw new Error("logout failed");
-      nav("/login", { replace: true });
+      nav("/unauthorized", { replace: true });
     } catch {
       toast.error("ログアウトに失敗しました");
     }
   };
-
-  useEffect(() => {
-    if (defaultOffice && !salesOffice) setSalesOffice(defaultOffice);
-  }, [defaultOffice, salesOffice]);
 
   const filtersToServer = useCallback((): Record<string, string[]> => {
     const out: Record<string, string[]> = {};
@@ -67,13 +60,12 @@ export default function JuchuHanteiListPage() {
   }, [columnFilters]);
 
   const loadInitial = useCallback(async () => {
-    if (!salesOffice) return;
+    if (!user) return;
     const reqId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
     try {
       const result = await fetchJuchuRows({
-        salesOffice,
         page: 0,
         size: PAGE_SIZE,
         sortKey,
@@ -95,14 +87,13 @@ export default function JuchuHanteiListPage() {
     } finally {
       if (reqId === requestIdRef.current) setIsLoading(false);
     }
-  }, [salesOffice, sortKey, sortDir, filtersToServer]);
+  }, [user, sortKey, sortDir, filtersToServer]);
 
   const loadMore = useCallback(async () => {
-    if (!salesOffice || !hasMore || isLoadingMore || isLoading) return;
+    if (!user || !hasMore || isLoadingMore || isLoading) return;
     setIsLoadingMore(true);
     try {
       const result = await fetchJuchuRows({
-        salesOffice,
         page,
         size: PAGE_SIZE,
         sortKey,
@@ -118,13 +109,13 @@ export default function JuchuHanteiListPage() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [salesOffice, hasMore, isLoadingMore, isLoading, page, sortKey, sortDir, filtersToServer]);
+  }, [user, hasMore, isLoadingMore, isLoading, page, sortKey, sortDir, filtersToServer]);
 
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
 
-  const displayError = officeError || error;
+  const displayError = error;
 
   const handleSort = (key: string, dir?: "asc" | "desc") => {
     if (dir) {
@@ -150,15 +141,9 @@ export default function JuchuHanteiListPage() {
   };
 
   const handleFetchColumnValues = useCallback(
-    (col: string) => fetchJuchuColumnValues(salesOffice, col),
-    [salesOffice]
+    (col: string) => fetchJuchuColumnValues(col),
+    []
   );
-
-  const toggleAll = () => {
-    const allSelected =
-      rows.length > 0 && rows.every((row) => selectedIds.includes(row.formId));
-    setSelectedIds(allSelected ? [] : rows.map((row) => row.formId));
-  };
 
   const toggleOne = (id: string) => {
     setSelectedIds((prev) =>
@@ -267,22 +252,6 @@ export default function JuchuHanteiListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {officeOptions.length > 1 && (
-              <>
-                <span className="text-sm font-semibold text-[#17375E]">営業所名</span>
-                <select
-                  value={salesOffice}
-                  onChange={(e) => setSalesOffice(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-[#17375E] outline-none focus:border-blue-500"
-                >
-                  {officeOptions.map((office) => (
-                    <option key={office.value} value={office.value}>
-                      {office.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
             <button
               type="button"
               onClick={() => {
@@ -320,7 +289,6 @@ export default function JuchuHanteiListPage() {
           rows={rows}
           selectedIds={selectedIds}
           onToggleOne={toggleOne}
-          onToggleAll={toggleAll}
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={handleSort}

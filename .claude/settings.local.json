@@ -8,7 +8,9 @@
       "Bash(./mvnw compile *)",
       "Bash(\"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/mvnw.cmd\" -f \"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/pom.xml\" compile -q)",
       "Bash(\"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/mvnw.cmd\" -f \"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/pom.xml\" compile)",
-      "Bash(\"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/mvnw.cmd\" -f \"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/pom.xml\" clean compile)"
+      "Bash(\"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/mvnw.cmd\" -f \"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/pom.xml\" clean compile)",
+      "Bash(find c:/Users/eltad/workspace/maintenance-form/backend -type f -name \"FormService.java\" 2>&1)",
+      "Read(//c/Users/eltad/workspace/maintenance-form/backend/**)"
     ]
   }
 }

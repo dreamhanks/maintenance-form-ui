@@ -6,7 +6,6 @@ import KeiyakuTable from "../components/KeiyakuTable";
 import LoadingSpinner from "../components/LoadingSpinner";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchKeiyakuColumnValues, fetchKeiyakuRows } from "../api/keiyakuApi";
-import { useUserOffices } from "../hooks/useUserOffices";
 import { useAuth } from "../auth/AuthContext";
 import { KeiyakuRow } from "../types";
 import { API_BASE } from "../config";
@@ -19,8 +18,6 @@ export default function KeiyakuListPage() {
   const canCreate =
     user?.role === "大パ担当者" ||
     user?.role === "大パ管理職";
-  const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
-  const [salesOffice, setSalesOffice] = useState("");
   const [rows, setRows] = useState<KeiyakuRow[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -41,15 +38,11 @@ export default function KeiyakuListPage() {
         credentials: "include",
       });
       if (!res.ok) throw new Error("logout failed");
-      nav("/login", { replace: true });
+      nav("/unauthorized", { replace: true });
     } catch {
       toast.error("ログアウトに失敗しました");
     }
   };
-
-  useEffect(() => {
-    if (defaultOffice && !salesOffice) setSalesOffice(defaultOffice);
-  }, [defaultOffice, salesOffice]);
 
   const filtersToServer = useCallback((): Record<string, string[]> => {
     const out: Record<string, string[]> = {};
@@ -60,13 +53,12 @@ export default function KeiyakuListPage() {
   }, [columnFilters]);
 
   const loadInitial = useCallback(async () => {
-    if (!salesOffice) return;
+    if (!user) return;
     const reqId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
     try {
       const result = await fetchKeiyakuRows({
-        salesOffice,
         page: 0,
         size: PAGE_SIZE,
         sortKey,
@@ -87,14 +79,13 @@ export default function KeiyakuListPage() {
     } finally {
       if (reqId === requestIdRef.current) setIsLoading(false);
     }
-  }, [salesOffice, sortKey, sortDir, filtersToServer]);
+  }, [user, sortKey, sortDir, filtersToServer]);
 
   const loadMore = useCallback(async () => {
-    if (!salesOffice || !hasMore || isLoadingMore || isLoading) return;
+    if (!user || !hasMore || isLoadingMore || isLoading) return;
     setIsLoadingMore(true);
     try {
       const result = await fetchKeiyakuRows({
-        salesOffice,
         page,
         size: PAGE_SIZE,
         sortKey,
@@ -110,13 +101,13 @@ export default function KeiyakuListPage() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [salesOffice, hasMore, isLoadingMore, isLoading, page, sortKey, sortDir, filtersToServer]);
+  }, [user, hasMore, isLoadingMore, isLoading, page, sortKey, sortDir, filtersToServer]);
 
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
 
-  const displayError = officeError || error;
+  const displayError = error;
 
   const handleSort = (key: string, dir?: "asc" | "desc") => {
     if (dir) {
@@ -142,8 +133,8 @@ export default function KeiyakuListPage() {
   };
 
   const handleFetchColumnValues = useCallback(
-    (col: string) => fetchKeiyakuColumnValues(salesOffice, col),
-    [salesOffice]
+    (col: string) => fetchKeiyakuColumnValues(col),
+    []
   );
 
   return (
@@ -166,22 +157,6 @@ export default function KeiyakuListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {officeOptions.length > 1 && (
-              <>
-                <span className="text-sm font-semibold text-[#17375E]">営業所名</span>
-                <select
-                  value={salesOffice}
-                  onChange={(e) => setSalesOffice(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-[#17375E] outline-none focus:border-blue-500"
-                >
-                  {officeOptions.map((office) => (
-                    <option key={office.value} value={office.value}>
-                      {office.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
             <button
               type="button"
               onClick={() => {

@@ -1,12 +1,4 @@
-import { ProposalRow, SalesOfficeOption, JuchuRow, JuchuStatus, ShichuRow, KeiyakuRow } from "../types";
-
-export const salesOfficeOptions: SalesOfficeOption[] = [
-  { label: "名古屋", value: "名古屋" },
-  { label: "東京", value: "東京" },
-  { label: "大阪", value: "大阪" },
-  { label: "福岡", value: "福岡" },
-  { label: "横浜", value: "横浜" },
-];
+import { ProposalRow, JuchuRow, JuchuStatus, ShichuRow, KeiyakuRow } from "../types";
 
 export const statusOptions = [
   "すべて",
@@ -168,7 +160,7 @@ function createStepFlow(index: number) {
   };
 }
 
-function createRow(index: number, salesOffice: string): ProposalRow {
+function createRow(index: number, branchName: string): ProposalRow {
   const flow = createStepFlow(index);
 
   return {
@@ -179,7 +171,8 @@ function createRow(index: number, salesOffice: string): ProposalRow {
     propertyCodeDisplay: makeCode(index),
     ownerName: pick(ownerNames, index),
     buildingName: pick(buildingNames, index + 2),
-    salesOffice,
+    branchCode: branchName,
+    branchName,
     status: flow.status,
 
     daipaTanto: flow.daipaTanto,
@@ -286,14 +279,15 @@ function makeStatus(index: number): JuchuStatus {
   return "未契約";
 }
 
-function createJuchuRow(index: number, salesOffice: string): JuchuRow {
+function createJuchuRow(index: number, branchName: string): JuchuRow {
   return {
     id: makeCode(index),
     formId: String(index),
     propertyCodeDisplay: makeCode(index),
     ownerName: pick(juchuOwnerNames, index),
     buildingName: pick(juchuBuildingNames, index + 3),
-    salesOffice,
+    branchCode: branchName,
+    branchName,
     status: makeStatus(index),
     daipaTanto: pick(juchuPeople, index + 2),
   };
@@ -351,14 +345,15 @@ function makeLostDate(seed: number) {
   return `2026-${pad(month)}-${pad(day)}`;
 }
 
-function shichuCreateRow(index: number, salesOffice: string): ShichuRow {
+function shichuCreateRow(index: number, branchName: string): ShichuRow {
   return {
     id: makeCode(index),
     formId: String(index),
     propertyCodeDisplay: makeCode(index),
     ownerName: pick(shichuOwnerNames, index),
     buildingName: pick(shichuBuildingNames, index + 2),
-    salesOffice,
+    branchCode: branchName,
+    branchName,
     lostDate: index % 4 === 0 ? "" : makeLostDate(index + 10),
   };
 }
@@ -414,14 +409,15 @@ function makeContractDate(seed: number) {
   return `2026-${pad(month)}-${pad(day)}`;
 }
 
-function createRowKeiyaku(index: number, salesOffice: string): KeiyakuRow {
+function createRowKeiyaku(index: number, branchName: string): KeiyakuRow {
   return {
     id: makeCode(index),
     formId: String(index),
     propertyCodeDisplay: makeCode(index),
     ownerName: pick(keiyakuOwnerNames, index),
     buildingName: pick(keiyakuBuildingNames, index + 2),
-    salesOffice,
+    branchCode: branchName,
+    branchName,
     contractDate: makeContractDate(index + 20),
   };
 }

@@ -30,6 +30,7 @@ type Props = {
   disableDesignDapConfirm?: boolean;
   disableDesignRemark?: boolean;
   disableDesignLeftSide?: boolean;
+  onDesignSearch?: () => void;
 };
 
 export default function DesignConfirmSection(props: Props) {
@@ -46,7 +47,16 @@ export default function DesignConfirmSection(props: Props) {
           </ValueCell>
           <LabelCell>氏名</LabelCell>
           <ValueCell className="col-span-4">
-          <input value={props.employeeName} onChange={(e) => props.setEmployeeName(e.target.value)} className={inputClass} />
+          <div className="flex items-center gap-2">
+            <input value={props.employeeName} readOnly className={inputClass + " bg-slate-50 cursor-default"} />
+            <button
+              type="button"
+              onClick={props.onDesignSearch}
+              className="rounded-lg bg-[#17375E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90 whitespace-nowrap"
+            >
+              検索
+            </button>
+          </div>
           </ValueCell>
         </div>
     </div>

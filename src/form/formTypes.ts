@@ -26,7 +26,10 @@ export type PropertyOverviewForm = {
     propertyCode3?: string;
     buildingName: string;
     completionYm: string;
-    branchName: string;
+    branchName?: string;
+    productName?: string;
+    branchCode?: string;
+    branchName2?: string;
     renovationHistory: string;
   };
 
@@ -233,7 +236,6 @@ export const initialForm: FullForm = {
       propertyCode: "",
       buildingName: "",
       completionYm: "",
-      branchName: "",
       renovationHistory: "",
     },
     renovationContent: "",

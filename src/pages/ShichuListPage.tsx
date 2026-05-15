@@ -7,7 +7,6 @@ import ShichuTable from "../components/ShichuTable";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchShichuColumnValues, fetchShichuRows } from "../api/shichuApi";
 import { judgmentApi } from "../form/api";
-import { useUserOffices } from "../hooks/useUserOffices";
 import { useAuth } from "../auth/AuthContext";
 import { ShichuRow } from "../types";
 import { API_BASE } from "../config";
@@ -20,8 +19,6 @@ export default function ShichuListPage() {
   const canCreate =
     user?.role === "大パ担当者" ||
     user?.role === "大パ管理職";
-  const { officeOptions, defaultOffice, error: officeError } = useUserOffices();
-  const [salesOffice, setSalesOffice] = useState("");
   const [rows, setRows] = useState<ShichuRow[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -44,15 +41,11 @@ export default function ShichuListPage() {
         credentials: "include",
       });
       if (!res.ok) throw new Error("logout failed");
-      nav("/login", { replace: true });
+      nav("/unauthorized", { replace: true });
     } catch {
       toast.error("ログアウトに失敗しました");
     }
   };
-
-  useEffect(() => {
-    if (defaultOffice && !salesOffice) setSalesOffice(defaultOffice);
-  }, [defaultOffice, salesOffice]);
 
   const filtersToServer = useCallback((): Record<string, string[]> => {
     const out: Record<string, string[]> = {};
@@ -63,13 +56,12 @@ export default function ShichuListPage() {
   }, [columnFilters]);
 
   const loadInitial = useCallback(async () => {
-    if (!salesOffice) return;
+    if (!user) return;
     const reqId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
     try {
       const result = await fetchShichuRows({
-        salesOffice,
         page: 0,
         size: PAGE_SIZE,
         sortKey,
@@ -91,14 +83,13 @@ export default function ShichuListPage() {
     } finally {
       if (reqId === requestIdRef.current) setIsLoading(false);
     }
-  }, [salesOffice, sortKey, sortDir, filtersToServer]);
+  }, [user, sortKey, sortDir, filtersToServer]);
 
   const loadMore = useCallback(async () => {
-    if (!salesOffice || !hasMore || isLoadingMore || isLoading) return;
+    if (!user || !hasMore || isLoadingMore || isLoading) return;
     setIsLoadingMore(true);
     try {
       const result = await fetchShichuRows({
-        salesOffice,
         page,
         size: PAGE_SIZE,
         sortKey,
@@ -114,13 +105,13 @@ export default function ShichuListPage() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [salesOffice, hasMore, isLoadingMore, isLoading, page, sortKey, sortDir, filtersToServer]);
+  }, [user, hasMore, isLoadingMore, isLoading, page, sortKey, sortDir, filtersToServer]);
 
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
 
-  const displayError = officeError || error;
+  const displayError = error;
 
   const handleSort = (key: string, dir?: "asc" | "desc") => {
     if (dir) {
@@ -146,15 +137,9 @@ export default function ShichuListPage() {
   };
 
   const handleFetchColumnValues = useCallback(
-    (col: string) => fetchShichuColumnValues(salesOffice, col),
-    [salesOffice]
+    (col: string) => fetchShichuColumnValues(col),
+    []
   );
-
-  const toggleAll = () => {
-    const allSelected =
-      rows.length > 0 && rows.every((row) => selectedIds.includes(row.formId));
-    setSelectedIds(allSelected ? [] : rows.map((row) => row.formId));
-  };
 
   const toggleOne = (id: string) => {
     setSelectedIds((prev) =>
@@ -200,22 +185,6 @@ export default function ShichuListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {officeOptions.length > 1 && (
-              <>
-                <span className="text-sm font-semibold text-[#17375E]">営業所名</span>
-                <select
-                  value={salesOffice}
-                  onChange={(e) => setSalesOffice(e.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm text-[#17375E] outline-none focus:border-blue-500"
-                >
-                  {officeOptions.map((office) => (
-                    <option key={office.value} value={office.value}>
-                      {office.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
             {canRestore && (
               <button
                 type="button"
@@ -257,7 +226,6 @@ export default function ShichuListPage() {
           rows={rows}
           selectedIds={selectedIds}
           onToggleOne={toggleOne}
-          onToggleAll={toggleAll}
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={handleSort}

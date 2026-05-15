@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { CheckRow, NeedFlag, OrderResult, YesNo } from "../components/eizen/EizenFormTypes";
-import { formApi, attachmentApi, workflowApi, mitsumoriApi } from "../form/api";
+import { formApi, attachmentApi, workflowApi, mitsumoriApi, propertyApi, designApi, businessApi } from "../form/api";
 import type { WorkflowStepDto } from "../form/api";
 import { useAuth } from "../auth/AuthContext";
 import { FullForm, initialForm } from "../form/formTypes";
@@ -525,6 +525,12 @@ export default function EizenRequestAllInOnePage() {
   const savedSnapshotRef = useRef<string | null>(null);
   const isInitialLoad = useRef(true);
   const needsSnapshotRef = useRef(false);
+  const postSaveValuesRef = useRef<{
+    documentNo?: string;
+    issueDate?: string;
+    branchCode?: string;
+    branchName?: string;
+  } | null>(null);
   const [showMitsumoriDialog, setShowMitsumoriDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [showP2r10ConfirmDialog, setShowP2r10ConfirmDialog] = useState(false);
@@ -562,6 +568,8 @@ export default function EizenRequestAllInOnePage() {
     if (d.buildingName) setBuildingName(d.buildingName);
     if (d.completionDate) setCompletionDate(d.completionDate);
     if (d.productName) setProductName(d.productName);
+    if (d.branchCode) setBranchCode(d.branchCode);
+    if (d.branchName) setBranchName(d.branchName);
     if (d.repairHistory) setRepairHistory(d.repairHistory);
     if (d.roof != null) setRoof(d.roof);
     if (d.outsideWall != null) setOutsideWall(d.outsideWall);
@@ -637,9 +645,9 @@ export default function EizenRequestAllInOnePage() {
     if (d.requiredOther != null) setRequiredOther(d.requiredOther);
     if (d.requiredOtherText) setRequiredOtherText(d.requiredOtherText);
     if (d.maintenanceRemark) setMaintenanceRemark(d.maintenanceRemark);
-    if (d.designNeed) setDesignNeed(d.designNeed);
-    if (d.employeeCd) setEmployeeCd(d.employeeCd);
-    if (d.employeeName) setEmployeeName(d.employeeName);
+    if (d.designNeed != null) setDesignNeed(d.designNeed);
+    if (d.employeeCd != null) setEmployeeCd(d.employeeCd);
+    if (d.employeeName != null) setEmployeeName(d.employeeName);
     if (d.confirmApplicationNeed) setConfirmApplicationNeed(d.confirmApplicationNeed);
     if (d.designInstruction) setDesignInstruction(d.designInstruction);
     if (d.designAttachment != null) setDesignAttachment(!!d.designAttachment);
@@ -688,6 +696,14 @@ export default function EizenRequestAllInOnePage() {
         if (data.buildingCode) setPropertyCd(data.buildingCode);
         if (data.buildingCode2) setPropertyCd2(data.buildingCode2);
         if (data.buildingCode3) setPropertyCd3(data.buildingCode3);
+        if (data.branchCode) setBranchCode(data.branchCode);
+        if (data.branchName) setBranchName(data.branchName);
+        postSaveValuesRef.current = {
+          documentNo: data.documentNumber || undefined,
+          issueDate: data.createdDate || undefined,
+          branchCode: data.branchCode || undefined,
+          branchName: data.branchName || undefined,
+        };
         needsSnapshotRef.current = true;
         return;
       }
@@ -701,6 +717,15 @@ export default function EizenRequestAllInOnePage() {
             data.buildingCode2,
             data.buildingCode3,
           );
+          // DB columns are authoritative — override uiState values
+          if (data.branchCode) setBranchCode(data.branchCode);
+          if (data.branchName) setBranchName(data.branchName);
+          postSaveValuesRef.current = {
+            documentNo: data.documentNumber || undefined,
+            issueDate: data.createdDate || undefined,
+            branchCode: data.branchCode || undefined,
+            branchName: data.branchName || undefined,
+          };
           needsSnapshotRef.current = true;
           return;
         }
@@ -717,9 +742,15 @@ export default function EizenRequestAllInOnePage() {
             if (data.buildingCode3) setPropertyCd3(data.buildingCode3);
             if (b.buildingName) setBuildingName(b.buildingName);
             if (b.completionYm) setCompletionDate(b.completionYm);
-            if (b.branchName) setProductName(b.branchName);
+            // productName: prefer new dedicated key, fall back to legacy branchName key
+            if (b.productName) setProductName(b.productName);
+            else if (b.branchName) setProductName(b.branchName);
+            if (b.branchCode) setBranchCode(b.branchCode);
+            if (b.branchName2) setBranchName(b.branchName2);
             if (b.renovationHistory) setRepairHistory(b.renovationHistory);
           }
+          if (data.branchCode) setBranchCode(data.branchCode);
+          if (data.branchName) setBranchName(data.branchName);
           if (prop.renovationContent) setWorkDetail(prop.renovationContent);
           const req = prop.requests;
           if (req) {
@@ -865,6 +896,8 @@ export default function EizenRequestAllInOnePage() {
   const [buildingName, setBuildingName] = useState("");
   const [completionDate, setCompletionDate] = useState("");
   const [productName, setProductName] = useState("");
+  const [branchCode, setBranchCode] = useState("");
+  const [branchName, setBranchName] = useState("");
   const [repairHistory, setRepairHistory] = useState("");
   const [relatedForms, setRelatedForms] = useState<import("../form/api").RelatedFormDto[]>([]);
 
@@ -1095,7 +1128,7 @@ export default function EizenRequestAllInOnePage() {
   const buildDraftRef = useRef<() => any>(() => ({}));
   const buildDraft = useCallback(() => ({
     documentNo, issueDate, furigana, customerName, address, propertyCd, propertyCd2, propertyCd3, buildingName,
-    completionDate, productName, repairHistory,
+    completionDate, productName, branchCode, branchName, repairHistory,
     roof, outsideWall, balcony, commonArea, privateArea, otherWork, otherWorkText, workDetail,
     ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
     plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
@@ -1114,7 +1147,7 @@ export default function EizenRequestAllInOnePage() {
     gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
   }), [
     documentNo, issueDate, furigana, customerName, address, propertyCd, propertyCd2, propertyCd3, buildingName,
-    completionDate, productName, repairHistory,
+    completionDate, productName, branchCode, branchName, repairHistory,
     roof, outsideWall, balcony, commonArea, privateArea, otherWork, otherWorkText, workDetail,
     ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
     plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
@@ -1143,7 +1176,27 @@ export default function EizenRequestAllInOnePage() {
     buildDraftRef.current = buildDraft;
     if (needsSnapshotRef.current) {
       needsSnapshotRef.current = false;
-      savedSnapshotRef.current = JSON.stringify(buildDraft());
+      const draft = buildDraft();
+      const overrides = postSaveValuesRef.current;
+      const finalDraft = overrides
+        ? {
+            ...draft,
+            ...(overrides.documentNo && { documentNo: overrides.documentNo }),
+            ...(overrides.issueDate && { issueDate: overrides.issueDate }),
+            ...(overrides.branchCode && { branchCode: overrides.branchCode }),
+            ...(overrides.branchName && { branchName: overrides.branchName }),
+          }
+        : draft;
+      postSaveValuesRef.current = null;
+      const snap = JSON.stringify(finalDraft);
+      const snapObj = JSON.parse(snap);
+      console.log(
+        "SNAPSHOT captured:",
+        "\ndocumentNo=", snapObj.documentNo,
+        "\nbranchCode=", snapObj.branchCode,
+        "\ncaller=", new Error().stack?.split("\n")[2]?.trim()
+      );
+      savedSnapshotRef.current = snap;
       isInitialLoad.current = false;
     }
   });
@@ -1164,6 +1217,12 @@ export default function EizenRequestAllInOnePage() {
         return null;
       }
     }
+    const shouldValidateDesignNeed =
+      !editId || pendingStepNumber === 3;
+    if (shouldValidateDesignNeed && designNeed === "必要" && !employeeName?.trim()) {
+      toast.error("設計管理職を社員CDで検索して設定してください");
+      return null;
+    }
     setSubmitting(true);
     try {
       const form: FullForm = {
@@ -1178,7 +1237,9 @@ export default function EizenRequestAllInOnePage() {
             propertyCode3: propertyCd3,
             buildingName,
             completionYm: completionDate,
-            branchName: productName,
+            productName,
+            branchCode,
+            branchName2: branchName,
             renovationHistory: repairHistory,
           },
           renovationContent: workDetail,
@@ -1234,10 +1295,30 @@ export default function EizenRequestAllInOnePage() {
       }
       let targetId: number | null = editId;
       if (editId) {
-        await formApi.update(editId, fd);
+        const result = await formApi.update(editId, fd);
+        if (result?.branchCode) setBranchCode(result.branchCode);
+        if (result?.branchName) setBranchName(result.branchName);
+        if (result?.documentNumber) setDocumentNo(result.documentNumber);
+        if (result?.createdDate) setIssueDate(result.createdDate);
+        postSaveValuesRef.current = {
+          documentNo: result?.documentNumber,
+          issueDate: result?.createdDate,
+          branchCode: result?.branchCode,
+          branchName: result?.branchName,
+        };
       } else {
         const result = await formApi.create(fd);
         targetId = result?.id ?? null;
+        if (result?.branchCode) setBranchCode(result.branchCode);
+        if (result?.branchName) setBranchName(result.branchName);
+        if (result?.documentNumber) setDocumentNo(result.documentNumber);
+        if (result?.createdDate) setIssueDate(result.createdDate);
+        postSaveValuesRef.current = {
+          documentNo: result?.documentNumber,
+          issueDate: result?.createdDate,
+          branchCode: result?.branchCode,
+          branchName: result?.branchName,
+        };
       }
       // After the form record exists, flush pending file deletions and uploads.
       if (targetId) {
@@ -1253,7 +1334,7 @@ export default function EizenRequestAllInOnePage() {
         );
         pendingFilesRef.current = {};
       }
-      savedSnapshotRef.current = JSON.stringify(buildDraft());
+      needsSnapshotRef.current = true;
       toast.success("保存しました");
       if (!skipNavigate) nav("/", { replace: true });
       return targetId;
@@ -1280,7 +1361,24 @@ export default function EizenRequestAllInOnePage() {
   const isFormDirty = () => {
     if (isInitialLoad.current) return false;
     if (savedSnapshotRef.current == null) return true;
-    return savedSnapshotRef.current !== JSON.stringify(buildDraft());
+    const curr = JSON.stringify(buildDraft());
+    if (savedSnapshotRef.current !== curr) {
+      try {
+        const snap = JSON.parse(savedSnapshotRef.current);
+        const live = JSON.parse(curr);
+        for (const k of Object.keys(live)) {
+          if (JSON.stringify(snap[k]) !== JSON.stringify(live[k])) {
+            console.log(
+              "DIRTY field:", k,
+              "\nsnap=", JSON.stringify(snap[k]),
+              "\nlive=", JSON.stringify(live[k])
+            );
+            break;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    return savedSnapshotRef.current !== curr;
   };
 
   const handleOpenMitsumori = async () => {
@@ -1295,6 +1393,87 @@ export default function EizenRequestAllInOnePage() {
     setShowMitsumoriDialog(false);
     const targetId = await handleSubmit(true);
     if (targetId) await openMitsumoriFor(targetId);
+  };
+
+  const handlePropertySearch = async () => {
+    if (propertyCd.length !== 7 || propertyCd3.length !== 2) {
+      toast.warning("物件CDを正しく入力してください。\n受注コード7桁・棟番号2桁");
+      return;
+    }
+    try {
+      const result = await propertyApi.search(propertyCd, propertyCd3);
+      setBuildingName(result.buildingName);
+      setCompletionDate(result.completionDate);
+      setProductName(result.productName);
+      setAddress(result.address);
+      setBranchCode(result.branchCode);
+      setBranchName(result.branchName);
+      toast.success("物件情報を取得しました");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("この物件はご担当の支店")) {
+        toast.error("この物件はご担当の支店ではありません");
+      } else {
+        toast.error("データが見つかりません");
+      }
+    }
+  };
+
+  const handleDesignSearch = async () => {
+    if (!employeeCd || employeeCd.length !== 6) {
+      toast.warning("社員CDを6桁で入力してください");
+      return;
+    }
+    if (!branchCode?.trim()) {
+      toast.warning("先に物件CDを検索して支店情報を取得してください");
+      return;
+    }
+    try {
+      const result = await designApi.search(employeeCd, branchCode);
+      setEmployeeName(result.employeeName);
+      toast.success("設計管理職を設定しました");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(msg || "該当する設計管理職が見つかりません");
+    }
+  };
+
+  const handleGyomuSearch = async () => {
+    if (!gyomuItakuCd || gyomuItakuCd.length !== 6) {
+      toast.warning("社員CDを6桁で入力してください");
+      return;
+    }
+    if (!branchCode?.trim()) {
+      toast.warning("先に物件CDを検索して支店情報を取得してください");
+      return;
+    }
+    try {
+      const result = await businessApi.search(gyomuItakuCd, branchCode, "001");
+      setGyomuItakuName(result.employeeName);
+      toast.success("業務管理職を設定しました");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(msg || "該当する業務管理職が見つかりません");
+    }
+  };
+
+  const handlePartnerSearch = async () => {
+    if (!partnerCd || partnerCd.length !== 6) {
+      toast.warning("社員CDを6桁で入力してください");
+      return;
+    }
+    if (!branchCode?.trim()) {
+      toast.warning("先に物件CDを検索して支店情報を取得してください");
+      return;
+    }
+    try {
+      const result = await businessApi.search(partnerCd, branchCode, "018");
+      setPartnerName(result.employeeName);
+      toast.success("業務管理職を設定しました");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      toast.error(msg || "該当する業務管理職が見つかりません");
+    }
   };
 
   const updatePage1Row = (id: string, next: CheckRow) => {
@@ -1403,13 +1582,17 @@ export default function EizenRequestAllInOnePage() {
       <div className="sticky top-0 z-30 border-b border-slate-300 bg-white/95 backdrop-blur">
         <div className="mx-auto max-w-[1700px] px-4 py-4">
           <div className="grid grid-cols-12 items-center gap-3">
-            <div className="col-span-8">
+            <div className="col-span-6">
               <h1 className="text-center text-3xl font-bold tracking-wide text-[#17375E]">
                 営繕工事 事前確認依頼書 兼 見積確認依頼書
               </h1>
               <p className="mt-2 text-center text-sm text-[#2B547E]">
                 下記営繕工事について、工事内容・仮設工事の検証を依頼致します。
               </p>
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-sm font-semibold text-[#17375E]">支店名</label>
+              <input value={branchName || ""} readOnly disabled className={inputClass + " bg-slate-50 cursor-default opacity-100"} />
             </div>
             <div className="col-span-2">
               <label className="mb-1 block text-sm font-semibold text-[#17375E]">文書番号</label>
@@ -1454,6 +1637,7 @@ export default function EizenRequestAllInOnePage() {
           setProductName={setProductName}
           relatedForms={relatedForms}
           editId={editId}
+          onPropertySearch={handlePropertySearch}
           roof={roof}
           setRoof={setRoof}
           outsideWall={outsideWall}
@@ -1643,7 +1827,13 @@ export default function EizenRequestAllInOnePage() {
         <fieldset disabled={!canEditDesignNeedRow} className="contents">
         <DesignConfirmSection
           designNeed={designNeed}
-          setDesignNeed={setDesignNeed}
+          setDesignNeed={(v) => {
+            setDesignNeed(v);
+            if (v === "不要") {
+              setEmployeeCd("");
+              setEmployeeName("");
+            }
+          }}
           employeeCd={employeeCd}
           setEmployeeCd={setEmployeeCd}
           employeeName={employeeName}
@@ -1664,6 +1854,7 @@ export default function EizenRequestAllInOnePage() {
           onFileSelected={handleFileSelected}
           getAttachmentUrl={getAttachmentUrl}
           showOnlyDesignNeedRow={true}
+          onDesignSearch={handleDesignSearch}
         />
         </fieldset>
 
@@ -1710,7 +1901,15 @@ export default function EizenRequestAllInOnePage() {
           maintenanceEstimateRemark={maintenanceEstimateRemark}
           setMaintenanceEstimateRemark={setMaintenanceEstimateRemark}
           orderResult={orderResult}
-          setOrderResult={setOrderResult}
+          setOrderResult={(v) => {
+            setOrderResult(v);
+            if (v === "失注") {
+              setGyomuItakuCd("");
+              setGyomuItakuName("");
+              setPartnerCd("");
+              setPartnerName("");
+            }
+          }}
           daipaFinalConfirm={daipaFinalConfirm}
           setDaipaFinalConfirm={setDaipaFinalConfirm}
           generalApplyAttach={generalApplyAttach}
@@ -1750,6 +1949,8 @@ export default function EizenRequestAllInOnePage() {
           setPartnerCd={setPartnerCd}
           partnerName={partnerName}
           setPartnerName={setPartnerName}
+          onGyomuSearch={handleGyomuSearch}
+          onPartnerSearch={handlePartnerSearch}
         />
         </fieldset>
         )}
@@ -1760,6 +1961,7 @@ export default function EizenRequestAllInOnePage() {
           userRole={user?.role}
           creatorRole={creatorRole}
           orderResult={orderResult}
+          designNeed={designNeed}
           onStepsChange={setWorkflowSteps}
           isFormDirty={isFormDirty}
           onSaveForm={() => handleSubmit(true)}
@@ -1774,6 +1976,9 @@ export default function EizenRequestAllInOnePage() {
                 propertyCd3?.length === 2;
               if (!isValidPropertyCd) {
                 return "物件CDを正しく入力してください。\n受注コード7桁・追加コード3桁・棟番号2桁";
+              }
+              if (!branchCode?.trim()) {
+                return "物件CDを検索して\n建物情報を取得してください。";
               }
               const hasKaishuChecked =
                 roof || outsideWall || balcony || commonArea || privateArea || otherWork;
@@ -1833,6 +2038,9 @@ export default function EizenRequestAllInOnePage() {
               }
             }
             if (stepNumber === 3) {
+              if (designNeed === "必要" && !employeeName?.trim()) {
+                return "設計管理職を社員CDで検索して設定してください";
+              }
               const labelMap: Record<string, string> = {
                 r1: "第3者侵入防止策",
                 r2: "仮設電気",
@@ -2466,8 +2674,12 @@ export default function EizenRequestAllInOnePage() {
                   return "契約書作成依頼書を\n添付してください。";
                 }
               }
-              if (orderResult !== "失注" && !gyomuItakuCd?.trim() && !partnerCd?.trim()) {
-                return "業務課依頼欄の\n建託またはパートナーズの\n社員CDを入力してください。";
+              if (orderResult !== "失注") {
+                const gyomuOk = !!gyomuItakuCd?.trim() && !!gyomuItakuName?.trim();
+                const partnerOk = !!partnerCd?.trim() && !!partnerName?.trim();
+                if (!gyomuOk && !partnerOk) {
+                  return "業務課依頼欄の\n建託またはパートナーズを\n検索して設定してください。";
+                }
               }
             }
             if (stepNumber === 9) {
@@ -2486,8 +2698,12 @@ export default function EizenRequestAllInOnePage() {
                     return "契約書作成依頼書を\n添付してください。";
                   }
                 }
-                if (orderResult !== "失注" && !gyomuItakuCd?.trim() && !partnerCd?.trim()) {
-                  return "業務課依頼欄の\n建託またはパートナーズの\n社員CDを入力してください。";
+                if (orderResult !== "失注") {
+                  const gyomuOk = !!gyomuItakuCd?.trim() && !!gyomuItakuName?.trim();
+                  const partnerOk = !!partnerCd?.trim() && !!partnerName?.trim();
+                  if (!gyomuOk && !partnerOk) {
+                    return "業務課依頼欄の\n建託またはパートナーズを\n検索して設定してください。";
+                  }
                 }
               }
               if (!daipaFinalConfirm) {

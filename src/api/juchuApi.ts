@@ -4,7 +4,6 @@ import { JuchuRow, PagedResponse } from "../types";
 const JUCHU_JUDGMENT = "未契約,保留";
 
 export type FetchJuchuParams = {
-  salesOffice: string;
   page: number;
   size: number;
   sortKey: string | null;
@@ -19,7 +18,8 @@ function toJuchuRow(row: any): JuchuRow {
     propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
-    salesOffice: row.salesOffice ?? "",
+    branchCode: row.branchCode ?? "",
+    branchName: row.branchName ?? "",
     status: row.status ?? row.judgment ?? "未契約",
     daipaTanto: row.daipaTanto ?? "",
   };
@@ -29,7 +29,6 @@ export async function fetchJuchuRows(
   params: FetchJuchuParams
 ): Promise<PagedResponse<JuchuRow>> {
   const result = await judgmentApi.list({
-    salesOffice: params.salesOffice,
     judgment: JUCHU_JUDGMENT,
     page: params.page,
     size: params.size,
@@ -46,11 +45,9 @@ export async function fetchJuchuRows(
 }
 
 export async function fetchJuchuColumnValues(
-  salesOffice: string,
   column: string
 ): Promise<string[]> {
   const result = await judgmentApi.columnValues({
-    salesOffice,
     judgment: JUCHU_JUDGMENT,
     column,
   });

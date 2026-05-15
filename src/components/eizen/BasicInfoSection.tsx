@@ -26,6 +26,7 @@ type Props = {
   setProductName: (v: string) => void;
   relatedForms: RelatedFormDto[];
   editId: number | null;
+  onPropertySearch: () => void;
 
   roof: boolean;
   setRoof: (v: boolean) => void;
@@ -200,6 +201,13 @@ export default function BasicInfoSection(props: Props) {
                   placeholder="2桁"
                   className={inputClass}
                 />
+                <button
+                  type="button"
+                  onClick={props.onPropertySearch}
+                  className="rounded-lg bg-[#17375E] px-3 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90 whitespace-nowrap"
+                >
+                  検索
+                </button>
             </div>
           </ValueCell>
           <LabelCell>建物名称</LabelCell>

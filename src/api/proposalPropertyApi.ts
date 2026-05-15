@@ -2,7 +2,6 @@ import { formApi } from "../form/api";
 import { PagedResponse, ProposalRow } from "../types";
 
 export type FetchProposalsParams = {
-  salesOffice: string;
   page: number;
   size: number;
   sortKey: string | null;
@@ -19,7 +18,8 @@ function toProposalRow(row: any): ProposalRow {
     propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
-    salesOffice: row.salesOffice ?? "",
+    branchCode: row.branchCode ?? "",
+    branchName: row.branchName ?? "",
     status: row.status ?? "",
 
     daipaTanto: row.daipaTanto ?? "",
@@ -58,7 +58,6 @@ export async function fetchProposals(
   params: FetchProposalsParams
 ): Promise<PagedResponse<ProposalRow>> {
   const result = await formApi.list({
-    salesOffice: params.salesOffice,
     page: params.page,
     size: params.size,
     sortKey: params.sortKey,
@@ -74,9 +73,8 @@ export async function fetchProposals(
 }
 
 export async function fetchProposalColumnValues(
-  salesOffice: string,
   column: string
 ): Promise<string[]> {
-  const result = await formApi.columnValues({ salesOffice, column });
+  const result = await formApi.columnValues({ column });
   return result.values ?? [];
 }

@@ -5,7 +5,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 
-import LoginPage from "./pages/LoginPage";
 // import FormPage from "./pages/FormPage";
 import ProposalListPage from "./pages/ProposalListPage";
 import JuchuHanteiListPage from "./pages/JuchuHanteiListPage";
@@ -14,13 +13,14 @@ import KeiyakuListPage from "./pages/KeiyakuListPage";
 import MitsumoriIraishoPage from "./pages/MitsumoriIraishoPage";
 // import ConstructionRequestAllInOnePage from "./pages/ConstructionRequestAllInOnePage";
 import EizenRequestAllInOnePage from "./pages/EizenRequestAllInOnePage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           <Route
             path="/"

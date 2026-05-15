@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { authApi, type User, type LoginResponse } from "../form/api";
+import { authApi, type User } from "../form/api";
 
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  login: (employeeCode: string, password: string) => Promise<LoginResponse>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -32,19 +31,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  const login = async (employeeCode: string, password: string) => {
-    const resp = await authApi.login({ employeeCode, password });
-    setUser(resp.user);
-    return resp;
-  };
-
   const logout = async () => {
     await authApi.logout();
     setUser(null);
   };
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, refresh }),
+    () => ({ user, loading, logout, refresh }),
     [user, loading]
   );
 

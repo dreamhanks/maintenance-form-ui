@@ -24,6 +24,7 @@ type Props = {
   userRole: string | null | undefined;
   creatorRole?: string | null;
   orderResult?: string;
+  designNeed?: string;
   onStepsChange: (steps: WorkflowStepDto[]) => void;
   isFormDirty?: () => boolean;
   onSaveForm?: () => Promise<number | null>;
@@ -119,7 +120,7 @@ type PendingAction = {
   stepLabel: string;
 } | null;
 
-export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, orderResult, onStepsChange, isFormDirty, onSaveForm, validateConfirm }: Props) {
+export default function ApprovalFlowSection({ formId, steps, userRole, creatorRole, orderResult, designNeed, onStepsChange, isFormDirty, onSaveForm, validateConfirm }: Props) {
   const effectiveSteps = steps.length > 0 ? steps : DEFAULT_STEPS;
   // Dirty-check dialog state (existing: "保存して確認")
   const [pendingConfirmStep, setPendingConfirmStep] = useState<number | null>(null);
@@ -214,6 +215,7 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
   const isHidden = (n: number) => {
     if (skipDaipaTanto && (n === 1 || n === 5 || n === 8)) return true;
     if (n === 10 && orderResult === "失注") return true;
+    if (n === 4 && designNeed === "不要") return true;
     return false;
   };
 
@@ -248,7 +250,7 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
           {renderBox(1)}
           {renderBox(2)}
           {renderBox(3)}
-          <Arrow />
+          {!isHidden(4) && <Arrow />}
           {renderBox(4)}
           <Arrow />
           {renderBox(5)}

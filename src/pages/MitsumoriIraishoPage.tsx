@@ -616,7 +616,7 @@ export default function MitsumoriIraishoPage() {
         `${API_BASE}/api/pdf/generate-mitsumori/${formRecordId}`,
         { method: "POST", credentials: "include" },
       );
-      if (res.status === 401 || res.status === 403) { window.location.href = "/login"; return; }
+      if (res.status === 401 || res.status === 403) { window.location.href = "/unauthorized"; return; }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success("PDF出力が完了しました");
     } catch {
@@ -653,7 +653,7 @@ export default function MitsumoriIraishoPage() {
         // never touched.
         fetch(`${API_BASE}/api/forms/${formRecordId}/eizen-data`, { credentials: "include" })
           .then((r) => {
-            if (r.status === 401 || r.status === 403) { window.location.href = "/login"; return null; }
+            if (r.status === 401 || r.status === 403) { window.location.href = "/unauthorized"; return null; }
             return r.ok ? r.json() : null;
           })
           .then((eizen: any) => {

@@ -4,7 +4,6 @@ import { KeiyakuRow, PagedResponse } from "../types";
 const KEIYAKU_JUDGMENT = "契約";
 
 export type FetchKeiyakuParams = {
-  salesOffice: string;
   page: number;
   size: number;
   sortKey: string | null;
@@ -19,7 +18,8 @@ function toKeiyakuRow(row: any): KeiyakuRow {
     propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
-    salesOffice: row.salesOffice ?? "",
+    branchCode: row.branchCode ?? "",
+    branchName: row.branchName ?? "",
     contractDate: row.contractDate ?? "",
   };
 }
@@ -28,7 +28,6 @@ export async function fetchKeiyakuRows(
   params: FetchKeiyakuParams
 ): Promise<PagedResponse<KeiyakuRow>> {
   const result = await judgmentApi.list({
-    salesOffice: params.salesOffice,
     judgment: KEIYAKU_JUDGMENT,
     page: params.page,
     size: params.size,
@@ -45,11 +44,9 @@ export async function fetchKeiyakuRows(
 }
 
 export async function fetchKeiyakuColumnValues(
-  salesOffice: string,
   column: string
 ): Promise<string[]> {
   const result = await judgmentApi.columnValues({
-    salesOffice,
     judgment: KEIYAKU_JUDGMENT,
     column,
   });

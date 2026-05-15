@@ -20,7 +20,7 @@ const headers: { label: string; key: string }[] = [
   { label: "物件CD", key: "propertyCodeDisplay" },
   { label: "お施主様名", key: "ownerName" },
   { label: "建物名称", key: "buildingName" },
-  { label: "営業所", key: "salesOffice" },
+  { label: "営業所", key: "branchName" },
   { label: "ステータス", key: "status" },
   // Step 1
   { label: "大パ担当者①", key: "daipaTanto" },
@@ -69,7 +69,7 @@ function tableRowCells(row: ProposalRow) {
     row.propertyCodeDisplay,
     row.ownerName,
     row.buildingName,
-    row.salesOffice,
+    row.branchName,
     row.status,
     row.daipaTanto,
     row.daipaTantoDate,

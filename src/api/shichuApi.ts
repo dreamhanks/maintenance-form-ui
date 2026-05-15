@@ -4,7 +4,6 @@ import { PagedResponse, ShichuRow } from "../types";
 const SHICHU_JUDGMENT = "失注";
 
 export type FetchShichuParams = {
-  salesOffice: string;
   page: number;
   size: number;
   sortKey: string | null;
@@ -19,7 +18,8 @@ function toShichuRow(row: any): ShichuRow {
     propertyCodeDisplay: row.propertyCodeDisplay ?? row.propertyCode ?? "",
     ownerName: row.ownerName ?? row.customerName ?? "",
     buildingName: row.buildingName ?? "",
-    salesOffice: row.salesOffice ?? "",
+    branchCode: row.branchCode ?? "",
+    branchName: row.branchName ?? "",
     lostDate: row.lostDate ?? "",
   };
 }
@@ -28,7 +28,6 @@ export async function fetchShichuRows(
   params: FetchShichuParams
 ): Promise<PagedResponse<ShichuRow>> {
   const result = await judgmentApi.list({
-    salesOffice: params.salesOffice,
     judgment: SHICHU_JUDGMENT,
     page: params.page,
     size: params.size,
@@ -45,11 +44,9 @@ export async function fetchShichuRows(
 }
 
 export async function fetchShichuColumnValues(
-  salesOffice: string,
   column: string
 ): Promise<string[]> {
   const result = await judgmentApi.columnValues({
-    salesOffice,
     judgment: SHICHU_JUDGMENT,
     column,
   });

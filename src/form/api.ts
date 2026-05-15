@@ -1,39 +1,38 @@
 import { API_BASE } from "../config";
 
 // Centralized auth-failure handler. Any 401/403 from the backend means the
-// session is gone — bounce the user to /login. Skip when the failing call
-// is itself an auth endpoint, otherwise /api/auth/me probing would loop.
+// session is gone — bounce the user to /unauthorized. Skip when the failing
+// call is itself an auth endpoint, otherwise /api/auth/me probing would loop.
 function handleAuthFailure(path: string, status: number): boolean {
   if (status !== 401 && status !== 403) return false;
   if (path.includes("/api/auth/")) return false;
-  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-    window.location.href = "/login";
+  if (typeof window !== "undefined" && window.location.pathname !== "/unauthorized") {
+    window.location.href = "/unauthorized";
   }
   return true;
 }
 
-export type LoginRequest = {
-  employeeCode: string;
-  password: string;
-};
-
-export type LoginResponse = {
-  user: User;
-};
+// Unwrap JSON error bodies like {"message":"..."} → "...", falling through
+// to raw text or the HTTP status fallback when the body isn't JSON.
+function parseErrorMessage(text: string, fallback: string): string {
+  if (!text) return fallback;
+  try {
+    const json = JSON.parse(text);
+    return json.message || text;
+  } catch {
+    return text;
+  }
+}
 
 export type User = {
   employeeCode: string;
   fullName: string;
-  fullNameKana?: string | null;
-  userId: string;
-  roleTitle?: string | null;
-  qualificationCode?: string | null;
-  office?: string | null;
-  departmentName?: string | null;
-  sectionName?: string | null;
-  jobTypeName?: string | null;
-  employmentType?: string | null;
-  employmentTypeName?: string | null;
+  companyCode: string;
+  departmentCode: string;
+  positionCode: string;
+  groupCode: string;
+  isAdmin: boolean;
+  branchCodes: string[];
   role?: string | null;
 };
 
@@ -52,7 +51,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     if (handleAuthFailure(path, res.status)) throw new Error("unauthorized");
     const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    throw new Error(parseErrorMessage(text, `HTTP ${res.status}`));
   }
 
   // logout returns empty
@@ -63,7 +62,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const authApi = {
-  login: (req: LoginRequest) => request<LoginResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(req) }),
   me: () => request<User>("/api/auth/me", { method: "GET" }),
   logout: () => request<void>("/api/auth/logout", { method: "POST" }),
 };
@@ -78,7 +76,7 @@ export async function postMultipart(url: string, fd: FormData) {
   if (!res.ok) {
     if (handleAuthFailure(url, res.status)) throw new Error("unauthorized");
     const text = await res.text().catch(() => "");
-    throw new Error(text || `HTTP ${res.status}`);
+    throw new Error(parseErrorMessage(text, `HTTP ${res.status}`));
   }
   return res.json();
 }
@@ -91,7 +89,8 @@ export async function putMultipart(url: string, fd: FormData) {
   });
   if (!res.ok) {
     if (handleAuthFailure(url, res.status)) throw new Error("unauthorized");
-    throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+    const text = await res.text().catch(() => "");
+    throw new Error(parseErrorMessage(text, `HTTP ${res.status}`));
   }
   return res.json();
 }
@@ -104,7 +103,6 @@ export type PagedApiResponse<T> = {
 };
 
 export type ListApiParams = {
-  salesOffice?: string;
   page?: number;
   size?: number;
   sortKey?: string | null;
@@ -114,7 +112,6 @@ export type ListApiParams = {
 
 function buildListQuery(params: ListApiParams): URLSearchParams {
   const q = new URLSearchParams();
-  if (params.salesOffice) q.set("salesOffice", params.salesOffice);
   q.set("page", String(params.page ?? 0));
   q.set("size", String(params.size ?? 100));
   if (params.sortKey) q.set("sortKey", params.sortKey);
@@ -133,9 +130,8 @@ export const formApi = {
     const q = buildListQuery(params);
     return request<PagedApiResponse<any>>(`/api/forms/list?${q}`);
   },
-  columnValues: (params: { salesOffice?: string; column: string }) => {
+  columnValues: (params: { column: string }) => {
     const q = new URLSearchParams();
-    if (params.salesOffice) q.set("salesOffice", params.salesOffice);
     q.set("column", params.column);
     return request<{ values: string[] }>(`/api/forms/column-values?${q}`);
   },
@@ -177,6 +173,46 @@ export const workflowApi = {
     }),
 };
 
+export type PropertySearchResult = {
+  buildingName: string;
+  completionDate: string;
+  productName: string;
+  address: string;
+  branchCode: string;
+  branchName: string;
+};
+
+export const propertyApi = {
+  search: (propertyCd: string, propertyCd3: string) =>
+    request<PropertySearchResult>(
+      `/api/property/search?propertyCd=${propertyCd}&propertyCd3=${propertyCd3}`,
+    ),
+};
+
+export type DesignSearchResult = {
+  employeeCode: string;
+  employeeName: string;
+};
+
+export const designApi = {
+  search: (employeeCd: string, branchCode: string) =>
+    request<DesignSearchResult>(
+      `/api/design/search?employeeCd=${employeeCd}&branchCode=${branchCode}`,
+    ),
+};
+
+export type BusinessSearchResult = {
+  employeeCode: string;
+  employeeName: string;
+};
+
+export const businessApi = {
+  search: (employeeCd: string, branchCode: string, companyCode: string) =>
+    request<BusinessSearchResult>(
+      `/api/business/search?employeeCd=${employeeCd}&branchCode=${branchCode}&companyCode=${companyCode}`,
+    ),
+};
+
 export type JudgmentListApiParams = ListApiParams & { judgment?: string };
 
 function buildJudgmentListQuery(params: JudgmentListApiParams): URLSearchParams {
@@ -212,23 +248,12 @@ export const judgmentApi = {
     const q = buildJudgmentListQuery(params);
     return request<PagedApiResponse<any>>(`/api/judgment/list?${q}`);
   },
-  columnValues: (params: { salesOffice?: string; judgment?: string; column: string }) => {
+  columnValues: (params: { judgment?: string; column: string }) => {
     const q = new URLSearchParams();
-    if (params.salesOffice) q.set("salesOffice", params.salesOffice);
     if (params.judgment) q.set("judgment", params.judgment);
     q.set("column", params.column);
     return request<{ values: string[] }>(`/api/judgment/column-values?${q}`);
   },
-};
-
-export type OfficeDto = {
-  officeCode: string;
-  officeName: string;
-};
-
-export const masterApi = {
-  offices: () => request<OfficeDto[]>("/api/master/offices"),
-  userOffices: () => request<OfficeDto[]>("/api/master/user-offices"),
 };
 
 export type MitsumoriIraishoDto = {
