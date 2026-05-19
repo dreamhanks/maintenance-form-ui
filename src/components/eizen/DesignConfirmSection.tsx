@@ -43,7 +43,7 @@ export default function DesignConfirmSection(props: Props) {
         <div className={`col-span-8 grid grid-cols-8 ${props.designNeed === "不要" ? "opacity-50 pointer-events-none" : ""}`}>
           <LabelCell>社員CD</LabelCell>
           <ValueCell className="col-span-2">
-          <input value={props.employeeCd} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setEmployeeCd(v); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
+          <input value={props.employeeCd} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setEmployeeCd(v); props.setEmployeeName(""); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
           </ValueCell>
           <LabelCell>氏名</LabelCell>
           <ValueCell className="col-span-4">

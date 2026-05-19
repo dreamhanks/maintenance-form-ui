@@ -946,6 +946,25 @@ export default function MitsumoriIraishoPage() {
     }
   };
 
+  const handleAutofill = async () => {
+    if (!formRecordId) return;
+    try {
+      const autofill = await mitsumoriApi.autofillInfo(formRecordId);
+      setForm(prev => ({
+        ...prev,
+        tantosha: autofill.tantosha,
+        bushoName: autofill.bushoName,
+        zipCode: autofill.zipCode,
+        address: autofill.address,
+        tel: autofill.tel,
+        email: autofill.email,
+      }));
+      toast.success("依頼主情報を自動入力しました");
+    } catch {
+      toast.error("自動入力に失敗しました");
+    }
+  };
+
   return (
     <div className="form-text min-h-screen bg-neutral-200 p-4 print:bg-white print:p-0">
       {pdfBusy && (
@@ -1076,7 +1095,18 @@ export default function MitsumoriIraishoPage() {
             下記営繕工事において、工事見積書の作成を依頼致します。
           </div>
 
-          <div className="mt-8 text-[14px] font-bold">1．依頼主情報</div>
+          <div className="mt-8 flex items-center gap-3">
+            <span className="text-[14px] font-bold">1．依頼主情報</span>
+            {isEditable && (
+              <button
+                type="button"
+                onClick={handleAutofill}
+                className="print-hidden rounded-lg border border-blue-300 bg-blue-50 px-3 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-100 transition"
+              >
+                依頼主情報を自動入力
+              </button>
+            )}
+          </div>
           <table className="mt-1 w-full border-collapse table-fixed">
             <colgroup>
               <col className="w-[60px]" />

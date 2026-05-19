@@ -29,7 +29,7 @@ export default function RequestSection(props: Props) {
         <LabelCell>建託</LabelCell>
         <LabelCell>社員CD</LabelCell>
         <ValueCell className="col-span-2">
-          <input value={props.gyomuItakuCd} onChange={(e) => props.setGyomuItakuCd(e.target.value.replace(/[^0-9]/g, ""))} maxLength={6} inputMode="numeric" pattern="[0-9]*" disabled={kenDisabled} className={`${inputClass}${kenDisabled ? " opacity-50 cursor-not-allowed" : ""}`} />
+          <input value={props.gyomuItakuCd} onChange={(e) => { props.setGyomuItakuCd(e.target.value.replace(/[^0-9]/g, "")); props.setGyomuItakuName(""); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" disabled={kenDisabled} className={`${inputClass}${kenDisabled ? " opacity-50 cursor-not-allowed" : ""}`} />
         </ValueCell>
         <LabelCell>氏名</LabelCell>
         <ValueCell className="col-span-2">
@@ -50,7 +50,7 @@ export default function RequestSection(props: Props) {
         <LabelCell>パートナーズ</LabelCell>
         <LabelCell>社員CD</LabelCell>
         <ValueCell className="col-span-2">
-          <input value={props.partnerCd} onChange={(e) => props.setPartnerCd(e.target.value.replace(/[^0-9]/g, ""))} maxLength={6} inputMode="numeric" pattern="[0-9]*" disabled={partDisabled} className={`${inputClass}${partDisabled ? " opacity-50 cursor-not-allowed" : ""}`} />
+          <input value={props.partnerCd} onChange={(e) => { props.setPartnerCd(e.target.value.replace(/[^0-9]/g, "")); props.setPartnerName(""); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" disabled={partDisabled} className={`${inputClass}${partDisabled ? " opacity-50 cursor-not-allowed" : ""}`} />
         </ValueCell>
         <LabelCell>氏名</LabelCell>
         <ValueCell className="col-span-2">

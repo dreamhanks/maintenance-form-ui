@@ -1336,7 +1336,11 @@ export default function EizenRequestAllInOnePage() {
       }
       needsSnapshotRef.current = true;
       toast.success("保存しました");
-      if (!skipNavigate) nav("/", { replace: true });
+      if (!skipNavigate) {
+        nav("/", { replace: true });
+      } else if (!editId && targetId) {
+        nav(`/form/${targetId}`, { replace: true });
+      }
       return targetId;
     } catch (err: any) {
       toast.error(err?.message || "保存に失敗しました");
@@ -1433,6 +1437,7 @@ export default function EizenRequestAllInOnePage() {
       setEmployeeName(result.employeeName);
       toast.success("設計管理職を設定しました");
     } catch (err) {
+      setEmployeeName("");
       const msg = err instanceof Error ? err.message : "";
       toast.error(msg || "該当する設計管理職が見つかりません");
     }
@@ -1452,6 +1457,7 @@ export default function EizenRequestAllInOnePage() {
       setGyomuItakuName(result.employeeName);
       toast.success("業務管理職を設定しました");
     } catch (err) {
+      setGyomuItakuName("");
       const msg = err instanceof Error ? err.message : "";
       toast.error(msg || "該当する業務管理職が見つかりません");
     }
@@ -1471,6 +1477,7 @@ export default function EizenRequestAllInOnePage() {
       setPartnerName(result.employeeName);
       toast.success("業務管理職を設定しました");
     } catch (err) {
+      setPartnerName("");
       const msg = err instanceof Error ? err.message : "";
       toast.error(msg || "該当する業務管理職が見つかりません");
     }
@@ -1978,7 +1985,7 @@ export default function EizenRequestAllInOnePage() {
                 return "物件CDを正しく入力してください。\n受注コード7桁・追加コード3桁・棟番号2桁";
               }
               if (!branchCode?.trim()) {
-                return "物件CDを検索して\n建物情報を取得してください。";
+                return "物件CDを入力して検索し、\n建物情報を取得してください。";
               }
               const hasKaishuChecked =
                 roof || outsideWall || balcony || commonArea || privateArea || otherWork;

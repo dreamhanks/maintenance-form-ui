@@ -236,12 +236,11 @@ export default function JuchuHanteiTable({
                             const someVisibleChecked = visible.some((v) => tempChecked.has(v));
                             const handleSelectAll = () => {
                               setTempChecked((prev) => {
-                                const next = new Set(prev);
                                 if (allVisibleChecked) {
-                                  visible.forEach((v) => next.delete(v));
-                                } else {
-                                  visible.forEach((v) => next.add(v));
+                                  return new Set();
                                 }
+                                const next = new Set(prev);
+                                visible.forEach((v) => next.add(v));
                                 return next;
                               });
                             };
@@ -293,12 +292,18 @@ export default function JuchuHanteiTable({
                               type="button"
                               onClick={() => {
                                 const allValues = uniqueValues;
+                                const visible = tempSearch
+                                  ? allValues.filter((v) => v.toLowerCase().includes(tempSearch.toLowerCase()))
+                                  : allValues;
+                                const effectiveChecked = tempSearch.trim()
+                                  ? new Set<string>(visible.filter((v) => tempChecked.has(v)))
+                                  : new Set<string>(tempChecked);
                                 const allChecked =
                                   allValues.length > 0 &&
-                                  allValues.every((v) => tempChecked.has(v));
+                                  allValues.every((v) => effectiveChecked.has(v));
                                 onApplyFilter(
                                   header.key,
-                                  allChecked ? new Set() : new Set(tempChecked)
+                                  allChecked ? new Set<string>() : effectiveChecked
                                 );
                                 setOpenFilterCol(null);
                               }}

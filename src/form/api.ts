@@ -197,7 +197,7 @@ export type DesignSearchResult = {
 export const designApi = {
   search: (employeeCd: string, branchCode: string) =>
     request<DesignSearchResult>(
-      `/api/design/search?employeeCd=${employeeCd}&branchCode=${branchCode}`,
+      `/api/design/search?employeeCd=${encodeURIComponent(employeeCd)}&branchCode=${encodeURIComponent(branchCode)}`,
     ),
 };
 
@@ -209,7 +209,7 @@ export type BusinessSearchResult = {
 export const businessApi = {
   search: (employeeCd: string, branchCode: string, companyCode: string) =>
     request<BusinessSearchResult>(
-      `/api/business/search?employeeCd=${employeeCd}&branchCode=${branchCode}&companyCode=${companyCode}`,
+      `/api/business/search?employeeCd=${encodeURIComponent(employeeCd)}&branchCode=${encodeURIComponent(branchCode)}&companyCode=${encodeURIComponent(companyCode)}`,
     ),
 };
 
@@ -283,6 +283,15 @@ export const mitsumoriApi = {
       method: "PUT",
       body: JSON.stringify(formData),
     }),
+  autofillInfo: (formRecordId: number) =>
+    request<{
+      tantosha: string;
+      bushoName: string;
+      zipCode: string;
+      address: string;
+      tel: string;
+      email: string;
+    }>(`/api/mitsumori-iraisho/${formRecordId}/autofill-info`, { method: "GET" }),
 };
 
 export const attachmentApi = {
