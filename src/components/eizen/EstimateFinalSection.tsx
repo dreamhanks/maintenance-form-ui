@@ -44,6 +44,10 @@ type Props = {
   showOnlyDaipaFinalAndRequest?: boolean;
   disableDaipaManagerConfirm?: boolean;
   canOpenMitsumori?: boolean;
+  stepA?: string;
+  stepB?: string;
+  stepC?: string;
+  stepManager?: string;
 };
 
 function FileLink({ fieldKey, attachments, getAttachmentUrl }: {
@@ -99,13 +103,13 @@ export default function EstimateFinalSection(props: Props) {
     <section className={sectionWrap}>
       <div className="grid grid-cols-12">
         <div className="col-span-4 border border-[#17375E] bg-[#17375E] px-4 py-3 text-center text-xl font-bold text-[#F5C518]">
-          ◆大パ見積書添付
+          {props.stepA ? `${props.stepA} ` : ""}◆大パ見積書添付
         </div>
         <div className="col-span-3 border border-[#2B547E] bg-[#2B547E] px-4 py-3 text-center text-xl font-bold text-white">
-          メンテ管理職確認
+          {props.stepB ? `${props.stepB} ` : ""}メンテ管理職確認
         </div>
         <div className="col-span-5 border border-[#17375E] bg-[#17375E] px-4 py-3 text-center text-xl font-bold text-[#F5C518]">
-          ◆大パ最終確認欄
+          {props.stepC ? `${props.stepC} ` : ""}◆大パ最終確認欄
         </div>
 
         <fieldset disabled={props.showOnlyDaipaFinal || props.showOnlyDaipaManagerConfirm || props.showOnlyDaipaFinalAndRequest} className="contents">
@@ -174,7 +178,7 @@ export default function EstimateFinalSection(props: Props) {
             </label>
           </ValueCell>
           </fieldset>
-          <div className="col-span-4 border border-slate-400 border-r-0 flex items-center justify-center">大パ管理職確認</div>
+          <div className="col-span-4 border border-slate-400 border-r-0 flex items-center justify-center">{props.stepManager ? `${props.stepManager} ` : ""}大パ管理職確認</div>
           <ValueCell className="col-span-2 flex items-center justify-center border-l-0">
             <input type="checkbox" checked={props.daipaFinalConfirm} onChange={(e) => props.setDaipaFinalConfirm(e.target.checked)} disabled={props.disableDaipaManagerConfirm} className={`h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]${props.disableDaipaManagerConfirm ? " opacity-50 cursor-not-allowed" : ""}`} />
           </ValueCell>

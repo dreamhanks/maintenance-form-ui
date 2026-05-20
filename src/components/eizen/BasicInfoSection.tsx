@@ -76,6 +76,7 @@ type Props = {
   setContractDate: (v: string) => void;
   startDate: string;
   setStartDate: (v: string) => void;
+  stepLabel?: string;
 };
 
 function RelatedFormsDropdown({ editId, relatedForms }: { editId: number | null; relatedForms: RelatedFormDto[] }) {
@@ -143,7 +144,7 @@ function RelatedFormsDropdown({ editId, relatedForms }: { editId: number | null;
 export default function BasicInfoSection(props: Props) {
   return (
     <section className={sectionWrap}>
-      <div className={sectionHeader}>【物件概要】</div>
+      <div className={sectionHeader}>{props.stepLabel ? `${props.stepLabel} ` : ""}【物件概要】</div>
 
       <div className="grid grid-cols-12">
         <LabelCell>フリガナ</LabelCell>

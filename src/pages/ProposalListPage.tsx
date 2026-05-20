@@ -6,6 +6,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import ProposalTable from "../components/ProposalTable";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchProposalColumnValues, fetchProposals } from "../api/proposalPropertyApi";
+import { formApi } from "../form/api";
 import { useAuth } from "../auth/AuthContext";
 import { ProposalRow } from "../types";
 import { API_BASE } from "../config";
@@ -28,6 +29,7 @@ export default function ProposalListPage() {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // Guard against out-of-order responses when the user changes filter/sort rapidly.
   const requestIdRef = useRef(0);
@@ -95,6 +97,65 @@ export default function ProposalListPage() {
     loadInitial();
   }, [loadInitial]);
 
+  const handleDuplicate = async () => {
+    if (!selectedId || !canCreate) return;
+    try {
+      const data = await formApi.get(Number(selectedId));
+      let uiState: any = null;
+      if (data?.payloadJson) {
+        try {
+          const parsed = JSON.parse(data.payloadJson);
+          uiState = parsed?.uiState ?? null;
+        } catch {}
+      }
+      const copyFrom = {
+        furigana: data.customerNameKana ?? "",
+        customerName: data.customerName ?? "",
+        address: data.buildingAddress ?? "",
+        propertyCd: data.buildingCode ?? "",
+        propertyCd2: data.buildingCode2 ?? "",
+        propertyCd3: data.buildingCode3 ?? "",
+        buildingName: data.buildingName ?? "",
+        completionDate: data.completionDate ?? "",
+        productName: data.productName ?? "",
+        branchCode: data.branchCode ?? "",
+        branchName: data.branchName ?? "",
+        roof: uiState?.roof ?? false,
+        outsideWall: uiState?.outsideWall ?? false,
+        balcony: uiState?.balcony ?? false,
+        commonArea: uiState?.commonArea ?? false,
+        privateArea: uiState?.privateArea ?? false,
+        otherWork: uiState?.otherWork ?? false,
+        otherWorkText: uiState?.otherWorkText ?? "",
+        workDetail: uiState?.workDetail ?? "",
+        ownerFlag: uiState?.ownerFlag ?? "",
+        ownerText: uiState?.ownerText ?? "",
+        residentFlag: uiState?.residentFlag ?? "",
+        residentText: uiState?.residentText ?? "",
+        neighborFlag: uiState?.neighborFlag ?? "",
+        neighborText: uiState?.neighborText ?? "",
+        plannedVendorName: uiState?.plannedVendorName ?? "",
+        plannedVendorCd: uiState?.plannedVendorCd ?? "",
+        plannedVendorCd2: uiState?.plannedVendorCd2 ?? "",
+        fixedVendorName: uiState?.fixedVendorName ?? "",
+        fixedVendorCd: uiState?.fixedVendorCd ?? "",
+        fixedVendorCd2: uiState?.fixedVendorCd2 ?? "",
+        proposalDate: uiState?.proposalDate ?? "",
+        contractDate: uiState?.contractDate ?? "",
+        startDate: uiState?.startDate ?? "",
+      };
+      nav("/form", {
+        state: {
+          from: "/",
+          fromLabel: "提案物件一覧",
+          copyFrom,
+        },
+      });
+    } catch {
+      toast.error("複製に失敗しました");
+    }
+  };
+
   const handleSort = (key: string, dir?: "asc" | "desc") => {
     if (dir) {
       setSortKey(key);
@@ -158,6 +219,16 @@ export default function ProposalListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {canCreate && (
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                disabled={!selectedId}
+                className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                複製
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -193,6 +264,9 @@ export default function ProposalListPage() {
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
           onLoadMore={loadMore}
+          showCheckbox={canCreate}
+          selectedId={selectedId}
+          onSelectRow={(id) => setSelectedId((prev) => (prev === id ? null : id))}
         />
       )}
     </AppPageLayout>

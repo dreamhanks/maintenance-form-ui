@@ -676,6 +676,45 @@ export default function EizenRequestAllInOnePage() {
     if (d.partnerName) setPartnerName(d.partnerName);
   }, []);
 
+  useEffect(() => {
+    const copyFrom = (location.state as any)?.copyFrom;
+    if (!copyFrom || editId) return;
+    if (copyFrom.furigana != null) setFurigana(copyFrom.furigana);
+    if (copyFrom.customerName != null) setCustomerName(copyFrom.customerName);
+    if (copyFrom.address != null) setAddress(copyFrom.address);
+    if (copyFrom.propertyCd != null) setPropertyCd(copyFrom.propertyCd);
+    if (copyFrom.propertyCd2 != null) setPropertyCd2(copyFrom.propertyCd2);
+    if (copyFrom.propertyCd3 != null) setPropertyCd3(copyFrom.propertyCd3);
+    if (copyFrom.buildingName != null) setBuildingName(copyFrom.buildingName);
+    if (copyFrom.completionDate != null) setCompletionDate(copyFrom.completionDate);
+    if (copyFrom.productName != null) setProductName(copyFrom.productName);
+    if (copyFrom.branchCode != null) setBranchCode(copyFrom.branchCode);
+    if (copyFrom.branchName != null) setBranchName(copyFrom.branchName);
+    if (copyFrom.roof != null) setRoof(copyFrom.roof);
+    if (copyFrom.outsideWall != null) setOutsideWall(copyFrom.outsideWall);
+    if (copyFrom.balcony != null) setBalcony(copyFrom.balcony);
+    if (copyFrom.commonArea != null) setCommonArea(copyFrom.commonArea);
+    if (copyFrom.privateArea != null) setPrivateArea(copyFrom.privateArea);
+    if (copyFrom.otherWork != null) setOtherWork(copyFrom.otherWork);
+    if (copyFrom.otherWorkText != null) setOtherWorkText(copyFrom.otherWorkText);
+    if (copyFrom.workDetail != null) setWorkDetail(copyFrom.workDetail);
+    if (copyFrom.ownerFlag != null) setOwnerFlag(copyFrom.ownerFlag);
+    if (copyFrom.ownerText != null) setOwnerText(copyFrom.ownerText);
+    if (copyFrom.residentFlag != null) setResidentFlag(copyFrom.residentFlag);
+    if (copyFrom.residentText != null) setResidentText(copyFrom.residentText);
+    if (copyFrom.neighborFlag != null) setNeighborFlag(copyFrom.neighborFlag);
+    if (copyFrom.neighborText != null) setNeighborText(copyFrom.neighborText);
+    if (copyFrom.plannedVendorName != null) setPlannedVendorName(copyFrom.plannedVendorName);
+    if (copyFrom.plannedVendorCd != null) setPlannedVendorCd(copyFrom.plannedVendorCd);
+    if (copyFrom.plannedVendorCd2 != null) setPlannedVendorCd2(copyFrom.plannedVendorCd2);
+    if (copyFrom.fixedVendorName != null) setFixedVendorName(copyFrom.fixedVendorName);
+    if (copyFrom.fixedVendorCd != null) setFixedVendorCd(copyFrom.fixedVendorCd);
+    if (copyFrom.fixedVendorCd2 != null) setFixedVendorCd2(copyFrom.fixedVendorCd2);
+    if (copyFrom.proposalDate != null) setProposalDate(copyFrom.proposalDate);
+    if (copyFrom.contractDate != null) setContractDate(copyFrom.contractDate);
+    if (copyFrom.startDate != null) setStartDate(copyFrom.startDate);
+  }, []);
+
   // For new (unsaved) forms there's nothing to load — finish init immediately
   useEffect(() => {
     if (editId) return;
@@ -1108,6 +1147,34 @@ export default function EizenRequestAllInOnePage() {
     (isEditable && pendingStepNumber === 9 && createdByDapaKacho);
 
   const canOpenMitsumori = !isNewForm && (isAdmin || pendingStepNumber >= 5);
+
+  const isWorkflowStepHidden = (n: number): boolean => {
+    const skipDaipaTanto = creatorRole === "大パ管理職";
+    if (skipDaipaTanto && (n === 1 || n === 5 || n === 8)) return true;
+    if (n === 4 && designNeed === "不要") return true;
+    if (n === 10 && orderResult === "失注") return true;
+    return false;
+  };
+  const visibleWorkflowSteps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(
+    (n) => !isWorkflowStepHidden(n),
+  );
+  const getSeqStep = (n: number): string | undefined => {
+    const idx = visibleWorkflowSteps.indexOf(n);
+    return idx >= 0 ? `Step ${idx + 1}` : undefined;
+  };
+
+  const sBasicInfo = getSeqStep(createdByDapaKacho ? 2 : 1) ?? "Step 1";
+  const sStep2 = getSeqStep(2);
+  const sTempLeft = getSeqStep(3);
+  const sTempDapRight = getSeqStep(createdByDapaKacho ? 6 : 5);
+  const sDesignNeedRow = getSeqStep(3);
+  const sDesignLeft = getSeqStep(4);
+  const sDesignRight = getSeqStep(createdByDapaKacho ? 6 : 5);
+  const sEstimateA = getSeqStep(createdByDapaKacho ? 6 : 5);
+  const sEstimateB = getSeqStep(7);
+  const sEstimateC = getSeqStep(createdByDapaKacho ? 9 : 8);
+  const sEstimateManager = getSeqStep(9);
+  const sRequest = getSeqStep(createdByDapaKacho ? 9 : 8);
 
   // Fetch workflow state when editing an existing form
   useEffect(() => {
@@ -1691,6 +1758,7 @@ export default function EizenRequestAllInOnePage() {
           setContractDate={setContractDate}
           startDate={startDate}
           setStartDate={setStartDate}
+          stepLabel={sBasicInfo}
         />
 
         </fieldset>
@@ -1715,6 +1783,8 @@ export default function EizenRequestAllInOnePage() {
           onFileCheckChange={handleFileCheckChange}
           onFileSelected={handleFileSelected}
           getAttachmentUrl={getAttachmentUrl}
+          leftStepLabel={sBasicInfo}
+          rightStepLabel={sStep2}
         />
 
         <fieldset disabled={!canEditTemporarySections} className="contents">
@@ -1762,10 +1832,12 @@ export default function EizenRequestAllInOnePage() {
             onFileSelected: handleFileSelected,
             getAttachmentUrl,
           }}
+          leftStepLabel={sTempLeft}
+          rightStepLabel={sTempDapRight}
         />
         </fieldset>
 
-        <TemporaryCheckSummary rows={page1Rows} />
+        <TemporaryCheckSummary rows={page1Rows} stepLabel={sTempLeft} />
 
         <fieldset disabled={!canEditTemporarySections} className="contents">
         <TemporaryConfirmSection
@@ -1808,10 +1880,12 @@ export default function EizenRequestAllInOnePage() {
             onFileCheckChange: handleFileCheckChange,
             getAttachmentUrl,
           }}
+          leftStepLabel={sTempLeft}
+          rightStepLabel={sTempDapRight}
         />
         </fieldset>
 
-        <TemporaryConfirmSummary rows={page2Rows} />
+        <TemporaryConfirmSummary rows={page2Rows} stepLabel={sTempLeft} />
 
         <fieldset disabled={!canEditMaintenanceSection} className="contents">
         <MaintenanceAttachmentSection
@@ -1828,6 +1902,7 @@ export default function EizenRequestAllInOnePage() {
           onFileCheckChange={handleFileCheckChange}
           onFileSelected={handleFileSelected}
           getAttachmentUrl={getAttachmentUrl}
+          stepLabel={sTempLeft}
         />
         </fieldset>
 
@@ -1862,9 +1937,11 @@ export default function EizenRequestAllInOnePage() {
           getAttachmentUrl={getAttachmentUrl}
           showOnlyDesignNeedRow={true}
           onDesignSearch={handleDesignSearch}
+          needRowStepLabel={sDesignNeedRow}
         />
         </fieldset>
 
+        {designNeed !== "不要" && (
         <fieldset disabled={!canEditDesignConfirmSection} className="contents">
         <DesignConfirmSection
           designNeed={designNeed}
@@ -1892,8 +1969,11 @@ export default function EizenRequestAllInOnePage() {
           disableDesignDapConfirm={disableDesignDapConfirm}
           disableDesignRemark={disableDesignRemark}
           disableDesignLeftSide={disableDesignLeftSide}
+          leftStepLabel={sDesignLeft}
+          rightStepLabel={sDesignRight}
         />
         </fieldset>
+        )}
 
         <fieldset disabled={!canEditEstimateSection} className="contents">
         <EstimateFinalSection
@@ -1942,6 +2022,10 @@ export default function EizenRequestAllInOnePage() {
           showOnlyDaipaFinalAndRequest={showOnlyDaipaFinalAndRequest}
           disableDaipaManagerConfirm={disableDaipaFinalManagerConfirm}
           canOpenMitsumori={canOpenMitsumori}
+          stepA={sEstimateA}
+          stepB={sEstimateB}
+          stepC={sEstimateC}
+          stepManager={sEstimateManager}
         />
         </fieldset>
 
@@ -1958,6 +2042,7 @@ export default function EizenRequestAllInOnePage() {
           setPartnerName={setPartnerName}
           onGyomuSearch={handleGyomuSearch}
           onPartnerSearch={handlePartnerSearch}
+          stepLabel={sRequest}
         />
         </fieldset>
         )}
@@ -2586,7 +2671,7 @@ export default function EizenRequestAllInOnePage() {
                   return "新築時タイル等保存資料の\n保管先を入力してください。";
                 }
               }
-              if (createdByDapaTanto && !designDapConfirm) {
+              if (createdByDapaTanto && designNeed !== "不要" && !designDapConfirm) {
                 return "設計確認の大パ確認に\nチェックしてください。";
               }
             }
@@ -2662,7 +2747,7 @@ export default function EizenRequestAllInOnePage() {
                   return "新築時タイル等保存資料の\n保管先を入力してください。";
                 }
               }
-              if (createdByDapaKacho && !designDapConfirm) {
+              if (createdByDapaKacho && designNeed !== "不要" && !designDapConfirm) {
                 return "設計確認の大パ確認に\nチェックしてください。";
               }
             }

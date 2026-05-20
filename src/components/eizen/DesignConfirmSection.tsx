@@ -31,12 +31,15 @@ type Props = {
   disableDesignRemark?: boolean;
   disableDesignLeftSide?: boolean;
   onDesignSearch?: () => void;
+  needRowStepLabel?: string;
+  leftStepLabel?: string;
+  rightStepLabel?: string;
 };
 
 export default function DesignConfirmSection(props: Props) {
   const designNeedRow = (
     <div className="grid grid-cols-12">
-        <div className="col-span-2 bg-[#DCE6F1] text-[#1e2d40] font-semibold border border-slate-300 text-center pt-3">設計管理職確認可否</div>
+        <div className="col-span-2 bg-[#DCE6F1] text-[#1e2d40] font-semibold border border-slate-300 text-center pt-3">{props.needRowStepLabel ? `${props.needRowStepLabel} ` : ""}設計管理職確認可否</div>
         <ValueCell className="col-span-2">
         <NeedSwitch name="designNeed" value={props.designNeed} onChange={props.setDesignNeed} />
         </ValueCell>
@@ -64,8 +67,8 @@ export default function DesignConfirmSection(props: Props) {
 
   const designConfirmHeader = (
     <div className="grid grid-cols-12">
-        <div className={`${sectionHeader} col-span-7`}>◆設計確認</div>
-        <div className={`${sectionHeader} col-span-5`}>大パ確認</div>
+        <div className={`${sectionHeader} col-span-7`}>{props.leftStepLabel ? `${props.leftStepLabel} ` : ""}◆設計確認</div>
+        <div className={`${sectionHeader} col-span-5`}>{props.rightStepLabel ? `${props.rightStepLabel} ` : ""}大パ確認</div>
     </div>
   );
 

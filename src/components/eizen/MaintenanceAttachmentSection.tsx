@@ -16,6 +16,7 @@ type Props = {
   onFileCheckChange: (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => void;
   onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
   getAttachmentUrl: (fieldKey: string) => string | null;
+  stepLabel?: string;
 };
 
 function FileLink({ fieldKey, attachments, getAttachmentUrl }: {
@@ -63,7 +64,7 @@ function HiddenFileInput({ fieldKey, fileInputRefs, onFileSelected, setChecked }
 export default function MaintenanceAttachmentSection(props: Props) {
   return (
     <section className={sectionWrap}>
-      <div className={sectionHeader}>メンテ管理職添付欄</div>
+      <div className={sectionHeader}>{props.stepLabel ? `${props.stepLabel} ` : ""}メンテ管理職添付欄</div>
 
       <div className="grid grid-cols-12">
         <LabelCell>必要書類関連</LabelCell>

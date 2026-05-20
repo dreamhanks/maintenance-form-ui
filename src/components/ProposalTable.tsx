@@ -14,6 +14,9 @@ type ProposalTableProps = {
   hasMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
+  showCheckbox?: boolean;
+  selectedId?: string | null;
+  onSelectRow?: (id: string | null) => void;
 };
 
 const headers: { label: string; key: string }[] = [
@@ -106,6 +109,9 @@ export default function ProposalTable({
   hasMore,
   isLoadingMore,
   onLoadMore,
+  showCheckbox,
+  selectedId,
+  onSelectRow,
 }: ProposalTableProps) {
   const [openFilterCol, setOpenFilterCol] = useState<string | null>(null);
   const [tempChecked, setTempChecked] = useState<Set<string>>(new Set());
@@ -193,6 +199,19 @@ export default function ProposalTable({
           <table className="table-auto w-full border-collapse">
             <thead>
               <tr>
+                {showCheckbox && (
+                  <th
+                    className="sticky top-0 z-10 border-b border-r border-slate-300 px-3 py-2 text-left whitespace-nowrap"
+                    style={{
+                      backgroundColor: "#2d4a6b",
+                      color: "#ffffff",
+                      fontSize: 12,
+                      fontWeight: 500,
+                    }}
+                  >
+                    選択
+                  </th>
+                )}
                 {headers.map((header, index) => {
                   const hasFilter = (columnFilters[header.key]?.size ?? 0) > 0;
                   const isOpen = openFilterCol === header.key;
@@ -367,7 +386,7 @@ export default function ProposalTable({
               {rows.length === 0 && !isLoadingMore ? (
                 <tr>
                   <td
-                    colSpan={headers.length}
+                    colSpan={headers.length + (showCheckbox ? 1 : 0)}
                     className="px-4 py-16 text-center text-sm text-slate-500"
                   >
                     データがありません
@@ -380,6 +399,19 @@ export default function ProposalTable({
                     className={`odd:bg-white even:bg-slate-50 hover:bg-amber-50${onRowClick ? " cursor-pointer" : ""}`}
                     onClick={() => onRowClick?.(row.id)}
                   >
+                    {showCheckbox && (
+                      <td
+                        className="border-b border-r border-slate-200 px-3 py-2 text-center whitespace-nowrap"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedId === row.id}
+                          onChange={() => onSelectRow?.(selectedId === row.id ? null : row.id)}
+                          className="h-4 w-4 rounded border-slate-300"
+                        />
+                      </td>
+                    )}
                     {tableRowCells(row).map((cell, cellIndex) => {
                       const isStatus = cellIndex === 4;
 
@@ -408,7 +440,7 @@ export default function ProposalTable({
 
               {isLoadingMore && (
                 <tr>
-                  <td colSpan={headers.length} style={{ textAlign: "center", padding: "16px" }}>
+                  <td colSpan={headers.length + (showCheckbox ? 1 : 0)} style={{ textAlign: "center", padding: "16px" }}>
                     <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "#17375E" }}>
                       <span
                         style={{
@@ -429,7 +461,7 @@ export default function ProposalTable({
 
               {/* Sentinel row — IntersectionObserver triggers loadMore when this scrolls into view. */}
               <tr ref={sentinelRef} aria-hidden="true">
-                <td colSpan={headers.length} style={{ height: "1px", padding: 0, border: 0 }} />
+                <td colSpan={headers.length + (showCheckbox ? 1 : 0)} style={{ height: "1px", padding: 0, border: 0 }} />
               </tr>
             </tbody>
           </table>

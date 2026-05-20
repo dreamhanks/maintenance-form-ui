@@ -22,6 +22,8 @@ type Props = {
   disableMainContent?: boolean;
   disableCategoryCheckbox?: boolean;
   onNeedChange?: (rowId: string, need: string) => void;
+  leftStepLabel?: string;
+  rightStepLabel?: string;
 };
 
 export default function TemporaryCheckSection(props: Props) {
@@ -35,8 +37,8 @@ export default function TemporaryCheckSection(props: Props) {
   return (
     <section className={sectionWrap}>
       <div className="grid grid-cols-12 bg-[#17375E] font-semibold text-white">
-        <div className={`${sectionHeader} col-span-6`}>◆仮設チェック欄</div>
-        <div className={`${sectionHeader} col-span-6 bg-[#2B547E]`}>大パ確認</div>
+        <div className={`${sectionHeader} col-span-6`}>{props.leftStepLabel ? `${props.leftStepLabel} ` : ""}◆仮設チェック欄</div>
+        <div className={`${sectionHeader} col-span-6 bg-[#2B547E]`}>{props.rightStepLabel ? `${props.rightStepLabel} ` : ""}大パ確認</div>
         {/* <div className="col-span-1 border border-slate-300 px-3 py-2">分類</div>
         <div className="col-span-1 border border-slate-300 px-3 py-2">項目</div>
         <div className="col-span-1 border border-slate-300 px-3 py-2">必要 / 不要</div>

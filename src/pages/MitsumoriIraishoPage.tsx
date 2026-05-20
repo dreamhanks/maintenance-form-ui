@@ -959,6 +959,7 @@ export default function MitsumoriIraishoPage() {
         tel: autofill.tel,
         email: autofill.email,
       }));
+      markDirty();
       toast.success("依頼主情報を自動入力しました");
     } catch {
       toast.error("自動入力に失敗しました");

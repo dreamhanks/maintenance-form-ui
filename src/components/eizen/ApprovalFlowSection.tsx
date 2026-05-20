@@ -33,6 +33,7 @@ type Props = {
 
 function StepBox({
   step,
+  seqNum,
   userRole,
   formId,
   prevConfirmed,
@@ -40,6 +41,7 @@ function StepBox({
   onRequestReject,
 }: {
   step: WorkflowStepDto;
+  seqNum: number;
   userRole: string | null | undefined;
   formId: number | null;
   prevConfirmed: boolean;
@@ -56,10 +58,21 @@ function StepBox({
   return (
     <div className="w-32 rounded-xl border-2 border-slate-800">
       <div className="border-b-2 border-slate-800 bg-slate-50 px-3 py-2 text-center font-semibold text-sm">
+        <div className="text-xs font-semibold text-[#17375E] border-b border-slate-300 pb-1 mb-1">Step {seqNum}</div>
         {step.stepLabel.replace(/[①②③④⑤⑥⑦⑧⑨⑩]/g, "")}
       </div>
-      <div className="flex h-14 items-center justify-center px-2 text-center text-sm font-medium text-slate-800">
-        {isConfirmed ? step.actorName : ""}
+      <div className="flex flex-col items-center justify-center px-2 py-2 text-center text-slate-800 min-h-14">
+        {isConfirmed && (
+          <>
+            {step.actorEmployeeCode && (
+              <>
+                <span className="text-xs text-slate-500">{step.actorEmployeeCode}</span>
+                <div className="w-full border-t border-slate-300 my-0.5" />
+              </>
+            )}
+            <span className="text-sm font-medium">{step.actorName ?? ""}</span>
+          </>
+        )}
       </div>
       <div className={`${step.stepNumber === 1 ? "" : "grid grid-cols-2"} border-t-2 border-slate-800`}>
         {step.stepNumber !== 1 && (
@@ -218,6 +231,8 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
     if (n === 4 && designNeed === "不要") return true;
     return false;
   };
+  const visibleBoxNums = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter((n) => !isHidden(n));
+  const getSeqBoxStep = (n: number): number => visibleBoxNums.indexOf(n) + 1;
 
   const getStep = (n: number) => effectiveSteps.find((s) => s.stepNumber === n);
   const isPrevConfirmed = (n: number) => {
@@ -233,6 +248,7 @@ export default function ApprovalFlowSection({ formId, steps, userRole, creatorRo
     return (
       <StepBox
         step={step}
+        seqNum={getSeqBoxStep(n)}
         userRole={userRole}
         formId={formId}
         prevConfirmed={isPrevConfirmed(n)}

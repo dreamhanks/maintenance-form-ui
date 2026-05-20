@@ -12,6 +12,7 @@ type Props = {
   setPartnerName: (v: string) => void;
   onGyomuSearch?: () => void;
   onPartnerSearch?: () => void;
+  stepLabel?: string;
 };
 
 export default function RequestSection(props: Props) {
@@ -22,7 +23,7 @@ export default function RequestSection(props: Props) {
     <section className={sectionWrap}>
       <div className="grid grid-cols-12">
         <div className="col-span-4 border border-[#17375E] bg-[#17375E] px-4 py-3 text-center text-xl font-bold text-[#F5C518]">
-          業務課依頼欄
+          {props.stepLabel ? `${props.stepLabel} ` : ""}業務課依頼欄
         </div>
         <div className="col-span-8 border border-slate-300 bg-white" />
 

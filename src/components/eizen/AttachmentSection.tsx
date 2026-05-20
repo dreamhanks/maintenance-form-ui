@@ -22,6 +22,8 @@ type Props = {
   onFileCheckChange: (fieldKey: string, checked: boolean, setChecked: (v: boolean) => void) => void;
   onFileSelected: (fieldKey: string, file: File, setChecked: (v: boolean) => void) => void;
   getAttachmentUrl: (fieldKey: string) => string | null;
+  leftStepLabel?: string;
+  rightStepLabel?: string;
 };
 
 function FileLink({ fieldKey, attachments, getAttachmentUrl }: {
@@ -71,8 +73,8 @@ export default function AttachmentSection(props: Props) {
     <section className={sectionWrap}>
         <div className={sectionHeader}>
             <div className="flex justify-between items-center">
-                <div className="col-span-11">◆事前確認時 添付資料</div>
-                <div>大パ管理職確認</div>
+                <div className="col-span-11">{props.leftStepLabel ? `${props.leftStepLabel} ` : ""}◆事前確認時 添付資料</div>
+                <div>{props.rightStepLabel ? `${props.rightStepLabel} ` : ""}大パ管理職確認</div>
             </div>
         </div>
       <div className="grid grid-cols-12">

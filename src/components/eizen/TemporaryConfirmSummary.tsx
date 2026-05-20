@@ -2,6 +2,7 @@ import { CheckRow } from "./EizenFormTypes";
 
 type Props = {
   rows: CheckRow[];
+  stepLabel?: string;
 };
 
 function renderContent(row: CheckRow) {
@@ -166,7 +167,7 @@ function renderContent(row: CheckRow) {
   );
 }
 
-export default function TemporaryConfirmSummary({ rows }: Props) {
+export default function TemporaryConfirmSummary({ rows, stepLabel }: Props) {
   const visibleRows = rows.filter(
     (r) =>
       r.variant !== "betsuto" &&
@@ -177,7 +178,7 @@ export default function TemporaryConfirmSummary({ rows }: Props) {
     <section className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
       <div className="grid grid-cols-12 bg-[#17375E] font-semibold text-white">
         <div className="col-span-12 border-b border-[#17375E] bg-[#17375E] px-4 py-3 text-base font-bold text-white">
-          ◆仮設確認
+          {stepLabel ? `${stepLabel} ` : ""}◆仮設確認
         </div>
       </div>
 
