@@ -35,6 +35,7 @@ export default function JuchuHanteiListPage() {
   const [showHoldDialog, setShowHoldDialog] = useState(false);
   const [showContractDialog, setShowContractDialog] = useState(false);
   const [pendingContractDate, setPendingContractDate] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const requestIdRef = useRef(0);
 
@@ -114,6 +115,75 @@ export default function JuchuHanteiListPage() {
   useEffect(() => {
     loadInitial();
   }, [loadInitial]);
+
+  const handleExportCsv = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const result = await fetchJuchuRows({
+        page: 0,
+        size: 100000,
+        sortKey,
+        sortDir,
+        filters: filtersToServer(),
+      });
+
+      const csvHeaders = [
+        "物件CD",
+        "お施主様名",
+        "建物名称",
+        "営業所",
+        "ステータス",
+        "大パ担当",
+      ];
+
+      const esc = (v: unknown) => {
+        const s = v == null
+          ? ""
+          : String(v)
+              .replace(/\n/g, " ")
+              .replace(/\r/g, "")
+              .replace(/"/g, '""');
+        return `"${s}"`;
+      };
+
+      const lines: string[] = [
+        csvHeaders.map(esc).join(","),
+        ...result.rows.map((row) => [
+          row.propertyCodeDisplay,
+          row.ownerName,
+          row.buildingName,
+          row.branchName,
+          row.status,
+          row.daipaTanto,
+        ].map(esc).join(",")),
+      ];
+
+      const content = "﻿" + lines.join("\r\n");
+      const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const ts =
+        now.getFullYear() +
+        pad(now.getMonth() + 1) +
+        pad(now.getDate()) + "_" +
+        pad(now.getHours()) +
+        pad(now.getMinutes()) +
+        pad(now.getSeconds());
+      a.href = url;
+      a.download = `受注判定リスト_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("CSV書き出しに失敗しました");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const displayError = error;
 
@@ -252,6 +322,14 @@ export default function JuchuHanteiListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+              className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isExporting ? "書き出し中..." : "CSV書き出し"}
+            </button>
             <button
               type="button"
               onClick={() => {

@@ -1,4 +1,4 @@
-import { judgmentApi } from "../form/api";
+import { judgmentApi, request } from "../form/api";
 import { KeiyakuRow, PagedResponse } from "../types";
 
 const KEIYAKU_JUDGMENT = "契約";
@@ -41,6 +41,25 @@ export async function fetchKeiyakuRows(
     page: result.page ?? params.page,
     hasMore: !!result.hasMore,
   };
+}
+
+export type KeiyakuCsvRow = {
+  propertyCodeDisplay: string;
+  ownerName: string;
+  buildingName: string;
+  branchName: string;
+  contractDate: string | null;
+};
+
+export async function exportKeiyakuCsv(params: {
+  contractDateFrom: string;
+  contractDateTo: string;
+}): Promise<KeiyakuCsvRow[]> {
+  const q = new URLSearchParams();
+  q.set("judgment", KEIYAKU_JUDGMENT);
+  q.set("contractDateFrom", params.contractDateFrom);
+  q.set("contractDateTo", params.contractDateTo);
+  return request<KeiyakuCsvRow[]>(`/api/judgment/csv-export?${q}`);
 }
 
 export async function fetchKeiyakuColumnValues(

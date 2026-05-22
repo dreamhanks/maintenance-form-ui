@@ -30,6 +30,7 @@ export default function ProposalListPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Guard against out-of-order responses when the user changes filter/sort rapidly.
   const requestIdRef = useRef(0);
@@ -156,6 +157,111 @@ export default function ProposalListPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const result = await fetchProposals({
+        page: 0,
+        size: 100000,
+        sortKey,
+        sortDir,
+        filters: filtersToServer(),
+      });
+
+      const csvHeaders = [
+        "物件CD", "お施主様名",
+        "建物名称", "営業所",
+        "ステータス",
+        "大パ担当者①",
+        "回覧日",
+        "大パ管理職①",
+        "回覧日",
+        "メンテ管理職①",
+        "回覧日",
+        "設計管理職",
+        "回覧日",
+        "大パ担当者②",
+        "回覧日",
+        "大パ管理職②",
+        "回覧日",
+        "メンテ管理職②",
+        "回覧日",
+        "大パ担当者③",
+        "回覧日",
+        "大パ管理職③",
+        "回覧日",
+        "業務管理職",
+        "確認日",
+      ];
+
+      const esc = (v: unknown) => {
+        const s = v == null
+          ? ""
+          : String(v)
+              .replace(/\n/g, " ")
+              .replace(/\r/g, "")
+              .replace(/"/g, '""');
+        return `"${s}"`;
+      };
+
+      const lines: string[] = [
+        csvHeaders.map(esc).join(","),
+        ...result.rows.map((row) => [
+          row.propertyCodeDisplay,
+          row.ownerName,
+          row.buildingName,
+          row.branchName,
+          row.status,
+          row.daipaTanto,
+          row.daipaTantoDate,
+          row.daipaKacho,
+          row.daipaKachoDate,
+          row.maintenanceManager1,
+          row.maintenanceManager1Date,
+          row.designManager1,
+          row.designManager1Date,
+          row.kanriTanto,
+          row.kanriTantoDate,
+          row.kanriKacho,
+          row.kanriKachoDate,
+          row.maintenanceManager2,
+          row.maintenanceManager2Date,
+          row.designManager2,
+          row.designManager2Date,
+          row.daipaKacho3,
+          row.daipaKacho3Date,
+          row.gyomukaConfirmUser,
+          row.confirmDate,
+        ].map(esc).join(",")),
+      ];
+
+      const content = "﻿" + lines.join("\r\n");
+      const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const now = new Date();
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const ts =
+        now.getFullYear() +
+        pad(now.getMonth() + 1) +
+        pad(now.getDate()) + "_" +
+        pad(now.getHours()) +
+        pad(now.getMinutes()) +
+        pad(now.getSeconds());
+      a.href = url;
+      a.download = `提案物件一覧_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("CSV書き出しに失敗しました");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleSort = (key: string, dir?: "asc" | "desc") => {
     if (dir) {
       setSortKey(key);
@@ -219,6 +325,14 @@ export default function ProposalListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+              className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isExporting ? "書き出し中..." : "CSV書き出し"}
+            </button>
             {canCreate && (
               <button
                 type="button"

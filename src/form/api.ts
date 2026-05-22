@@ -36,7 +36,7 @@ export type User = {
   role?: string | null;
 };
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const method = init?.method?.toUpperCase() ?? "GET";
   const needsContentType = method !== "GET" && method !== "HEAD";
   const res = await fetch(`${API_BASE}${path}`, {

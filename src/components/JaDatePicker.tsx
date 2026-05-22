@@ -34,6 +34,8 @@ export default function JaDatePicker({ value, onChange, className, placeholderTe
       onChange={(d: Date | null) => onChange(toStr(d))}
       className={className}
       placeholderText={placeholderText ?? "年/月/日"}
+      popperProps={{ strategy: "fixed" }}
+      popperClassName="!z-[200]"
     />
   );
 }
