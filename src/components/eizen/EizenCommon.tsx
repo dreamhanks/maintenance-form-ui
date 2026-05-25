@@ -624,7 +624,7 @@ export function MatrixRow({
                 </div>
               )}
               <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {row.variant !== "checksInConfirm" && optionEntries.filter(([key]) => !(row.otherText !== undefined && key === "その他")).map(([key, val]) => {
+                {row.variant !== "checksInConfirm" && optionEntries.filter(([key]) => !(row.otherText !== undefined && key === "その他") && !(row.checks["コンテナ設置位置"] !== undefined && key === "コンテナ設置位置")).map(([key, val]) => {
                   if (fileUpload && key === fileUpload.matchKey) {
                     const setChecked = (v: boolean) =>
                       onChange({ ...row, checks: { ...row.checks, [key]: v } });
@@ -700,6 +700,21 @@ export function MatrixRow({
                     <span className="text-sm text-slate-700">{row.unit}</span>
                   </div>
                 )}
+                {row.checks["コンテナ設置位置"] !== undefined && (
+                  <Check
+                    label="コンテナ設置位置"
+                    checked={row.checks["コンテナ設置位置"]}
+                    onChange={(checked) =>
+                      onChange({
+                        ...row,
+                        checks: {
+                          ...row.checks,
+                          ["コンテナ設置位置"]: checked,
+                        },
+                      })
+                    }
+                  />
+                )}
               </div>
               {row.otherText !== undefined && row.checks["その他"] !== undefined && (
                 <div className="flex items-center gap-1">
@@ -762,7 +777,7 @@ export function MatrixRow({
 
       <div className={`col-span-11 border border-slate-300 bg-white px-2 py-2${row.need === "不要" && (!disableMainContent || row.id === "r6" || row.id === "p2r8") ? " opacity-50 pointer-events-none" : ""}`}>
         {!row.remarkExtra && (
-          <textarea placeholder="備考" value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} maxLength={100} disabled={disableDapConfirmAndRemark} className={`${textareaClass}${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`} />
+          <textarea placeholder={row.id === "r6" ? "外部駐車場か敷地内空きＮｏを記載" : row.id === "r15" ? "設置位置の可否判断を記載" : "備考"} value={row.remark} onChange={(e) => onChange({ ...row, remark: e.target.value })} rows={3} maxLength={100} disabled={disableDapConfirmAndRemark} className={`${textareaClass}${disableDapConfirmAndRemark ? " opacity-50 cursor-not-allowed" : ""}`} />
         )}
         {row.remarkExtra && row.remarkExtra.map((extra, i) => {
           const updateEntry = (patch: Partial<typeof extra>) => {

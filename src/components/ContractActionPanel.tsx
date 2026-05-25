@@ -4,7 +4,7 @@ import JaDatePicker from "./JaDatePicker";
 
 type ContractActionPanelProps = {
   selectedCount: number;
-  onContractConfirm: (contractDate: string) => void;
+  onContractConfirm: (contractDate: string, additionalCode: string) => void;
   onLost: () => void;
   onHold: () => void;
 };
@@ -17,10 +17,15 @@ export default function ContractActionPanel({
 }: ContractActionPanelProps) {
   const [showContractDateArea, setShowContractDateArea] = useState(false);
   const [contractDate, setContractDate] = useState("");
+  const [additionalCode, setAdditionalCode] = useState("");
 
   const handleClickContract = () => {
     if (selectedCount === 0) {
       toast.warning("先に対象データを選択してください。");
+      return;
+    }
+    if (selectedCount > 1) {
+      toast.warning("契約は1件のみ選択してください。");
       return;
     }
     setShowContractDateArea(true);
@@ -29,6 +34,7 @@ export default function ContractActionPanel({
   const handleCancelContract = () => {
     setShowContractDateArea(false);
     setContractDate("");
+    setAdditionalCode("");
   };
 
   const handleConfirmContract = () => {
@@ -36,9 +42,14 @@ export default function ContractActionPanel({
       toast.warning("契約日を入力してください。");
       return;
     }
-    onContractConfirm(contractDate);
+    if (!additionalCode || additionalCode.length !== 3) {
+      toast.warning("追加コードを3桁で入力してください。");
+      return;
+    }
+    onContractConfirm(contractDate, additionalCode);
     setShowContractDateArea(false);
     setContractDate("");
+    setAdditionalCode("");
   };
 
   return (
@@ -90,6 +101,23 @@ export default function ContractActionPanel({
               <JaDatePicker
                 value={contractDate}
                 onChange={setContractDate}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                追加コード
+              </label>
+              <input
+                type="text"
+                value={additionalCode}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, "");
+                  if (v.length <= 3) setAdditionalCode(v);
+                }}
+                maxLength={3}
+                placeholder="3桁"
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-emerald-500"
               />
             </div>

@@ -35,6 +35,7 @@ export default function JuchuHanteiListPage() {
   const [showHoldDialog, setShowHoldDialog] = useState(false);
   const [showContractDialog, setShowContractDialog] = useState(false);
   const [pendingContractDate, setPendingContractDate] = useState("");
+  const [pendingAdditionalCode, setPendingAdditionalCode] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
   const requestIdRef = useRef(0);
@@ -223,8 +224,9 @@ export default function JuchuHanteiListPage() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  const handleContractConfirm = (contractDate: string) => {
+  const handleContractConfirm = (contractDate: string, additionalCode: string) => {
     setPendingContractDate(contractDate);
+    setPendingAdditionalCode(additionalCode);
     setShowContractDialog(true);
   };
 
@@ -237,12 +239,14 @@ export default function JuchuHanteiListPage() {
             contractDate: pendingContractDate,
             lostDate: null,
             holdDate: null,
+            buildingCode2: pendingAdditionalCode,
           })
         )
       );
       setSelectedIds([]);
       setShowContractDialog(false);
       setPendingContractDate("");
+      setPendingAdditionalCode("");
       loadInitial();
     } catch {
       toast.error("エラーが発生しました");
@@ -479,6 +483,8 @@ export default function JuchuHanteiListPage() {
             <div className="mt-3 text-sm text-slate-500">
               契約日: {pendingContractDate}
               <br />
+              追加コード: {pendingAdditionalCode}
+              <br />
               よろしいですか？
             </div>
             <div className="mt-6 flex justify-end gap-2">
@@ -487,6 +493,7 @@ export default function JuchuHanteiListPage() {
                 onClick={() => {
                   setShowContractDialog(false);
                   setPendingContractDate("");
+                  setPendingAdditionalCode("");
                 }}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >

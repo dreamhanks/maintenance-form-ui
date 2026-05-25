@@ -41,7 +41,7 @@ export type PropertyOverviewForm = {
     neighbors: { has: "0" | "1" | ""; note: string };
   };
 
-  vendor: {
+  vendor?: {
     plannedVendorName: string;
     confirmed: { mode: "0" | "1" | ""; name: string };
   };

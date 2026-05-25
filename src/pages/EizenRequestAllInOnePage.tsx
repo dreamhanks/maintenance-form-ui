@@ -94,16 +94,12 @@ const makeRowsPage1 = (): CheckRow[] => [
     category: "仮設",
     item: "工事駐車場",
     need: "",
-    checks: {
-      外部: false,
-      場内: false,
-    },
+    checks: {},
     amount: "",
     amountNumeric: true,
     unit: "台必要（要見積）",
     remark: "",
     managerConfirm: false,
-    variant: "checksInConfirm",
   },
   {
     id: "r6b",
@@ -249,6 +245,7 @@ const makeRowsPage1 = (): CheckRow[] => [
     need: "",
     checks: {
       金額: false,
+      コンテナ設置位置: false,
       その他: false,
     },
     otherText: "",
@@ -533,12 +530,6 @@ export default function EizenRequestAllInOnePage() {
   } | null>(null);
   const [showMitsumoriDialog, setShowMitsumoriDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
-  const [showP2r10ConfirmDialog, setShowP2r10ConfirmDialog] = useState(false);
-  const [p2r10PendingRow, setP2r10PendingRow] = useState<CheckRow | null>(null);
-  const [showP2r11ConfirmDialog, setShowP2r11ConfirmDialog] = useState(false);
-  const [p2r11PendingRow, setP2r11PendingRow] = useState<CheckRow | null>(null);
-  const [showP2r12ConfirmDialog, setShowP2r12ConfirmDialog] = useState(false);
-  const [p2r12PendingRow, setP2r12PendingRow] = useState<CheckRow | null>(null);
 
   // Attachment state: fieldKey → { filename, uploading }
   const [attachments, setAttachments] = useState<Record<string, { filename: string; uploading: boolean }>>({});
@@ -585,12 +576,6 @@ export default function EizenRequestAllInOnePage() {
     if (d.residentText) setResidentText(d.residentText);
     if (d.neighborFlag) setNeighborFlag(d.neighborFlag);
     if (d.neighborText) setNeighborText(d.neighborText);
-    if (d.plannedVendorName) setPlannedVendorName(d.plannedVendorName);
-    if (d.plannedVendorCd) setPlannedVendorCd(d.plannedVendorCd);
-    if (d.plannedVendorCd2) setPlannedVendorCd2(d.plannedVendorCd2);
-    if (d.fixedVendorName) setFixedVendorName(d.fixedVendorName);
-    if (d.fixedVendorCd) setFixedVendorCd(d.fixedVendorCd);
-    if (d.fixedVendorCd2) setFixedVendorCd2(d.fixedVendorCd2);
     if (d.proposalDate) setProposalDate(d.proposalDate);
     if (d.contractDate) setContractDate(d.contractDate);
     if (d.startDate) setStartDate(d.startDate);
@@ -683,7 +668,6 @@ export default function EizenRequestAllInOnePage() {
     if (copyFrom.customerName != null) setCustomerName(copyFrom.customerName);
     if (copyFrom.address != null) setAddress(copyFrom.address);
     if (copyFrom.propertyCd != null) setPropertyCd(copyFrom.propertyCd);
-    if (copyFrom.propertyCd2 != null) setPropertyCd2(copyFrom.propertyCd2);
     if (copyFrom.propertyCd3 != null) setPropertyCd3(copyFrom.propertyCd3);
     if (copyFrom.buildingName != null) setBuildingName(copyFrom.buildingName);
     if (copyFrom.completionDate != null) setCompletionDate(copyFrom.completionDate);
@@ -704,12 +688,6 @@ export default function EizenRequestAllInOnePage() {
     if (copyFrom.residentText != null) setResidentText(copyFrom.residentText);
     if (copyFrom.neighborFlag != null) setNeighborFlag(copyFrom.neighborFlag);
     if (copyFrom.neighborText != null) setNeighborText(copyFrom.neighborText);
-    if (copyFrom.plannedVendorName != null) setPlannedVendorName(copyFrom.plannedVendorName);
-    if (copyFrom.plannedVendorCd != null) setPlannedVendorCd(copyFrom.plannedVendorCd);
-    if (copyFrom.plannedVendorCd2 != null) setPlannedVendorCd2(copyFrom.plannedVendorCd2);
-    if (copyFrom.fixedVendorName != null) setFixedVendorName(copyFrom.fixedVendorName);
-    if (copyFrom.fixedVendorCd != null) setFixedVendorCd(copyFrom.fixedVendorCd);
-    if (copyFrom.fixedVendorCd2 != null) setFixedVendorCd2(copyFrom.fixedVendorCd2);
     if (copyFrom.proposalDate != null) setProposalDate(copyFrom.proposalDate);
     if (copyFrom.contractDate != null) setContractDate(copyFrom.contractDate);
     if (copyFrom.startDate != null) setStartDate(copyFrom.startDate);
@@ -805,11 +783,6 @@ export default function EizenRequestAllInOnePage() {
               setNeighborFlag(req.neighbors.has === "1" ? "あり" : req.neighbors.has === "0" ? "なし" : "");
               if (req.neighbors.note) setNeighborText(req.neighbors.note);
             }
-          }
-          const v = prop.vendor;
-          if (v) {
-            if (v.plannedVendorName) setPlannedVendorName(v.plannedVendorName);
-            if (v.confirmed?.name) setFixedVendorName(v.confirmed.name);
           }
           const s = prop.schedule;
           if (s) {
@@ -956,12 +929,6 @@ export default function EizenRequestAllInOnePage() {
   const [neighborFlag, setNeighborFlag] = useState<YesNo>("");
   const [neighborText, setNeighborText] = useState("");
 
-  const [plannedVendorName, setPlannedVendorName] = useState("");
-  const [plannedVendorCd, setPlannedVendorCd] = useState("");
-  const [plannedVendorCd2, setPlannedVendorCd2] = useState("");
-  const [fixedVendorName, setFixedVendorName] = useState("");
-  const [fixedVendorCd, setFixedVendorCd] = useState("");
-  const [fixedVendorCd2, setFixedVendorCd2] = useState("");
   const [proposalDate, setProposalDate] = useState("");
   const [contractDate, setContractDate] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -1198,7 +1165,6 @@ export default function EizenRequestAllInOnePage() {
     completionDate, productName, branchCode, branchName, repairHistory,
     roof, outsideWall, balcony, commonArea, privateArea, otherWork, otherWorkText, workDetail,
     ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
-    plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
     proposalDate, contractDate, startDate,
     photo4side, photoPart, photoOther, photoOtherText,
     attachRemark, dapManagerConfirmPhoto,
@@ -1217,7 +1183,6 @@ export default function EizenRequestAllInOnePage() {
     completionDate, productName, branchCode, branchName, repairHistory,
     roof, outsideWall, balcony, commonArea, privateArea, otherWork, otherWorkText, workDetail,
     ownerFlag, ownerText, residentFlag, residentText, neighborFlag, neighborText,
-    plannedVendorName, plannedVendorCd, plannedVendorCd2, fixedVendorName, fixedVendorCd, fixedVendorCd2,
     proposalDate, contractDate, startDate,
     photo4side, photoPart, photoOther, photoOtherText,
     attachRemark, dapManagerConfirmPhoto,
@@ -1277,10 +1242,9 @@ export default function EizenRequestAllInOnePage() {
     if (shouldValidatePropertyCd) {
       const isValidPropertyCd =
         propertyCd?.length === 7 &&
-        propertyCd2?.length === 3 &&
         propertyCd3?.length === 2;
       if (!isValidPropertyCd) {
-        toast.error("物件CDを正しく入力してください。\n受注コード7桁・追加コード3桁・棟番号2桁");
+        toast.error("物件CDを正しく入力してください。\n受注コード7桁・棟番号2桁");
         return null;
       }
     }
@@ -1314,10 +1278,6 @@ export default function EizenRequestAllInOnePage() {
             owner: { has: ownerFlag === "あり" ? "1" : ownerFlag === "なし" ? "0" : "", note: ownerText },
             resident: { has: residentFlag === "あり" ? "1" : residentFlag === "なし" ? "0" : "", note: residentText },
             neighbors: { has: neighborFlag === "あり" ? "1" : neighborFlag === "なし" ? "0" : "", note: neighborText },
-          },
-          vendor: {
-            plannedVendorName,
-            confirmed: { mode: fixedVendorName ? "1" : "", name: fixedVendorName },
           },
           schedule: {
             proposal: { y: proposalDate.slice(0, 4), m: proposalDate.slice(5, 7), d: proposalDate.slice(8, 10) },
@@ -1555,36 +1515,6 @@ export default function EizenRequestAllInOnePage() {
   };
 
   const updatePage2Row = (id: string, next: CheckRow) => {
-    // Intercept p2r10 (契約支店の建設業許可確認) 大パ確認 toggle:
-    // require a confirmation dialog when checking (false → true). Unchecking
-    // and all other field updates pass through unchanged.
-    if (
-      id === "p2r10" &&
-      next.managerConfirm === true &&
-      !page2Rows.find((r) => r.id === "p2r10")?.managerConfirm
-    ) {
-      setP2r10PendingRow(next);
-      setShowP2r10ConfirmDialog(true);
-      return;
-    }
-    if (
-      id === "p2r11" &&
-      next.managerConfirm === true &&
-      !page2Rows.find((r) => r.id === "p2r11")?.managerConfirm
-    ) {
-      setP2r11PendingRow(next);
-      setShowP2r11ConfirmDialog(true);
-      return;
-    }
-    if (
-      id === "p2r12" &&
-      next.managerConfirm === true &&
-      !page2Rows.find((r) => r.id === "p2r12")?.managerConfirm
-    ) {
-      setP2r12PendingRow(next);
-      setShowP2r12ConfirmDialog(true);
-      return;
-    }
     setPage2Rows((prev) => prev.map((r) => (r.id === id ? next : r)));
   };
 
@@ -1699,8 +1629,6 @@ export default function EizenRequestAllInOnePage() {
           setAddress={setAddress}
           propertyCd={propertyCd}
           setPropertyCd={setPropertyCd}
-          propertyCd2={propertyCd2}
-          setPropertyCd2={setPropertyCd2}
           propertyCd3={propertyCd3}
           setPropertyCd3={setPropertyCd3}
           buildingName={buildingName}
@@ -1740,18 +1668,6 @@ export default function EizenRequestAllInOnePage() {
           setNeighborFlag={setNeighborFlag}
           neighborText={neighborText}
           setNeighborText={setNeighborText}
-          plannedVendorName={plannedVendorName}
-          setPlannedVendorName={setPlannedVendorName}
-          plannedVendorCd={plannedVendorCd}
-          setPlannedVendorCd={setPlannedVendorCd}
-          plannedVendorCd2={plannedVendorCd2}
-          setPlannedVendorCd2={setPlannedVendorCd2}
-          fixedVendorName={fixedVendorName}
-          setFixedVendorName={setFixedVendorName}
-          fixedVendorCd={fixedVendorCd}
-          setFixedVendorCd={setFixedVendorCd}
-          fixedVendorCd2={fixedVendorCd2}
-          setFixedVendorCd2={setFixedVendorCd2}
           proposalDate={proposalDate}
           setProposalDate={setProposalDate}
           contractDate={contractDate}
@@ -2064,10 +1980,9 @@ export default function EizenRequestAllInOnePage() {
             if (isFirstActiveStep) {
               const isValidPropertyCd =
                 propertyCd?.length === 7 &&
-                propertyCd2?.length === 3 &&
                 propertyCd3?.length === 2;
               if (!isValidPropertyCd) {
-                return "物件CDを正しく入力してください。\n受注コード7桁・追加コード3桁・棟番号2桁";
+                return "物件CDを正しく入力してください。\n受注コード7桁・棟番号2桁";
               }
               if (!branchCode?.trim()) {
                 return "物件CDを入力して検索し、\n建物情報を取得してください。";
@@ -2092,18 +2007,6 @@ export default function EizenRequestAllInOnePage() {
                 if (row.flag === "あり" && !row.text?.trim()) {
                   return `要望注意点等の${row.label}の\n内容を入力してください。`;
                 }
-              }
-              if (!plannedVendorName?.trim()) {
-                return "主要業者情報の予定業者名を入力してください。";
-              }
-              if (!plannedVendorCd?.trim() || !plannedVendorCd2?.trim()) {
-                return "主要業者情報の予定業者CDを入力してください。\n6桁・3桁両方の入力が必要です。";
-              }
-              if (!fixedVendorName?.trim()) {
-                return "主要業者情報の確定業者名を入力してください。";
-              }
-              if (!fixedVendorCd?.trim() || !fixedVendorCd2?.trim()) {
-                return "主要業者情報の確定業者CDを入力してください。\n6桁・3桁両方の入力が必要です。";
               }
               if (!proposalDate?.trim()) {
                 return "営繕提案予定日を入力してください。";
@@ -2642,16 +2545,6 @@ export default function EizenRequestAllInOnePage() {
                 p2r13: "防水工事等保証の確認",
               };
               for (const row of page1Rows) {
-                if (row.id === "r6") {
-                  if (row.need === "不要") continue;
-                  const hasRequired =
-                    row.checks["外部"] === true ||
-                    row.checks["場内"] === true;
-                  if (!hasRequired) {
-                    return "工事駐車場の「外部」または\n「場内」を選択してください。";
-                  }
-                  continue;
-                }
                 if (!row.managerConfirm) {
                   const label = step5LabelMap[row.id] ?? row.item;
                   return `${label}の大パ確認に\nチェックしてください。`;
@@ -2718,16 +2611,6 @@ export default function EizenRequestAllInOnePage() {
                 p2r13: "防水工事等保証の確認",
               };
               for (const row of page1Rows) {
-                if (row.id === "r6") {
-                  if (row.need === "不要") continue;
-                  const hasRequired =
-                    row.checks["外部"] === true ||
-                    row.checks["場内"] === true;
-                  if (!hasRequired) {
-                    return "工事駐車場の「外部」または\n「場内」を選択してください。";
-                  }
-                  continue;
-                }
                 if (!row.managerConfirm) {
                   const label = step6LabelMap[row.id] ?? row.item;
                   return `${label}の大パ確認に\nチェックしてください。`;
@@ -2841,117 +2724,6 @@ export default function EizenRequestAllInOnePage() {
               </button>
               <button type="button" onClick={() => setShowLeaveDialog(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">
                 キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showP2r10ConfirmDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
-            <div className="text-base font-semibold text-slate-900">大パ確認</div>
-            <div className="mt-3 text-sm text-slate-700">
-              契約支店の許可業種が未取得の場合、一般申請が必要
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowP2r10ConfirmDialog(false);
-                  setP2r10PendingRow(null);
-                }}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (p2r10PendingRow) {
-                    setPage2Rows((prev) =>
-                      prev.map((r) => (r.id === "p2r10" ? p2r10PendingRow : r))
-                    );
-                  }
-                  setShowP2r10ConfirmDialog(false);
-                  setP2r10PendingRow(null);
-                }}
-                className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90"
-              >
-                確認
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showP2r11ConfirmDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
-            <div className="text-base font-semibold text-slate-900">大パ確認</div>
-            <div className="mt-3 text-sm text-slate-700">
-              お客様処分可否確認し、対応不可の場合は、見積書に金額を含める
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowP2r11ConfirmDialog(false);
-                  setP2r11PendingRow(null);
-                }}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (p2r11PendingRow) {
-                    setPage2Rows((prev) =>
-                      prev.map((r) => (r.id === "p2r11" ? p2r11PendingRow : r))
-                    );
-                  }
-                  setShowP2r11ConfirmDialog(false);
-                  setP2r11PendingRow(null);
-                }}
-                className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90"
-              >
-                確認
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {showP2r12ConfirmDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
-            <div className="text-base font-semibold text-slate-900">大パ確認</div>
-            <div className="mt-3 text-sm text-slate-700">
-              お客様処分可否確認し、対応不可の場合は、見積書に金額を含める
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowP2r12ConfirmDialog(false);
-                  setP2r12PendingRow(null);
-                }}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (p2r12PendingRow) {
-                    setPage2Rows((prev) =>
-                      prev.map((r) => (r.id === "p2r12" ? p2r12PendingRow : r))
-                    );
-                  }
-                  setShowP2r12ConfirmDialog(false);
-                  setP2r12PendingRow(null);
-                }}
-                className="rounded-lg bg-[#17375E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#17375E]/90"
-              >
-                確認
               </button>
             </div>
           </div>

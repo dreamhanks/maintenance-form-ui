@@ -14,8 +14,6 @@ type Props = {
   setAddress: (v: string) => void;
   propertyCd: string;
   setPropertyCd: (v: string) => void;
-  propertyCd2: string;
-  setPropertyCd2: (v: string) => void;
   propertyCd3: string;
   setPropertyCd3: (v: string) => void;
   buildingName: string;
@@ -58,18 +56,6 @@ type Props = {
   neighborText: string;
   setNeighborText: (v: string) => void;
 
-  plannedVendorName: string;
-  setPlannedVendorName: (v: string) => void;
-  plannedVendorCd: string;
-  setPlannedVendorCd: (v: string) => void;
-  plannedVendorCd2: string;
-  setPlannedVendorCd2: (v: string) => void;
-  fixedVendorName: string;
-  setFixedVendorName: (v: string) => void;
-  fixedVendorCd: string;
-  setFixedVendorCd: (v: string) => void;
-  fixedVendorCd2: string;
-  setFixedVendorCd2: (v: string) => void;
   proposalDate: string;
   setProposalDate: (v: string) => void;
   contractDate: string;
@@ -175,19 +161,7 @@ export default function BasicInfoSection(props: Props) {
                     if (v.length <= 7) props.setPropertyCd(v);
                   }}
                   maxLength={7}
-                  placeholder="7桁"
-                  className={inputClass}
-                />
-                <div>ー</div>
-                <input
-                  type="text"
-                  value={props.propertyCd2}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, "");
-                    if (v.length <= 3) props.setPropertyCd2(v);
-                  }}
-                  maxLength={3}
-                  placeholder="3桁"
+                  placeholder="受注コード"
                   className={inputClass}
                 />
                 <div>ー</div>
@@ -199,7 +173,7 @@ export default function BasicInfoSection(props: Props) {
                     if (v.length <= 2) props.setPropertyCd3(v);
                   }}
                   maxLength={2}
-                  placeholder="2桁"
+                  placeholder="棟番号"
                   className={inputClass}
                 />
                 <button
@@ -278,39 +252,6 @@ export default function BasicInfoSection(props: Props) {
             </div>
             <input value={props.neighborText} onChange={(e) => props.setNeighborText(e.target.value)} disabled={props.neighborFlag === "なし"} maxLength={100} className={inputClass + (props.neighborFlag === "なし" ? " opacity-50 cursor-not-allowed bg-gray-100" : "")} placeholder="内容" />
           </ValueCell>
-        </div>
-
-        <LabelCell>主要業者情報</LabelCell>
-        <div className="col-span-11 grid grid-cols-12">
-          <LabelCell>予定業者名</LabelCell>
-          <ValueCell className="col-span-3">
-            <input value={props.plannedVendorName} onChange={(e) => props.setPlannedVendorName(e.target.value)} className={inputClass} />
-          </ValueCell>
-          <LabelCell>業者CD</LabelCell>
-          <ValueCell className="col-span-3 ">
-            <div className="flex items-center justify-center gap-2">
-                <input value={props.plannedVendorCd} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setPlannedVendorCd(v); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
-                <div>ー</div>
-                <input value={props.plannedVendorCd2} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setPlannedVendorCd2(v); }} maxLength={3} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
-            </div>
-          </ValueCell>
-          <div className="col-span-4 bg-slate-100 border border-slate-300" />
-
-          <LabelCell>確定業者名</LabelCell>
-          <ValueCell className="col-span-3">
-            <input value={props.fixedVendorName} onChange={(e) => props.setFixedVendorName(e.target.value)} className={inputClass} />
-          </ValueCell>
-          <LabelCell>業者CD</LabelCell>
-          <ValueCell className="col-span-3">
-            <div className="flex items-center justify-center gap-2">
-                <input value={props.fixedVendorCd} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setFixedVendorCd(v); }} maxLength={6} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
-                <div>ー</div>
-                <input value={props.fixedVendorCd2} onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); props.setFixedVendorCd2(v); }} maxLength={3} inputMode="numeric" pattern="[0-9]*" className={inputClass} />
-            </div>
-          </ValueCell>
-          <div className="col-span-4 bg-slate-100 border border-slate-300" />
-          {/* <LabelCell>ー</LabelCell> */}
-          {/* <ValueCell className="col-span-4" /> */}
         </div>
 
         {/* <LabelCell >営繕提案予定日</LabelCell> */}

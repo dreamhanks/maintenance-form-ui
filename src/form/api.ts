@@ -234,6 +234,7 @@ export const judgmentApi = {
       contractDate: string | null;
       lostDate: string | null;
       holdDate: string | null;
+      buildingCode2?: string;
     },
   ) =>
     request<void>(`/api/forms/${formId}/judgment`, {
