@@ -3,6 +3,8 @@ import { CheckRow } from "./EizenFormTypes";
 type Props = {
   rows: CheckRow[];
   stepLabel?: string;
+  onBulkConfirm?: () => void;
+  bulkConfirmEnabled?: boolean;
 };
 
 function renderContent(row: CheckRow) {
@@ -167,7 +169,7 @@ function renderContent(row: CheckRow) {
   );
 }
 
-export default function TemporaryConfirmSummary({ rows, stepLabel }: Props) {
+export default function TemporaryConfirmSummary({ rows, stepLabel, onBulkConfirm, bulkConfirmEnabled }: Props) {
   const visibleRows = rows.filter(
     (r) =>
       r.variant !== "betsuto" &&
@@ -177,8 +179,17 @@ export default function TemporaryConfirmSummary({ rows, stepLabel }: Props) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
       <div className="grid grid-cols-12 bg-[#17375E] font-semibold text-white">
-        <div className="col-span-12 border-b border-[#17375E] bg-[#17375E] px-4 py-3 text-base font-bold text-white">
-          {stepLabel ? `${stepLabel} ` : ""}◆仮設確認
+        <div className="col-span-12 border-b border-[#17375E] bg-[#17375E] px-4 py-3 text-base font-bold text-white flex items-center justify-between">
+          <span>{stepLabel ? `${stepLabel} ` : ""}◆仮設確認</span>
+          {bulkConfirmEnabled && onBulkConfirm && (
+            <button
+              type="button"
+              onClick={onBulkConfirm}
+              className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-[#17375E] hover:bg-slate-100"
+            >
+              一括確認
+            </button>
+          )}
         </div>
       </div>
 

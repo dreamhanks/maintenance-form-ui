@@ -21,6 +21,7 @@ function toShichuRow(row: any): ShichuRow {
     branchCode: row.branchCode ?? "",
     branchName: row.branchName ?? "",
     lostDate: row.lostDate ?? "",
+    lostReasonCategory: row.lostReasonCategory ?? "",
   };
 }
 

@@ -19,6 +19,7 @@ export default function ProposalListPage() {
   const canCreate =
     user?.role === "大パ担当者" ||
     user?.role === "大パ管理職";
+  const isAdmin = user?.role === "admin";
   const [rows, setRows] = useState<ProposalRow[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -31,6 +32,7 @@ export default function ProposalListPage() {
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Guard against out-of-order responses when the user changes filter/sort rapidly.
   const requestIdRef = useRef(0);
@@ -147,6 +149,19 @@ export default function ProposalListPage() {
       });
     } catch {
       toast.error("複製に失敗しました");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedId) return;
+    try {
+      await formApi.deleteForm(Number(selectedId));
+      setSelectedId(null);
+      setShowDeleteDialog(false);
+      loadInitial();
+      toast.success("削除しました");
+    } catch {
+      toast.error("削除に失敗しました");
     }
   };
 
@@ -326,6 +341,16 @@ export default function ProposalListPage() {
             >
               {isExporting ? "書き出し中..." : "CSV書き出し"}
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={!selectedId}
+                className="rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                削除
+              </button>
+            )}
             {canCreate && (
               <button
                 type="button"
@@ -371,10 +396,36 @@ export default function ProposalListPage() {
           hasMore={hasMore}
           isLoadingMore={isLoadingMore}
           onLoadMore={loadMore}
-          showCheckbox={canCreate}
+          showCheckbox={canCreate || isAdmin}
           selectedId={selectedId}
           onSelectRow={(id) => setSelectedId((prev) => (prev === id ? null : id))}
         />
+      )}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">フォームの削除</div>
+            <div className="mt-3 text-sm text-slate-700">
+              このフォームを削除します。この操作は元に戻せません。よろしいですか？
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                削除する
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppPageLayout>
   );

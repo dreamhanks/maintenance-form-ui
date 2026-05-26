@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ShichuRow } from "../types";
+import { LOST_REASON_LABELS } from "../data/lostReasonCategories";
 
 type ShichuTableProps = {
   rows: ShichuRow[];
@@ -24,6 +25,7 @@ const headers: { label: string; key: string }[] = [
   { label: "建物名称", key: "buildingName" },
   { label: "営業所", key: "branchName" },
   { label: "失注日", key: "lostDate" },
+  { label: "失注理由区分", key: "lostReasonCategory" },
 ];
 
 export default function ShichuTable({
@@ -259,7 +261,7 @@ export default function ShichuTable({
                                       checked={tempChecked.has(val)}
                                       onChange={() => toggle(val)}
                                     />
-                                    {val === "" ? "(空白)" : val}
+                                    {val === "" ? "(空白)" : header.key === "lostReasonCategory" ? (LOST_REASON_LABELS[val] ?? val) : val}
                                   </label>
                                 ))}
                               </div>
@@ -346,6 +348,9 @@ export default function ShichuTable({
                     </td>
                     <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
                       {row.lostDate}
+                    </td>
+                    <td className="border-b border-r border-slate-200 px-3 py-2 text-sm whitespace-nowrap text-slate-700">
+                      {LOST_REASON_LABELS[row.lostReasonCategory ?? ""] ?? ""}
                     </td>
                   </tr>
                 ))

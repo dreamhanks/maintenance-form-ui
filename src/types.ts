@@ -85,6 +85,7 @@ export type ShichuRow = {
   branchCode: string; // 営業所コード
   branchName: string; // 営業所名
   lostDate: string; // 失注日
+  lostReasonCategory?: string; // 失注理由区分 (1-6 code)
 };
 
 export type KeiyakuRow = {

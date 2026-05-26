@@ -135,7 +135,7 @@ export const formApi = {
     q.set("column", params.column);
     return request<{ values: string[] }>(`/api/forms/column-values?${q}`);
   },
-  delete: (id: number) => request<void>(`/api/forms/${id}`, { method: "DELETE" }),
+  deleteForm: (formId: number) => request<void>(`/api/forms/${formId}`, { method: "DELETE" }),
   downloadUrl: (id: number, fieldKey: string) =>
     `${API_BASE}/api/forms/${id}/files/${fieldKey}`,
   relatedForms: (id: number) =>
@@ -222,11 +222,6 @@ function buildJudgmentListQuery(params: JudgmentListApiParams): URLSearchParams 
 }
 
 export const judgmentApi = {
-  set: (formId: number, body: { judgment: string; contractDate?: string; lostDate?: string }) =>
-    request<any>(`/api/forms/${formId}/judgment`, {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
   setJudgment: (
     formId: number,
     body: {
@@ -235,6 +230,7 @@ export const judgmentApi = {
       lostDate: string | null;
       holdDate: string | null;
       buildingCode2?: string;
+      lostReasonCategory?: string;
     },
   ) =>
     request<void>(`/api/forms/${formId}/judgment`, {

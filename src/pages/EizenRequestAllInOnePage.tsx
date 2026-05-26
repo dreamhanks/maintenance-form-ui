@@ -655,6 +655,7 @@ export default function EizenRequestAllInOnePage() {
     if (d.okyakusamaMitsumoriAttach != null) setOkyakusamaMitsumoriAttach(d.okyakusamaMitsumoriAttach);
     if (d.keiyakushoSakuseiAttach != null) setKeiyakushoSakuseiAttach(d.keiyakushoSakuseiAttach);
     if (d.finalReason) setFinalReason(d.finalReason);
+    if (d.lostReasonCategory) setLostReasonCategory(d.lostReasonCategory);
     if (d.gyomuItakuCd) setGyomuItakuCd(d.gyomuItakuCd);
     if (d.gyomuItakuName) setGyomuItakuName(d.gyomuItakuName);
     if (d.partnerCd) setPartnerCd(d.partnerCd);
@@ -981,6 +982,7 @@ export default function EizenRequestAllInOnePage() {
   const [okyakusamaMitsumoriAttach, setOkyakusamaMitsumoriAttach] = useState(false);
   const [keiyakushoSakuseiAttach, setKeiyakushoSakuseiAttach] = useState(false);
   const [finalReason, setFinalReason] = useState("");
+  const [lostReasonCategory, setLostReasonCategory] = useState("");
 
   const [gyomuItakuCd, setGyomuItakuCd] = useState("");
   const [gyomuItakuName, setGyomuItakuName] = useState("");
@@ -1041,6 +1043,9 @@ export default function EizenRequestAllInOnePage() {
 
   const disableDapConfirmAndRemark =
     !isAdmin && isEditable && pendingStepNumber === 3;
+
+  const canBulkConfirmDap =
+    canEditTemporarySections && !disableDapConfirmAndRemark;
 
   const disableMainContent =
     !isAdmin && (
@@ -1176,7 +1181,7 @@ export default function EizenRequestAllInOnePage() {
     designInstruction, designAttachment, designDapConfirm, designRemark,
     estimateOutput, estimateAttach, estimateRemark,
     maintenanceEstimateAttach, maintenanceEstimateRemark,
-    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, okyakusamaMitsumoriAttach, keiyakushoSakuseiAttach, finalReason,
+    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, okyakusamaMitsumoriAttach, keiyakushoSakuseiAttach, finalReason, lostReasonCategory,
     gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
   }), [
     documentNo, issueDate, furigana, customerName, address, propertyCd, propertyCd2, propertyCd3, buildingName,
@@ -1194,7 +1199,7 @@ export default function EizenRequestAllInOnePage() {
     designInstruction, designAttachment, designDapConfirm, designRemark,
     estimateOutput, estimateAttach, estimateRemark,
     maintenanceEstimateAttach, maintenanceEstimateRemark,
-    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, okyakusamaMitsumoriAttach, keiyakushoSakuseiAttach, finalReason,
+    orderResult, juchuCheck, shitchuCheck, daipaFinalConfirm, lostOrder, generalApplyAttach, okyakusamaMitsumoriAttach, keiyakushoSakuseiAttach, finalReason, lostReasonCategory,
     gyomuItakuCd, gyomuItakuName, partnerCd, partnerName,
   ]);
 
@@ -1514,6 +1519,14 @@ export default function EizenRequestAllInOnePage() {
     setPage1Rows((prev) => prev.map((r) => (r.id === id ? next : r)));
   };
 
+  const handleBulkConfirmDap = () => {
+    setPage1Rows((prev) => prev.map((r) => ({ ...r, managerConfirm: true })));
+  };
+
+  const handleBulkConfirmPage2 = () => {
+    setPage2Rows((prev) => prev.map((r) => ({ ...r, managerConfirm: true })));
+  };
+
   const updatePage2Row = (id: string, next: CheckRow) => {
     setPage2Rows((prev) => prev.map((r) => (r.id === id ? next : r)));
   };
@@ -1753,7 +1766,7 @@ export default function EizenRequestAllInOnePage() {
         />
         </fieldset>
 
-        <TemporaryCheckSummary rows={page1Rows} stepLabel={sTempLeft} />
+        <TemporaryCheckSummary rows={page1Rows} stepLabel={sTempLeft} onBulkConfirm={handleBulkConfirmDap} bulkConfirmEnabled={canBulkConfirmDap} />
 
         <fieldset disabled={!canEditTemporarySections} className="contents">
         <TemporaryConfirmSection
@@ -1801,7 +1814,7 @@ export default function EizenRequestAllInOnePage() {
         />
         </fieldset>
 
-        <TemporaryConfirmSummary rows={page2Rows} stepLabel={sTempLeft} />
+        <TemporaryConfirmSummary rows={page2Rows} stepLabel={sTempLeft} onBulkConfirm={handleBulkConfirmPage2} bulkConfirmEnabled={canBulkConfirmDap} />
 
         <fieldset disabled={!canEditMaintenanceSection} className="contents">
         <MaintenanceAttachmentSection
@@ -1925,6 +1938,8 @@ export default function EizenRequestAllInOnePage() {
           setLostOrder={setLostOrder}
           finalReason={finalReason}
           setFinalReason={setFinalReason}
+          lostReasonCategory={lostReasonCategory}
+          setLostReasonCategory={setLostReasonCategory}
           attachments={attachments}
           fileInputRefs={fileInputRefs}
           onFileCheckChange={handleFileCheckChange}
@@ -2638,6 +2653,9 @@ export default function EizenRequestAllInOnePage() {
               if (!orderResult) {
                 return "大パ最終確認欄の\n「受注」または「失注」を\n選択してください。";
               }
+              if (orderResult === "失注" && !lostReasonCategory) {
+                return "失注理由区分を\n選択してください。";
+              }
               if (orderResult === "失注" && !finalReason.trim()) {
                 return "失注の理由を入力してください。";
               }
@@ -2661,6 +2679,9 @@ export default function EizenRequestAllInOnePage() {
               if (createdByDapaKacho) {
                 if (!orderResult) {
                   return "大パ最終確認欄の\n「受注」または「失注」を\n選択してください。";
+                }
+                if (orderResult === "失注" && !lostReasonCategory) {
+                  return "失注理由区分を\n選択してください。";
                 }
                 if (orderResult === "失注" && !finalReason?.trim()) {
                   return "失注の理由を入力してください。";

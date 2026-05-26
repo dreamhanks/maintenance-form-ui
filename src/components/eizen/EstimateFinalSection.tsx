@@ -2,6 +2,7 @@ import React from "react";
 import { OrderResult } from "./EizenFormTypes";
 import { inputClass, sectionWrap, textareaClass } from "./EizenFormStyles";
 import { LabelCell, ValueCell } from "./EizenCommon";
+import { LOST_REASON_OPTIONS } from "../../data/lostReasonCategories";
 
 type Props = {
   estimateOutput: boolean;
@@ -30,6 +31,8 @@ type Props = {
   setLostOrder: (v: boolean) => void;
   finalReason: string;
   setFinalReason: (v: string) => void;
+  lostReasonCategory: string;
+  setLostReasonCategory: (v: string) => void;
 
   attachments: Record<string, { filename: string; uploading: boolean }>;
   fileInputRefs: React.MutableRefObject<Record<string, HTMLInputElement | null>>;
@@ -225,9 +228,31 @@ export default function EstimateFinalSection(props: Props) {
             </div>
           </ValueCell>
         {props.orderResult === "失注" && (
-        <ValueCell className="col-span-12 flex items-start justify-center border border-slate-400 gap-2">
-            <div className="w-12">理由:</div>
-          <textarea value={props.finalReason} onChange={(e) => props.setFinalReason(e.target.value)} rows={2} maxLength={500} className={textareaClass} />
+        <ValueCell className="col-span-12 flex items-start border border-slate-400 gap-2">
+          <div className="w-[35%] flex-shrink-0">
+            <select
+              value={props.lostReasonCategory}
+              onChange={(e) => props.setLostReasonCategory(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">-- 選択 --</option>
+              {LOST_REASON_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="w-[65%] flex items-start gap-1">
+            <div className="w-12 flex-shrink-0">理由:</div>
+            <div className="flex-1">
+              <textarea
+                value={props.finalReason}
+                onChange={(e) => props.setFinalReason(e.target.value)}
+                rows={2}
+                maxLength={500}
+                className={textareaClass}
+              />
+            </div>
+          </div>
         </ValueCell>
         )}
           </fieldset>

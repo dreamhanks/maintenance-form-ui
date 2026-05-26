@@ -7,10 +7,11 @@ import ContractActionPanel from "../components/ContractActionPanel";
 import LoadingSpinner from "../components/LoadingSpinner";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchJuchuColumnValues, fetchJuchuRows } from "../api/juchuApi";
-import { judgmentApi } from "../form/api";
+import { judgmentApi, formApi } from "../form/api";
 import { useAuth } from "../auth/AuthContext";
 import { JuchuRow } from "../types";
 import { API_BASE } from "../config";
+import { LOST_REASON_OPTIONS } from "../data/lostReasonCategories";
 
 const PAGE_SIZE = 100;
 
@@ -20,6 +21,7 @@ export default function JuchuHanteiListPage() {
   const canCreate =
     user?.role === "大パ担当者" ||
     user?.role === "大パ管理職";
+  const isAdmin = user?.role === "admin";
   const [rows, setRows] = useState<JuchuRow[]>([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -32,11 +34,13 @@ export default function JuchuHanteiListPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
   const [showLostDialog, setShowLostDialog] = useState(false);
+  const [pendingLostReasonCategory, setPendingLostReasonCategory] = useState("");
   const [showHoldDialog, setShowHoldDialog] = useState(false);
   const [showContractDialog, setShowContractDialog] = useState(false);
   const [pendingContractDate, setPendingContractDate] = useState("");
   const [pendingAdditionalCode, setPendingAdditionalCode] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const requestIdRef = useRef(0);
 
@@ -266,11 +270,13 @@ export default function JuchuHanteiListPage() {
             contractDate: null,
             lostDate: today,
             holdDate: null,
+            lostReasonCategory: pendingLostReasonCategory,
           })
         )
       );
       setSelectedIds([]);
       setShowLostDialog(false);
+      setPendingLostReasonCategory("");
       loadInitial();
     } catch {
       toast.error("エラーが発生しました");
@@ -298,6 +304,20 @@ export default function JuchuHanteiListPage() {
       loadInitial();
     } catch {
       toast.error("エラーが発生しました");
+    }
+  };
+
+  const handleDeleteForms = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((formId) => formApi.deleteForm(Number(formId)))
+      );
+      setSelectedIds([]);
+      setShowDeleteDialog(false);
+      loadInitial();
+      toast.success("削除しました");
+    } catch {
+      toast.error("削除に失敗しました");
     }
   };
 
@@ -334,6 +354,16 @@ export default function JuchuHanteiListPage() {
             >
               {isExporting ? "書き出し中..." : "CSV書き出し"}
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={selectedIds.length === 0}
+                className="rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                削除
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -402,11 +432,27 @@ export default function JuchuHanteiListPage() {
                   </li>
                 ))}
             </ul>
+            <div className="mt-3">
+              <label className="text-sm text-slate-700">失注理由区分</label>
+              <select
+                value={pendingLostReasonCategory}
+                onChange={(e) => setPendingLostReasonCategory(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              >
+                <option value="">-- 選択してください --</option>
+                {LOST_REASON_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
             <div className="mt-3 text-sm text-slate-500">よろしいですか？</div>
             <div className="mt-6 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setShowLostDialog(false)}
+                onClick={() => {
+                  setShowLostDialog(false);
+                  setPendingLostReasonCategory("");
+                }}
                 className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >
                 キャンセル
@@ -414,7 +460,8 @@ export default function JuchuHanteiListPage() {
               <button
                 type="button"
                 onClick={executeLost}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+                disabled={!pendingLostReasonCategory}
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 失注する
               </button>
@@ -505,6 +552,41 @@ export default function JuchuHanteiListPage() {
                 className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
               >
                 契約する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">フォームの削除</div>
+            <div className="mt-3 text-sm text-slate-700">
+              以下の{selectedIds.length}件を削除します。この操作は元に戻せません。
+            </div>
+            <ul className="mt-2 max-h-40 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {rows
+                .filter((r) => selectedIds.includes(r.formId))
+                .map((r) => (
+                  <li key={r.formId} className="py-0.5 border-b border-slate-100 last:border-0">
+                    {r.propertyCodeDisplay}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteDialog(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteForms}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                削除する
               </button>
             </div>
           </div>
