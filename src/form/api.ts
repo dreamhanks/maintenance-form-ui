@@ -136,6 +136,18 @@ export const formApi = {
     return request<{ values: string[] }>(`/api/forms/column-values?${q}`);
   },
   deleteForm: (formId: number) => request<void>(`/api/forms/${formId}`, { method: "DELETE" }),
+  getDaipaKachoUsers: (formId: number) =>
+    request<DaipaKachoUserDto[]>(`/api/forms/${formId}/daipa-kacho-users`),
+  getMenteKanrishokuUsers: (formId: number) =>
+    request<DaipaKachoUserDto[]>(`/api/forms/${formId}/mente-kanrishoku-users`),
+  getDaipaTantoUsers: (formId: number) =>
+    request<DaipaKachoUserDto[]>(`/api/forms/${formId}/daipa-tanto-users`),
+  getDaipaKachoMultiUsers: (formId: number) =>
+    request<DaipaKachoUserDto[]>(`/api/forms/${formId}/daipa-kacho-multi-users`),
+  getDesignUser: (formId: number) =>
+    request<DaipaKachoUserDto[]>(`/api/forms/${formId}/design-user`),
+  getBusinessUser: (formId: number) =>
+    request<DaipaKachoUserDto[]>(`/api/forms/${formId}/business-user`),
   downloadUrl: (id: number, fieldKey: string) =>
     `${API_BASE}/api/forms/${id}/files/${fieldKey}`,
   relatedForms: (id: number) =>
@@ -146,6 +158,12 @@ export type RelatedFormDto = {
   formRecordId: number;
   documentNo: string | null;
   buildingCode2: string;
+};
+
+export type DaipaKachoUserDto = {
+  employeeCode: string;
+  fullName: string;
+  email: string;
 };
 
 export type WorkflowStepDto = {
@@ -161,16 +179,21 @@ export type WorkflowStepDto = {
 
 export const workflowApi = {
   get: (id: number) => request<WorkflowStepDto[]>(`/api/forms/${id}/workflow`),
-  confirm: (id: number, step: number) =>
+  confirm: (id: number, step: number, recipientEmails?: string[]) =>
     request<WorkflowStepDto[]>(`/api/forms/${id}/workflow/confirm?step=${step}`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify({ recipientEmails: recipientEmails ?? [] }),
     }),
-  reject: (id: number, step: number) =>
+  reject: (id: number, step: number, comment?: string, recipientEmails?: string[]) =>
     request<WorkflowStepDto[]>(`/api/forms/${id}/workflow/reject?step=${step}`, {
       method: "POST",
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        comment: comment ?? null,
+        recipientEmails: recipientEmails ?? [],
+      }),
     }),
+  adminRejectLastStep: (formId: number) =>
+    request<void>(`/api/forms/${formId}/workflow/admin-reject`, { method: "POST" }),
 };
 
 export type PropertySearchResult = {

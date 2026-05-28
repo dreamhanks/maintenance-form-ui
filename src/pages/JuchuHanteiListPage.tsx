@@ -7,7 +7,7 @@ import ContractActionPanel from "../components/ContractActionPanel";
 import LoadingSpinner from "../components/LoadingSpinner";
 import TopNavBar from "../components/layout/TopNavBar";
 import { fetchJuchuColumnValues, fetchJuchuRows } from "../api/juchuApi";
-import { judgmentApi, formApi } from "../form/api";
+import { judgmentApi, formApi, workflowApi } from "../form/api";
 import { useAuth } from "../auth/AuthContext";
 import { JuchuRow } from "../types";
 import { API_BASE } from "../config";
@@ -41,6 +41,7 @@ export default function JuchuHanteiListPage() {
   const [pendingAdditionalCode, setPendingAdditionalCode] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showAdminRejectDialog, setShowAdminRejectDialog] = useState<boolean>(false);
 
   const requestIdRef = useRef(0);
 
@@ -321,6 +322,20 @@ export default function JuchuHanteiListPage() {
     }
   };
 
+  const handleAdminRejectForms = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map((formId) => workflowApi.adminRejectLastStep(Number(formId)))
+      );
+      setSelectedIds([]);
+      setShowAdminRejectDialog(false);
+      loadInitial();
+      toast.success("差戻しました");
+    } catch {
+      toast.error("差戻に失敗しました");
+    }
+  };
+
   const canJudge =
     user?.role === "大パ担当者" ||
     user?.role === "大パ管理職" ||
@@ -362,6 +377,16 @@ export default function JuchuHanteiListPage() {
                 className="rounded-xl border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 削除
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowAdminRejectDialog(true)}
+                disabled={selectedIds.length === 0}
+                className="rounded-xl border border-orange-300 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                差戻
               </button>
             )}
             <button
@@ -587,6 +612,41 @@ export default function JuchuHanteiListPage() {
                 className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
               >
                 削除する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showAdminRejectDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">ワークフロー差戻</div>
+            <div className="mt-3 text-sm text-slate-700">
+              以下の{selectedIds.length}件を差戻します。ワークフローが再開されます。
+            </div>
+            <ul className="mt-2 max-h-40 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {rows
+                .filter((r) => selectedIds.includes(r.formId))
+                .map((r) => (
+                  <li key={r.formId} className="py-0.5 border-b border-slate-100 last:border-0">
+                    {r.propertyCodeDisplay}
+                  </li>
+                ))}
+            </ul>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAdminRejectDialog(false)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleAdminRejectForms}
+                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+              >
+                差戻する
               </button>
             </div>
           </div>

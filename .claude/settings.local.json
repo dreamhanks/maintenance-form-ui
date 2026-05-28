@@ -10,7 +10,9 @@
       "Bash(\"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/mvnw.cmd\" -f \"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/pom.xml\" compile)",
       "Bash(\"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/mvnw.cmd\" -f \"c:/Users/eltad/workspace/maintenance-form/backend/form-ui/pom.xml\" clean compile)",
       "Bash(find c:/Users/eltad/workspace/maintenance-form/backend -type f -name \"FormService.java\" 2>&1)",
-      "Read(//c/Users/eltad/workspace/maintenance-form/backend/**)"
+      "Read(//c/Users/eltad/workspace/maintenance-form/backend/**)",
+      "PowerShell(npx tsc -b --noEmit 2>&1 | Select-Object -First 40)",
+      "PowerShell(npx tsc -b --noEmit 2>&1 | Select-Object -First 40; \"EXIT: $LASTEXITCODE\")"
     ]
   }
 }

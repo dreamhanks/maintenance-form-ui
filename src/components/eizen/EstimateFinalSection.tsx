@@ -149,11 +149,10 @@ export default function EstimateFinalSection(props: Props) {
         <fieldset disabled={props.showOnlyDaipaFinal || props.showOnlyDaipaMitsumori || props.showOnlyDaipaManagerConfirm || props.showOnlyDaipaFinalAndRequest} className="contents">
         <LabelCell>見積書</LabelCell>
         <div className="col-span-2 grid grid-cols-12">
-          <div className="col-span-6 border border-slate-400 px-3 pt-3">見積書添付</div>
-          <ValueCell className="col-span-6 flex flex-col items-center justify-center border border-slate-400">
+          <ValueCell className="col-span-12 flex flex-col items-center justify-center border border-slate-400">
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={props.maintenanceEstimateAttach} onChange={(e) => props.onFileCheckChange("mitsumori_mitstumosho", e.target.checked, props.setMaintenanceEstimateAttach)} className="h-5 w-5 rounded border-slate-400 text-[#17375E] focus:ring-[#17375E]" />
-              <div>見積書</div>
+              <div>見積書添付</div>
               <HiddenFileInput fieldKey="mitsumori_mitstumosho" fileInputRefs={props.fileInputRefs} onFileSelected={props.onFileSelected} setChecked={props.setMaintenanceEstimateAttach} />
             </div>
             <FileLink fieldKey="mitsumori_mitstumosho" attachments={props.attachments} getAttachmentUrl={props.getAttachmentUrl} />
