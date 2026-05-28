@@ -2,11 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import AppPageLayout from "../components/AppPageLayout";
-import JaDatePicker from "../components/JaDatePicker";
 import KeiyakuTable from "../components/KeiyakuTable";
 import LoadingSpinner from "../components/LoadingSpinner";
 import TopNavBar from "../components/layout/TopNavBar";
-import { fetchKeiyakuColumnValues, fetchKeiyakuRows, exportKeiyakuCsv, KeiyakuCsvRow } from "../api/keiyakuApi";
+import { fetchKeiyakuColumnValues, fetchKeiyakuRows, getCsvCount, buildCsvStreamUrl } from "../api/keiyakuApi";
 import { useAuth } from "../auth/AuthContext";
 import { KeiyakuRow } from "../types";
 import { API_BASE } from "../config";
@@ -29,9 +28,9 @@ export default function KeiyakuListPage() {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-  const [csvFrom, setCsvFrom] = useState("");
-  const [csvTo, setCsvTo] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [csvRowCount, setCsvRowCount] = useState<number>(0);
+  const [showCsvWarningDialog, setShowCsvWarningDialog] = useState<boolean>(false);
 
   const requestIdRef = useRef(0);
 
@@ -58,78 +57,52 @@ export default function KeiyakuListPage() {
 
   const handleExportCsv = async () => {
     if (isExporting) return;
-    if (!csvFrom || !csvTo) {
-      toast.error("開始日と終了日を入力してください");
-      return;
-    }
-    const from = new Date(csvFrom);
-    const to = new Date(csvTo);
-    if (from > to) {
-      toast.error("開始日は終了日より前にしてください");
-      return;
-    }
-    const limit = new Date(csvFrom);
-    limit.setFullYear(limit.getFullYear() + 3);
-    if (to > limit) {
-      toast.error("期間は3年以内で指定してください");
-      return;
-    }
     setIsExporting(true);
     try {
-      const rows: KeiyakuCsvRow[] = await exportKeiyakuCsv({
-        contractDateFrom: csvFrom,
-        contractDateTo: csvTo,
-      });
+      const count = await getCsvCount();
+      if (count > 10000) {
+        setCsvRowCount(count);
+        setShowCsvWarningDialog(true);
+        return;
+      }
+      await doExportCsv();
+    } catch {
+      toast.error("CSV書き出しに失敗しました");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
-      const csvHeaders = [
-        "物件CD",
-        "お施主様名",
-        "建物名称",
-        "営業所",
-        "契約日",
-      ];
+  const doExportCsv = async () => {
+    const url = buildCsvStreamUrl();
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const ts =
+      now.getFullYear() +
+      pad(now.getMonth() + 1) +
+      pad(now.getDate()) + "_" +
+      pad(now.getHours()) +
+      pad(now.getMinutes()) +
+      pad(now.getSeconds());
+    a.href = blobUrl;
+    a.download = `契約済みリスト_${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+    toast.success("CSV書き出しが完了しました");
+  };
 
-      const esc = (v: unknown) => {
-        const s = v == null
-          ? ""
-          : String(v)
-              .replace(/\n/g, " ")
-              .replace(/\r/g, "")
-              .replace(/"/g, '""');
-        return `"${s}"`;
-      };
-
-      const lines: string[] = [
-        csvHeaders.map(esc).join(","),
-        ...rows.map((row) => [
-          row.propertyCodeDisplay,
-          row.ownerName,
-          row.buildingName,
-          row.branchName,
-          row.contractDate,
-        ].map(esc).join(",")),
-      ];
-
-      const content = "﻿" + lines.join("\r\n");
-      const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const now = new Date();
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const ts =
-        now.getFullYear() +
-        pad(now.getMonth() + 1) +
-        pad(now.getDate()) + "_" +
-        pad(now.getHours()) +
-        pad(now.getMinutes()) +
-        pad(now.getSeconds());
-      a.href = url;
-      a.download = `契約済みリスト_${ts}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`${rows.length}件を書き出しました`);
+  const handleCsvWarningConfirmed = async () => {
+    setShowCsvWarningDialog(false);
+    setIsExporting(true);
+    try {
+      await doExportCsv();
     } catch {
       toast.error("CSV書き出しに失敗しました");
     } finally {
@@ -242,29 +215,14 @@ export default function KeiyakuListPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5">
-              <span className="text-xs font-semibold text-blue-700 whitespace-nowrap">契約日</span>
-              <JaDatePicker
-                value={csvFrom}
-                onChange={setCsvFrom}
-                className="text-xs border border-blue-200 rounded px-2 py-1 bg-white text-slate-700"
-              />
-              <span className="text-xs text-blue-700">〜</span>
-              <JaDatePicker
-                value={csvTo}
-                onChange={setCsvTo}
-                className="text-xs border border-blue-200 rounded px-2 py-1 bg-white text-slate-700"
-              />
-              <button
-                type="button"
-                onClick={handleExportCsv}
-                disabled={isExporting || !csvFrom || !csvTo}
-                className="rounded-lg border border-blue-300 bg-white px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isExporting ? "書き出し中..." : "CSV書き出し"}
-              </button>
-              <span className="text-[10px] text-blue-400 whitespace-nowrap">※最大3年</span>
-            </div>
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={isExporting}
+              className="rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isExporting ? "書き出し中..." : "CSV書き出し"}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -302,6 +260,39 @@ export default function KeiyakuListPage() {
           onLoadMore={loadMore}
           onRowClick={(id) => nav(`/form/${id}`, { state: { from: "/keiyaku", fromLabel: "契約済みリスト" } })}
         />
+      )}
+      {showCsvWarningDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-[420px] rounded-xl bg-white p-6 shadow-xl">
+            <div className="text-base font-semibold text-slate-900">CSV書き出し確認</div>
+            <div className="mt-3 text-sm text-slate-700">
+              {csvRowCount.toLocaleString()}件のデータがあります。
+              <br />
+              件数が多い場合、書き出しに時間がかかる場合があります。
+              <br />
+              続けますか？
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCsvWarningDialog(false);
+                  setIsExporting(false);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleCsvWarningConfirmed}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                書き出す
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppPageLayout>
   );

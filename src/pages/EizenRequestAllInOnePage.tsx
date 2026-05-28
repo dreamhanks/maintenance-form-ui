@@ -860,21 +860,9 @@ export default function EizenRequestAllInOnePage() {
   };
 
   const handleFileSelected = (fieldKey: string, file: File, setChecked: (v: boolean) => void) => {
-    const allowedTypes = [
-      'application/pdf',
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('PDFまたは画像ファイルのみアップロードできます');
-      return;
-    }
-    const MAX_SIZE = 30 * 1024 * 1024;
+    const MAX_SIZE = 20 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      toast.error('ファイルサイズは30MB以下にしてください');
+      toast.error('1ファイル20MB以下、一物件合計50MBまでアップロードできます');
       return;
     }
     // Store the File in memory only — uploaded to backend on save button click.

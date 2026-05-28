@@ -1,5 +1,6 @@
 import { judgmentApi, request } from "../form/api";
 import { KeiyakuRow, PagedResponse } from "../types";
+import { API_BASE } from "../config";
 
 const KEIYAKU_JUDGMENT = "契約";
 
@@ -60,6 +61,19 @@ export async function exportKeiyakuCsv(params: {
   q.set("contractDateFrom", params.contractDateFrom);
   q.set("contractDateTo", params.contractDateTo);
   return request<KeiyakuCsvRow[]>(`/api/judgment/csv-export?${q}`);
+}
+
+export async function getCsvCount(): Promise<number> {
+  const q = new URLSearchParams();
+  q.set("judgment", KEIYAKU_JUDGMENT);
+  const res = await request<{ count: number }>(`/api/judgment/csv-count?${q}`);
+  return res.count;
+}
+
+export function buildCsvStreamUrl(): string {
+  const q = new URLSearchParams();
+  q.set("judgment", KEIYAKU_JUDGMENT);
+  return `${API_BASE}/api/judgment/csv-stream?${q}`;
 }
 
 export async function fetchKeiyakuColumnValues(

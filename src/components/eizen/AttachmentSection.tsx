@@ -57,7 +57,6 @@ function HiddenFileInput({ fieldKey, fileInputRefs, onFileSelected, setChecked }
   return (
     <input
       type="file"
-      accept="image/*,application/pdf"
       className="hidden"
       ref={(el) => { fileInputRefs.current[fieldKey] = el; }}
       onChange={(e) => {
