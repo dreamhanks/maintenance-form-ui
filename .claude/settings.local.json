@@ -12,7 +12,9 @@
       "Bash(find c:/Users/eltad/workspace/maintenance-form/backend -type f -name \"FormService.java\" 2>&1)",
       "Read(//c/Users/eltad/workspace/maintenance-form/backend/**)",
       "PowerShell(npx tsc -b --noEmit 2>&1 | Select-Object -First 40)",
-      "PowerShell(npx tsc -b --noEmit 2>&1 | Select-Object -First 40; \"EXIT: $LASTEXITCODE\")"
+      "PowerShell(npx tsc -b --noEmit 2>&1 | Select-Object -First 40; \"EXIT: $LASTEXITCODE\")",
+      "Bash(./mvnw -q -DskipTests compile)",
+      "PowerShell(Set-Location C:\\\\Users\\\\eltad\\\\workspace\\\\maintenance-form\\\\backend\\\\form-ui; .\\\\mvnw.cmd -q -DskipTests compile 2>&1 | Select-Object -Last 25; \"EXIT: $LASTEXITCODE\")"
     ]
   }
 }
